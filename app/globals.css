@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
+
+:root {
+  /* Newspaper Palette */
+  --newsprint: #f4f1ea;
+  --ink: #1a1a1a;
+  --faded-ink: #4a4a4a;
+  --red-accent: #8b0000;
+
+  --font-headline: 'Playfair Display', serif;
+  --font-body: 'Courier Prime', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: var(--newsprint);
+  color: var(--ink);
+  font-family: var(--font-body);
+  /* Subtle grain texture */
+  background-image:
+    radial-gradient(#d3cfc6 1px, transparent 1px);
+  background-size: 20px 20px;
+  min-height: 100vh;
+}
+
+/* Grouping borders */
+.slot-spot {
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  /* Left align */
+  padding-left: 1rem;
+  /* Add left padding */
+}
+
+.slot-dir.wind-group,
+.slot-dir.wave-group {
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Center these explicitly */
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  min-height: 100vh;
+  background: var(--newsprint);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Masthead */
+.masthead {
+  text-align: center;
+  border-bottom: 4px double var(--ink);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-family: var(--font-headline);
+  font-size: 3.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+.dateline {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 0.5rem 0;
+  font-family: var(--font-headline);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+/* Forecast Group */
+.forecast-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.day-block {
+  margin-bottom: 1rem;
+}
+
+.slot-header {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  /* Match slot-row grid */
+  display: grid;
+  grid-template-columns: 80px 200px 160px 60px 140px 60px 1fr;
+  gap: 1rem;
+}
+
+.day-header {
+  font-family: var(--font-headline);
+  font-size: 1.8rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+  position: sticky;
+  top: 0;
+  background: var(--newsprint);
+  z-index: 10;
+  color: var(--ink);
+}
+
+.slots-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--ink);
+}
+
+.slot-row {
+  display: grid;
+  grid-template-columns: 80px 200px 160px 60px 140px 60px 1fr;
+  /* Time | Spot | Wind | W.Dir | Wave | S.Dir | Epic */
+  align-items: stretch;
+  /* Stretch for full height borders */
+  padding: 0;
+  /* Remove padding from row, put on cells */
+  border-bottom: 1px solid #1a1a1a;
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.95rem;
+  background: transparent;
+}
+
+.slot-row>div {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  /* moved padding here */
+}
+
+.slot-row:last-child {
+  border-bottom: none;
+}
+
+.slot-time {
+  font-weight: 700;
+}
+
+.slot-spot {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.slot-wind .value,
+.slot-gust .value {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--ink);
+}
+
+.gust-part {
+  font-weight: 400;
+  font-size: 0.9em;
+  color: var(--faded-ink);
+  margin-left: 6px;
+}
+
+.slot-wind .unit,
+.slot-gust .unit {
+  font-size: 0.8rem;
+  margin-left: 4px;
+  color: var(--faded-ink);
+}
+
+.icon-main {
+  margin-right: 0.5rem;
+  color: var(--faded-ink);
+  stroke-width: 2.5px;
+}
+
+.slot-wind,
+.slot-wave {
+  display: flex;
+  align-items: center;
+}
+
+.slot-wave .period {
+  font-size: 0.9em;
+  color: var(--faded-ink);
+  margin-left: 6px;
+}
+
+.dir-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wave-dir {
+  margin-left: 8px;
+  position: relative;
+}
+
+.wave-dir::before {
+  content: '|';
+  color: var(--faded-ink);
+  margin-right: 8px;
+  font-weight: 300;
+}
+
+/* Epic Badge - Old School Stamp Style */
+.epic-row {
+  background-color: rgba(139, 0, 0, 0.05);
+  /* Faint red tint */
+}
+
+.epic-badge {
+  color: var(--red-accent);
+  border: 1.5px solid var(--red-accent);
+  padding: 0.15rem 0.4rem;
+  font-family: var(--font-headline);
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+  letter-spacing: 1px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem;
+  font-family: var(--font-headline);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--faded-ink);
+  border: 1px dashed var(--ink);
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+}
