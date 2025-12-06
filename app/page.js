@@ -43,7 +43,18 @@ export default async function Home() {
 
             slotsData.forEach(slot => {
                 // Enrich
-                const enriched = { ...slot, spotName: spot.name, spotId: spot._id };
+                const date = new Date(slot.timestamp);
+                const hourStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); // e.g. "15:00"
+
+                const isEpic = slot.speed >= 20 && (slot.gust - slot.speed <= 10);
+
+                const enriched = {
+                    ...slot,
+                    spotName: spot.name,
+                    spotId: spot._id,
+                    hour: hourStr,
+                    isEpic
+                };
 
                 // Apply Filter
                 if (config) {
@@ -85,9 +96,19 @@ export default async function Home() {
         return grouped[a][0].timestamp - grouped[b][0].timestamp;
     });
 
-    // Sort slots within days by timestamp
+    // Sort slots within days by timestamp and identify Ideal slot
     sortedDays.forEach(day => {
-        grouped[day].sort((a, b) => a.timestamp - b.timestamp);
+        const slots = grouped[day];
+        slots.sort((a, b) => a.timestamp - b.timestamp);
+
+        if (slots.length > 0) {
+            // Find max speed slot
+            const maxSpeed = Math.max(...slots.map(s => s.speed));
+            const idealSlot = slots.find(s => s.speed === maxSpeed);
+            if (idealSlot) {
+                idealSlot.isIdeal = true;
+            }
+        }
     });
 
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
@@ -119,31 +140,27 @@ export default async function Home() {
                                             <div className="slot-time">{slot.hour}</div>
                                             <div className="slot-spot">{slot.spotName}</div>
 
-                                            {/* Wind */}
-                                            <div className="slot-wind">
-                                                <Wind size={14} className="icon-main" />
-                                                <span>{Math.round(slot.speed)} <span className="gust-part">({Math.round(slot.gust)}*)</span></span>
-                                            </div>
-
-                                            {/* Wind Dir */}
-                                            <div className="slot-dir wind-group">
+                                            {/* Wind Group */}
+                                            <div className="slot-data-group wind-group">
+                                                <div className="metrics">
+                                                    <Wind size={14} className="icon-main" />
+                                                    <span>{Math.round(slot.speed)} kn <span className="gust-part">({Math.round(slot.gust)}*)</span></span>
+                                                </div>
                                                 <div className="dir-item">
-                                                    <div style={{ transform: `rotate(${slot.direction}deg)`, display: 'inline-block' }}>↑</div>
+                                                    <div className="arrow-icon" style={{ transform: `rotate(${slot.direction}deg)`, display: 'inline-block' }}>↑</div>
                                                     <span className="dir-label">{getCardinalDirection(slot.direction + 180)}</span>
                                                 </div>
                                             </div>
 
-                                            {/* Wave */}
-                                            <div className="slot-wave">
-                                                <Waves size={14} className="icon-main" />
-                                                <span>{slot.waveHeight ? slot.waveHeight.toFixed(1) : '-'}m <span className="period">{slot.wavePeriod || 0}s</span></span>
-                                            </div>
-
-                                            {/* Wave Dir */}
-                                            <div className="slot-dir wave-group">
+                                            {/* Wave Group */}
+                                            <div className="slot-data-group wave-group">
+                                                <div className="metrics">
+                                                    <Waves size={14} className="icon-main" />
+                                                    <span>{slot.waveHeight ? slot.waveHeight.toFixed(1) : '-'}m <span className="period">({slot.wavePeriod || 0}s)</span></span>
+                                                </div>
                                                 {slot.waveDirection ? (
-                                                    <div className="dir-item wave-dir">
-                                                        <div style={{ transform: `rotate(${slot.waveDirection}deg)`, display: 'inline-block' }}>↑</div>
+                                                    <div className="dir-item">
+                                                        <div className="arrow-icon" style={{ transform: `rotate(${slot.waveDirection}deg)`, display: 'inline-block' }}>↑</div>
                                                         <span className="dir-label">{getCardinalDirection(slot.waveDirection + 180)}</span>
                                                     </div>
                                                 ) : <div className="text-gray-300">-</div>}
@@ -152,7 +169,6 @@ export default async function Home() {
                                             <div className="slot-epic">
                                                 {slot.isEpic && (
                                                     <div className="epic-badge">
-                                                        <Flame size={14} color="#8B0000" fill="#8B0000" style={{ marginRight: '4px' }} />
                                                         EPIC
                                                     </div>
                                                 )}
