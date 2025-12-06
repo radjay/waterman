@@ -1,0 +1,25 @@
+{
+  "name": "waterman",
+  "version": "1.0.0",
+  "description": "Waterman is a watersports monitoring system that grabs weather forecasts and notifies users when conditions will suit their needs.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next dev",
+    "start": "next start",
+    "lint": "next lint",
+    "scrape": "node scripts/scrape.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convex": "^1.30.0",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.556.0",
+    "next": "^16.0.7",
+    "puppeteer": "^24.32.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  }
+}
