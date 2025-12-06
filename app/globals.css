@@ -1,225 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
 
-:root {
-  /* Newspaper Palette */
-  --newsprint: #f4f1ea;
-  --ink: #1a1a1a;
-  --faded-ink: #4a4a4a;
-  --red-accent: #8b0000;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  --font-headline: 'Playfair Display', serif;
-  --font-body: 'Courier Prime', monospace;
+@layer base {
+  * {
+    @apply box-border p-0 m-0;
+  }
+
+  body {
+    @apply bg-newsprint text-ink font-body min-h-screen;
+    /* Subtle grain texture */
+    background-image: radial-gradient(#d3cfc6 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+@layer components {
+  .slot-spot {
+    @apply h-full flex items-center justify-start pl-4;
+  }
 
-body {
-  background-color: var(--newsprint);
-  color: var(--ink);
-  font-family: var(--font-body);
-  /* Subtle grain texture */
-  background-image:
-    radial-gradient(#d3cfc6 1px, transparent 1px);
-  background-size: 20px 20px;
-  min-height: 100vh;
-}
+  .slot-data-group {
+    @apply flex items-center justify-start gap-6;
+  }
 
-/* Grouping borders */
-.slot-spot {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  /* Left align */
-  padding-left: 1rem;
-}
+  .metrics {
+    @apply flex items-center min-w-[90px];
+  }
 
-.slot-data-group {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 1.5rem;
-}
+  .slot-row > div {
+    @apply flex items-center py-2;
+  }
 
-.metrics {
-  display: flex;
-  align-items: center;
-  min-width: 90px;
-}
+  .slot-row:last-child {
+    @apply border-b-0;
+  }
 
-.container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem;
-  border-left: 1px solid rgba(0, 0, 0, 0.1);
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
-  min-height: 100vh;
-  background: var(--newsprint);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-}
+  .is-ideal {
+    @apply relative;
+    background-color: rgba(254, 243, 199, 0.33);
+  }
 
-/* Masthead */
-.masthead {
-  text-align: center;
-  border-bottom: 4px double var(--ink);
-  padding-bottom: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.title {
-  font-family: var(--font-headline);
-  font-size: 3.5rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -2px;
-  line-height: 1;
-  margin-bottom: 0.5rem;
-  color: var(--ink);
-}
-
-.dateline {
-  display: flex;
-  justify-content: space-between;
-  border-top: 1px solid var(--ink);
-  border-bottom: 1px solid var(--ink);
-  padding: 0.5rem 0;
-  font-family: var(--font-headline);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.9rem;
-}
-
-/* Forecast Group */
-.forecast-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.day-block {
-  margin-bottom: 1rem;
-}
-
-.slot-header {
-  font-family: var(--font-headline);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--ink);
-  margin-bottom: 8px;
-  letter-spacing: 0.05em;
-  /* Match slot-row grid */
-  display: grid;
-  grid-template-columns: 80px 240px 1fr 1fr 60px;
-  gap: 1rem;
-}
-
-.day-header {
-  font-family: var(--font-headline);
-  font-size: 1.8rem;
-  font-weight: 700;
-  border-bottom: 2px solid var(--ink);
-  margin-bottom: 1rem;
-  padding-bottom: 0.25rem;
-  position: sticky;
-  top: 0;
-  background: var(--newsprint);
-  z-index: 10;
-  color: var(--ink);
-}
-
-.slots-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--ink);
-}
-
-.slot-row {
-  display: grid;
-  grid-template-columns: 80px 240px 1fr 1fr 60px;
-  /* Time | Spot | WindGroup | WaveGroup | Epic */
-  align-items: stretch;
-  /* Stretch for full height borders */
-  padding: 0;
-  /* Remove padding from row, put on cells */
-  border-bottom: 1px solid #1a1a1a;
-  font-family: 'Courier Prime', monospace;
-  font-size: 0.95rem;
-  background: transparent;
-}
-
-.slot-row>div {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  /* moved padding here */
-}
-
-.slot-row:last-child {
-  border-bottom: none;
-}
-
-.slot-time {
-  font-weight: 700;
-  color: var(--ink);
-  padding-left: 24px;
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-.slot-spot {
-  font-family: var(--font-headline);
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--ink);
-}
-
-.epic-badge {
-  color: var(--red-accent);
-  border: 1px solid var(--red-accent);
-  padding: 0 4px;
-  font-family: var(--font-headline);
-  font-weight: 700;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: inline-block;
-  line-height: 1.4;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 4rem;
-  font-family: var(--font-headline);
-  font-style: italic;
-  font-size: 1.5rem;
-  color: var(--faded-ink);
-  border: 1px dashed var(--ink);
-}
-
-.sticky {
-  position: sticky;
-  top: 0;
-}
-
-.is-ideal {
-  background-color: rgba(255, 235, 59, 0.15);
-  /* Subtle yellow highlight */
-  position: relative;
-}
-
-.is-ideal::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background-color: #ffd700;
+  .is-ideal::after {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-1;
+    background-color: #ffd700;
+  }
 }
