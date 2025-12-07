@@ -9,8 +9,10 @@
  */
 
 import type * as fixConfig from "../fixConfig.js";
+import type * as migrate from "../migrate.js";
 import type * as seed from "../seed.js";
 import type * as spots from "../spots.js";
+import type * as updateCarcavelosConfig from "../updateCarcavelosConfig.js";
 import type * as updateStats from "../updateStats.js";
 
 import type {
@@ -21,8 +23,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   fixConfig: typeof fixConfig;
+  migrate: typeof migrate;
   seed: typeof seed;
   spots: typeof spots;
+  updateCarcavelosConfig: typeof updateCarcavelosConfig;
   updateStats: typeof updateStats;
 }>;
 

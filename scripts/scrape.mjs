@@ -30,19 +30,35 @@ async function main() {
     for (const spot of spots) {
         console.log(`\nSurfing to ${spot.name} (${spot.url})...`);
         try {
-            const slots = await getForecast(spot.url);
+            const slots = await getForecast(spot.url, spot._id);
             console.log(`   -> Found ${slots.length} slots.`);
 
-            // Map to DB schema (remove extra fields if any)
-            const dbSlots = slots.map(s => ({
-                timestamp: s.timestamp,
-                speed: s.speed,
-                gust: s.gust,
-                direction: s.direction,
-                waveHeight: s.waveHeight,
-                wavePeriod: s.wavePeriod,
-                waveDirection: s.waveDirection
-            }));
+            // Map to DB schema (remove extra fields if any, only include tide if not null)
+            // Include both forecast slots and tide-only entries
+            const dbSlots = slots.map(s => {
+                const slot = {
+                    timestamp: s.timestamp,
+                    speed: s.speed || 0,
+                    gust: s.gust || 0,
+                    direction: s.direction || 0,
+                    waveHeight: s.waveHeight || 0,
+                    wavePeriod: s.wavePeriod || 0,
+                    waveDirection: s.waveDirection || 0,
+                };
+                
+                // Only include tide fields if they have values
+                if (s.tideHeight !== null && s.tideHeight !== undefined) {
+                    slot.tideHeight = s.tideHeight;
+                }
+                if (s.tideType !== null && s.tideType !== undefined) {
+                    slot.tideType = s.tideType;
+                }
+                if (s.tideTime !== null && s.tideTime !== undefined) {
+                    slot.tideTime = s.tideTime;
+                }
+                
+                return slot;
+            });
 
             // Assuming 'suitableSlots' is intended to be 'dbSlots' or a filtered version of it
             // and 'convex' is intended to be 'client'.

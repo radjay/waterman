@@ -2,19 +2,130 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
-        return await ctx.db.query("spots").collect();
+    args: {
+        sports: v.optional(v.array(v.string())), // Filter by sports
+    },
+    handler: async (ctx, args) => {
+        const allSpots = await ctx.db.query("spots").collect();
+        
+        // If sports filter provided, only return spots that have at least one matching sport
+        if (args.sports && args.sports.length > 0) {
+            return allSpots.filter(spot => {
+                const spotSports = spot.sports || [];
+                return spotSports.length > 0 && spotSports.some(sport => args.sports!.includes(sport));
+            });
+        }
+        
+        return allSpots;
     },
 });
 
 export const getSpotConfig = query({
-    args: { spotId: v.id("spots") },
+    args: { 
+        spotId: v.id("spots"),
+        sport: v.string(), // Get config for specific sport
+    },
     handler: async (ctx, args) => {
         return await ctx.db
             .query("spotConfigs")
-            .filter((q) => q.eq(q.field("spotId"), args.spotId))
+            .filter((q) => 
+                q.and(
+                    q.eq(q.field("spotId"), args.spotId),
+                    q.eq(q.field("sport"), args.sport)
+                )
+            )
             .first();
+    }
+});
+
+export const getUserSpotConfig = query({
+    args: {
+        userId: v.string(),
+        spotId: v.id("spots"),
+        sport: v.string(),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("userSpotConfigs")
+            .withIndex("by_user_spot_sport", (q) =>
+                q.eq("userId", args.userId)
+                 .eq("spotId", args.spotId)
+                 .eq("sport", args.sport)
+            )
+            .first();
+    }
+});
+
+export const saveUserSpotConfig = mutation({
+    args: {
+        userId: v.string(),
+        spotId: v.id("spots"),
+        sport: v.string(),
+        minSpeed: v.optional(v.number()),
+        minGust: v.optional(v.number()),
+        directionFrom: v.optional(v.number()),
+        directionTo: v.optional(v.number()),
+        minSwellHeight: v.optional(v.number()),
+        maxSwellHeight: v.optional(v.number()),
+        swellDirectionFrom: v.optional(v.number()),
+        swellDirectionTo: v.optional(v.number()),
+        minPeriod: v.optional(v.number()),
+        optimalTide: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const existing = await ctx.db
+            .query("userSpotConfigs")
+            .withIndex("by_user_spot_sport", (q) =>
+                q.eq("userId", args.userId)
+                 .eq("spotId", args.spotId)
+                 .eq("sport", args.sport)
+            )
+            .first();
+
+        const config = {
+            userId: args.userId,
+            spotId: args.spotId,
+            sport: args.sport,
+            minSpeed: args.minSpeed,
+            minGust: args.minGust,
+            directionFrom: args.directionFrom,
+            directionTo: args.directionTo,
+            minSwellHeight: args.minSwellHeight,
+            maxSwellHeight: args.maxSwellHeight,
+            swellDirectionFrom: args.swellDirectionFrom,
+            swellDirectionTo: args.swellDirectionTo,
+            minPeriod: args.minPeriod,
+            optimalTide: args.optimalTide,
+        };
+
+        if (existing) {
+            await ctx.db.patch(existing._id, config);
+            return existing._id;
+        } else {
+            return await ctx.db.insert("userSpotConfigs", config);
+        }
+    }
+});
+
+export const deleteUserSpotConfig = mutation({
+    args: {
+        userId: v.string(),
+        spotId: v.id("spots"),
+        sport: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const existing = await ctx.db
+            .query("userSpotConfigs")
+            .withIndex("by_user_spot_sport", (q) =>
+                q.eq("userId", args.userId)
+                 .eq("spotId", args.spotId)
+                 .eq("sport", args.sport)
+            )
+            .first();
+
+        if (existing) {
+            await ctx.db.delete(existing._id);
+        }
     }
 });
 
@@ -30,6 +141,9 @@ export const saveForecastSlots = mutation({
             waveHeight: v.optional(v.number()),
             wavePeriod: v.optional(v.number()),
             waveDirection: v.optional(v.number()),
+            tideHeight: v.optional(v.number()),
+            tideType: v.optional(v.string()),
+            tideTime: v.optional(v.number()),
         }))
     },
     handler: async (ctx, args) => {
@@ -68,18 +182,30 @@ export const addSpot = mutation({
     args: {
         name: v.string(),
         url: v.string(),
+        country: v.optional(v.string()),
+        sports: v.array(v.string()),
         configs: v.array(v.object({
             sport: v.string(),
-            minSpeed: v.number(),
-            minGust: v.number(),
-            directionFrom: v.number(),
-            directionTo: v.number(),
+            // Wingfoiling
+            minSpeed: v.optional(v.number()),
+            minGust: v.optional(v.number()),
+            directionFrom: v.optional(v.number()),
+            directionTo: v.optional(v.number()),
+            // Surfing
+            minSwellHeight: v.optional(v.number()),
+            maxSwellHeight: v.optional(v.number()),
+            swellDirectionFrom: v.optional(v.number()),
+            swellDirectionTo: v.optional(v.number()),
+            minPeriod: v.optional(v.number()),
+            optimalTide: v.optional(v.string()),
         }))
     },
     handler: async (ctx, args) => {
         const spotId = await ctx.db.insert("spots", {
             name: args.name,
-            url: args.url
+            url: args.url,
+            country: args.country,
+            sports: args.sports,
         });
 
         for (const config of args.configs) {

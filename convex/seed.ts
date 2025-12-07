@@ -7,12 +7,13 @@ export const seedSpots = mutation({
         const cascaisId = await ctx.db.insert("spots", {
             name: "Marina de Cascais",
             url: "https://windy.app/forecast2/spot/8512151/Marina+de+Cascais",
-            country: "Portugal"
+            country: "Portugal",
+            sports: ["wingfoil"]
         });
 
         await ctx.db.insert("spotConfigs", {
             spotId: cascaisId,
-            sport: "Wingfoil",
+            sport: "wingfoil",
             minSpeed: 15,
             minGust: 18,
             directionFrom: 315, // NW
@@ -23,18 +24,38 @@ export const seedSpots = mutation({
         const lagoaId = await ctx.db.insert("spots", {
             name: "Lagoa da Albufeira",
             url: "https://windy.app/forecast2/spot/8512085/Lagoa+de+Albufeira+kitesurfing",
-            country: "Portugal"
+            country: "Portugal",
+            sports: ["wingfoil"]
         });
 
         await ctx.db.insert("spotConfigs", {
             spotId: lagoaId,
-            sport: "Wingfoil",
+            sport: "wingfoil",
             minSpeed: 15,
             minGust: 18,
             directionFrom: 315,
             directionTo: 135,
         });
 
-        return "Seeded 2 spots";
+        // 3. Carcavelos (Surf spot)
+        const carcavelosId = await ctx.db.insert("spots", {
+            name: "Carcavelos",
+            url: "https://windy.app/forecast2/spot/8512111/Carcavelos",
+            country: "Portugal",
+            sports: ["surfing"]
+        });
+
+        await ctx.db.insert("spotConfigs", {
+            spotId: carcavelosId,
+            sport: "surfing",
+            minSwellHeight: 1.0, // meters
+            maxSwellHeight: 4.0,
+            swellDirectionFrom: 200, // SW
+            swellDirectionTo: 280, // W
+            minPeriod: 8, // seconds
+            optimalTide: "both",
+        });
+
+        return "Seeded 3 spots (2 wingfoil, 1 surfing)";
     },
 });
