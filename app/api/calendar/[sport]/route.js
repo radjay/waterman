@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
+import { getCardinalDirection, getDisplayWindDirection } from "../../../../lib/utils";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -19,15 +20,6 @@ function escapeICalText(text) {
     .replace(/\n/g, "\\n");
 }
 
-// Helper to get cardinal direction
-function getCardinalDirection(degrees) {
-  const directions = [
-    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
-  ];
-  const index = Math.round(degrees / 22.5) % 16;
-  return directions[index];
-}
 
 // Helper to format time
 function formatTime(timestamp) {
@@ -75,7 +67,8 @@ export async function GET(request, { params }) {
       
       const spotName = slot.spot.name;
       const slotSport = slot.matchedSport || "watersports";
-      const windDir = getCardinalDirection(slot.direction);
+      // Use the same utility function as the web app for consistent wind direction display
+      const windDir = getDisplayWindDirection(slot.direction);
       
       // Build description with condition details
       const descriptionParts = [];

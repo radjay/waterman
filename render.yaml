@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: waterman
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+
+  - type: cron
+    name: waterman-scraper
+    schedule: "0 6,18 * * *"  # Run at 6 AM and 6 PM UTC daily
+    env: node
+    buildCommand: npm install
+    startCommand: node scripts/scrape.mjs
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+

@@ -3,7 +3,12 @@ import { api } from "../convex/_generated/api.js";
 import { getForecast } from "../lib/scraper.js";
 import dotenv from "dotenv";
 
-dotenv.config({ path: ".env.local" });
+// Try .env.local first (for local dev), then fall back to regular env vars (for production)
+try {
+  dotenv.config({ path: ".env.local" });
+} catch (e) {
+  // .env.local might not exist in production, that's fine
+}
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
