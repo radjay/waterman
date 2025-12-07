@@ -12,7 +12,7 @@ services:
     name: waterman-scraper
     schedule: "0 6,18 * * *"  # Run at 6 AM and 6 PM UTC daily
     env: node
-    buildCommand: npm install
+    buildCommand: npm install && npx puppeteer browsers install chrome
     startCommand: node scripts/scrape.mjs
     envVars:
       - key: NEXT_PUBLIC_CONVEX_URL

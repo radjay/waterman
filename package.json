@@ -1,6 +1,7 @@
 {
   "name": "waterman",
   "version": "1.0.0",
+  "type": "module",
   "description": "Waterman is a watersports monitoring system that grabs weather forecasts and notifies users when conditions will suit their needs.",
   "main": "index.js",
   "scripts": {
@@ -9,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "scrape": "node scripts/scrape.mjs"
+    "scrape": "node scripts/scrape.mjs",
+    "postinstall": "npx puppeteer browsers install chrome || true"
   },
   "keywords": [],
   "author": "",

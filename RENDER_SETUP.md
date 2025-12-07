@@ -13,13 +13,14 @@ Render supports cron jobs that can run on a schedule. Here's how to set it up:
    - Click "New +" → "Cron Job"
    - Name it: `waterman-scraper`
    - Environment: `Node`
-   - Build Command: `npm install`
+   - Build Command: `npm install && npx puppeteer browsers install chrome`
    - Start Command: `node scripts/scrape.mjs`
    - Schedule: `0 6,18 * * *` (runs at 6 AM and 6 PM UTC daily)
 
 2. **Set Environment Variables:**
    - Add `NEXT_PUBLIC_CONVEX_URL` environment variable
    - Value should be your Convex deployment URL
+   - (Optional) Add `SCRAPE_SECRET_TOKEN` if using the API endpoint for testing
 
 3. **Deploy:**
    - Connect to your GitHub repository
@@ -79,8 +80,25 @@ Before setting up the cron job, you can test the scraper using the API endpoint:
 
 ## Troubleshooting:
 
-- If Puppeteer fails, you may need to add Chrome dependencies. Render should handle this automatically, but if issues occur, you might need to use `puppeteer-core` with a custom Chrome installation.
+### Puppeteer Chrome Issues
+
+If you see "Could not find Chrome" errors:
+
+1. **The `postinstall` script should automatically install Chrome** during the build process. Make sure your build command includes `npm install`.
+
+2. **If Chrome still isn't found**, you can manually install it in the build command:
+   - Change Build Command to: `npm install && npx puppeteer browsers install chrome`
+
+3. **Alternative: Use system Chrome** (if available on Render):
+   - Add environment variable: `PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome` (or wherever Chrome is installed)
+   - You may need to install Chrome system-wide first
+
+4. **Check Render's system packages**: Render may have Chrome available system-wide. Check their documentation for available packages.
+
+### Other Issues
+
 - Check that `NEXT_PUBLIC_CONVEX_URL` is set correctly in your Render environment variables.
 - Monitor the cron job logs in Render dashboard to see if scraping is working.
 - If the API endpoint returns errors, check the Render service logs for detailed error messages.
+- The `postinstall` script runs `npx puppeteer browsers install chrome || true` - the `|| true` ensures the build doesn't fail if Chrome installation has issues, but you should check logs to ensure it actually installed.
 
