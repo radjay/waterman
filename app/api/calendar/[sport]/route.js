@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
+import { api } from "../../../../convex/_generated/api";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -39,11 +39,18 @@ function formatTime(timestamp) {
   });
 }
 
-export async function GET(request) {
+export async function GET(request, { params }) {
   try {
-    // Get ideal slots from Convex
+    // Get sport from URL path parameter
+    const sportParam = params?.sport || "wingfoil";
+    
+    // Validate sport parameter
+    const validSports = ["wingfoil", "surfing"];
+    const sport = validSports.includes(sportParam) ? sportParam : "wingfoil";
+    
+    // Get ideal slots from Convex for the specific sport
     const idealSlots = await client.query(api.calendar.getIdealSlots, {
-      sports: ["wingfoil", "surfing"], // Default sports
+      sports: [sport],
     });
 
     // Generate iCal content
@@ -55,8 +62,9 @@ export async function GET(request) {
     lines.push("PRODID:-//Waterman//Ideal Conditions Calendar//EN");
     lines.push("CALSCALE:GREGORIAN");
     lines.push("METHOD:PUBLISH");
-    lines.push("X-WR-CALNAME:Waterman Ideal Conditions");
-    lines.push("X-WR-CALDESC:Calendar feed for ideal watersports conditions");
+    const sportName = sport === "wingfoil" ? "Wingfoil" : "Surfing";
+    lines.push(`X-WR-CALNAME:Waterman ${sportName} Ideal Conditions`);
+    lines.push(`X-WR-CALDESC:Calendar feed for ideal ${sportName.toLowerCase()} conditions`);
     lines.push("X-WR-TIMEZONE:UTC");
 
     // Generate events for each ideal slot
@@ -66,13 +74,13 @@ export async function GET(request) {
       const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
       
       const spotName = slot.spot.name;
-      const sport = slot.matchedSport || "watersports";
+      const slotSport = slot.matchedSport || "watersports";
       const windDir = getCardinalDirection(slot.direction);
       
       // Build description with condition details
       const descriptionParts = [];
       descriptionParts.push(`Spot: ${spotName}`);
-      descriptionParts.push(`Sport: ${sport}`);
+      descriptionParts.push(`Sport: ${slotSport}`);
       descriptionParts.push(`Wind: ${slot.speed}kt (${slot.gust}kt gusts) from ${windDir}`);
       
       if (slot.waveHeight !== undefined && slot.waveHeight > 0) {
@@ -85,20 +93,63 @@ export async function GET(request) {
         descriptionParts.push(`Tide: ${slot.tideType} ${tideTime} ${tideHeight}`.trim());
       }
       
-      const description = descriptionParts.join("\\n");
-      const summary = `${spotName} - ${sport.charAt(0).toUpperCase() + sport.slice(1)}`;
+      // Join with actual newline, then escape
+      // escapeICalText will convert actual newlines to \n (backslash-n) for iCal format
+      const descriptionWithNewlines = descriptionParts.join("\n");
+      const summary = `${spotName} - ${slotSport.charAt(0).toUpperCase() + slotSport.slice(1)}`;
       
       // Generate unique ID for event
       const uid = `waterman-${slot.spot._id}-${slot.timestamp}@waterman.app`;
+      
+      // Helper to fold long lines (iCal requires lines to be max 75 chars, folded with space)
+      function foldICalLine(field, value) {
+        const maxLength = 75;
+        const prefix = `${field}:`;
+        const availableLength = maxLength - prefix.length;
+        
+        if (value.length <= availableLength) {
+          return [`${prefix}${value}`];
+        }
+        
+        const lines = [];
+        let remaining = value;
+        let isFirst = true;
+        
+        while (remaining.length > 0) {
+          if (isFirst) {
+            const chunk = remaining.substring(0, availableLength);
+            lines.push(`${prefix}${chunk}`);
+            remaining = remaining.substring(availableLength);
+            isFirst = false;
+          } else {
+            const chunk = remaining.substring(0, maxLength - 1);
+            lines.push(` ${chunk}`); // Space for folding continuation
+            remaining = remaining.substring(maxLength - 1);
+          }
+        }
+        
+        return lines;
+      }
       
       lines.push("BEGIN:VEVENT");
       lines.push(`UID:${uid}`);
       lines.push(`DTSTART:${formatICalDate(startDate)}`);
       lines.push(`DTEND:${formatICalDate(endDate)}`);
       lines.push(`DTSTAMP:${formatICalDate(new Date())}`);
-      lines.push(`SUMMARY:${escapeICalText(summary)}`);
-      lines.push(`DESCRIPTION:${escapeICalText(description)}`);
-      lines.push(`LOCATION:${escapeICalText(spotName)}`);
+      
+      // Fold summary
+      const summaryLines = foldICalLine("SUMMARY", escapeICalText(summary));
+      lines.push(...summaryLines);
+      
+      // Fold description - join with actual newline, then escape
+      const descForICal = escapeICalText(descriptionWithNewlines);
+      const descLines = foldICalLine("DESCRIPTION", descForICal);
+      lines.push(...descLines);
+      
+      // Fold location
+      const locationLines = foldICalLine("LOCATION", escapeICalText(spotName));
+      lines.push(...locationLines);
+      
       lines.push("STATUS:CONFIRMED");
       lines.push("SEQUENCE:0");
       lines.push("END:VEVENT");
@@ -113,7 +164,7 @@ export async function GET(request) {
       status: 200,
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": "attachment; filename=waterman-calendar.ics",
+        "Content-Disposition": `attachment; filename=waterman-${sport}-calendar.ics`,
         "Cache-Control": "public, max-age=3600", // Cache for 1 hour
       },
     });

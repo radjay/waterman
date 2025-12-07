@@ -251,14 +251,24 @@ export default function Home() {
         <ListFilter size={18} className="text-ink" />
         <SportSelector onSportsChange={setSelectedSports} />
         <ShowFilter onFilterChange={setShowFilter} />
-        <a
-          href="/api/calendar"
-          className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
-          title="Subscribe to calendar feed"
-        >
-          <Calendar size={16} />
-          <span>Calendar</span>
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/calendar/wingfoil"
+            className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
+            title="Subscribe to wingfoil calendar feed"
+          >
+            <Calendar size={16} />
+            <span>Wing</span>
+          </a>
+          <a
+            href="/api/calendar/surfing"
+            className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
+            title="Subscribe to surfing calendar feed"
+          >
+            <Calendar size={16} />
+            <span>Surf</span>
+          </a>
+        </div>
       </div>
 
       {loading ? (
