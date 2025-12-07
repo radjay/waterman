@@ -6,14 +6,17 @@ import { api } from "../convex/_generated/api";
 import { MainLayout } from "../components/templates/MainLayout";
 import { Header } from "../components/organisms/Header";
 import { SportSelector } from "../components/organisms/SportSelector";
+import { ShowFilter } from "../components/organisms/ShowFilter";
 import { EmptyState } from "../components/organisms/EmptyState";
 import { DaySection } from "../components/organisms/DaySection";
 import { formatDate, formatTime } from "../lib/utils";
+import { ListFilter } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function Home() {
   const [selectedSports, setSelectedSports] = useState(["wingfoil"]);
+  const [showFilter, setShowFilter] = useState("best");
   const [spots, setSpots] = useState([]);
   const [allSlots, setAllSlots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({}); // Map spotId to spot data
@@ -73,81 +76,84 @@ export default function Home() {
                  (slot.gust === 0 || !slot.gust) &&
                  (slot.waveHeight === 0 || !slot.waveHeight)));
               
+              // Check if slot matches criteria (but don't filter yet - we'll filter based on showFilter)
+              let matchesCriteria = false;
+              let matchedSport = null;
+              
+              if (!isTideOnly) {
+                // Apply filtering based on sport configs for forecast slots
+                for (const config of configs) {
+                  if (!config) continue;
+
+                  if (config.sport === "wingfoil") {
+                    const isSpeed = slot.speed >= (config.minSpeed || 0);
+                    const isGust = slot.gust >= (config.minGust || 0);
+                    let isDir = false;
+                    if (config.directionFrom && config.directionTo) {
+                      if (config.directionFrom <= config.directionTo) {
+                        isDir =
+                          slot.direction >= config.directionFrom &&
+                          slot.direction <= config.directionTo;
+                      } else {
+                        isDir =
+                          slot.direction >= config.directionFrom ||
+                          slot.direction <= config.directionTo;
+                      }
+                    } else {
+                      isDir = true; // No direction filter
+                    }
+
+                    if (isSpeed && isGust && isDir) {
+                      matchesCriteria = true;
+                      matchedSport = "wingfoil";
+                      break;
+                    }
+                  } else if (config.sport === "surfing") {
+                    const hasSwell = slot.waveHeight >= (config.minSwellHeight || 0);
+                    const hasPeriod = slot.wavePeriod >= (config.minPeriod || 0);
+                    let isDir = true;
+                    if (config.swellDirectionFrom && config.swellDirectionTo) {
+                      if (config.swellDirectionFrom <= config.swellDirectionTo) {
+                        isDir =
+                          slot.waveDirection >= config.swellDirectionFrom &&
+                          slot.waveDirection <= config.swellDirectionTo;
+                      } else {
+                        isDir =
+                          slot.waveDirection >= config.swellDirectionFrom ||
+                          slot.waveDirection <= config.swellDirectionTo;
+                      }
+                    }
+
+                    // Check tide if specified
+                    let isTide = true;
+                    if (config.optimalTide && slot.tideType) {
+                      if (config.optimalTide === "high") {
+                        isTide = slot.tideType === "high";
+                      } else if (config.optimalTide === "low") {
+                        isTide = slot.tideType === "low";
+                      }
+                      // "both" means any tide is fine
+                    }
+
+                    if (hasSwell && hasPeriod && isDir && isTide) {
+                      matchesCriteria = true;
+                      matchedSport = "surfing";
+                      break;
+                    }
+                  }
+                }
+              }
+              
               return {
                 ...slot,
                 spotName: spot.name,
                 spotId: spot._id,
                 hour: hourStr,
                 isEpic,
-                sport: null, // Will determine based on config matching
+                sport: matchedSport,
                 isTideOnly: isTideOnly, // Mark tide-only entries
+                matchesCriteria: matchesCriteria || isTideOnly, // Tide-only entries always "match" for display purposes
               };
-            })
-            .filter((slot) => {
-              // Keep tide-only entries - they're needed for tide display
-              if (slot.isTideOnly) {
-                return true;
-              }
-              // Apply filtering based on sport configs for forecast slots
-              for (const config of configs) {
-                if (!config) continue;
-
-                if (config.sport === "wingfoil") {
-                  const isSpeed = slot.speed >= (config.minSpeed || 0);
-                  const isGust = slot.gust >= (config.minGust || 0);
-                  let isDir = false;
-                  if (config.directionFrom && config.directionTo) {
-                    if (config.directionFrom <= config.directionTo) {
-                      isDir =
-                        slot.direction >= config.directionFrom &&
-                        slot.direction <= config.directionTo;
-                    } else {
-                      isDir =
-                        slot.direction >= config.directionFrom ||
-                        slot.direction <= config.directionTo;
-                    }
-                  } else {
-                    isDir = true; // No direction filter
-                  }
-
-                  if (isSpeed && isGust && isDir) {
-                    slot.sport = "wingfoil";
-                    return true;
-                  }
-                } else if (config.sport === "surfing") {
-                  const hasSwell = slot.waveHeight >= (config.minSwellHeight || 0);
-                  const hasPeriod = slot.wavePeriod >= (config.minPeriod || 0);
-                  let isDir = true;
-                  if (config.swellDirectionFrom && config.swellDirectionTo) {
-                    if (config.swellDirectionFrom <= config.swellDirectionTo) {
-                      isDir =
-                        slot.waveDirection >= config.swellDirectionFrom &&
-                        slot.waveDirection <= config.swellDirectionTo;
-                    } else {
-                      isDir =
-                        slot.waveDirection >= config.swellDirectionFrom ||
-                        slot.waveDirection <= config.swellDirectionTo;
-                    }
-                  }
-
-                  // Check tide if specified
-                  let isTide = true;
-                  if (config.optimalTide && slot.tideType) {
-                    if (config.optimalTide === "high") {
-                      isTide = slot.tideType === "high";
-                    } else if (config.optimalTide === "low") {
-                      isTide = slot.tideType === "low";
-                    }
-                    // "both" means any tide is fine
-                  }
-
-                  if (hasSwell && hasPeriod && isDir && isTide) {
-                    slot.sport = "surfing";
-                    return true;
-                  }
-                }
-              }
-              return false;
             });
 
           return enrichedSlots;
@@ -168,9 +174,16 @@ export default function Home() {
     fetchData();
   }, [selectedSports]);
 
+  // Filter slots based on showFilter
+  // "best" shows all slots that match criteria
+  // "all" shows all slots regardless of criteria matching
+  const filteredSlots = showFilter === "best" 
+    ? allSlots.filter(slot => slot.matchesCriteria || slot.isTideOnly)
+    : allSlots; // "all" shows all slots (including those that don't match criteria)
+
   // Group by Date, then by Spot
   // Separate tide-only entries to include in tide section
-  const grouped = allSlots.reduce((acc, slot) => {
+  const grouped = filteredSlots.reduce((acc, slot) => {
     const dateObj = new Date(slot.timestamp);
     const dayStr = formatDate(dateObj);
 
@@ -184,15 +197,31 @@ export default function Home() {
     return acc;
   }, {});
 
-  // Sort days chronologically
-  const sortedDays = Object.keys(grouped).sort((a, b) => {
-    const firstSlotA = grouped[a][Object.keys(grouped[a])[0]]?.[0];
-    const firstSlotB = grouped[b][Object.keys(grouped[b])[0]]?.[0];
-    if (!firstSlotA || !firstSlotB) return 0;
-    return firstSlotA.timestamp - firstSlotB.timestamp;
-  });
+  // Filter out past dates and sort days chronologically
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const sortedDays = Object.keys(grouped)
+    .filter((day) => {
+      // Get the first slot for this day to check the date
+      const firstSlot = grouped[day][Object.keys(grouped[day])[0]]?.[0];
+      if (!firstSlot) return false;
+      
+      const slotDate = new Date(firstSlot.timestamp);
+      slotDate.setHours(0, 0, 0, 0); // Start of the slot's day
+      
+      // Only include today and future dates
+      return slotDate >= today;
+    })
+    .sort((a, b) => {
+      const firstSlotA = grouped[a][Object.keys(grouped[a])[0]]?.[0];
+      const firstSlotB = grouped[b][Object.keys(grouped[b])[0]]?.[0];
+      if (!firstSlotA || !firstSlotB) return 0;
+      return firstSlotA.timestamp - firstSlotB.timestamp;
+    });
 
   // Sort slots within each spot group and identify ideal slot
+  // Only mark as ideal if the slot matches criteria
   sortedDays.forEach((day) => {
     Object.keys(grouped[day]).forEach((spotId) => {
       // Skip tide-only entries for ideal slot calculation
@@ -201,10 +230,13 @@ export default function Home() {
       const slots = grouped[day][spotId];
       slots.sort((a, b) => a.timestamp - b.timestamp);
 
-      if (slots.length > 0) {
+      // Filter to only slots that match criteria
+      const matchingSlots = slots.filter(s => s.matchesCriteria && !s.isTideOnly);
+      
+      if (matchingSlots.length > 0) {
         // Find max speed slot for wingfoil, or best swell for surfing
-        const maxSpeed = Math.max(...slots.map((s) => s.speed || 0));
-        const idealSlot = slots.find((s) => s.speed === maxSpeed);
+        const maxSpeed = Math.max(...matchingSlots.map((s) => s.speed || 0));
+        const idealSlot = matchingSlots.find((s) => s.speed === maxSpeed);
         if (idealSlot) {
           idealSlot.isIdeal = true;
         }
@@ -215,7 +247,11 @@ export default function Home() {
   return (
     <MainLayout>
       <Header />
-      <SportSelector onSportsChange={setSelectedSports} />
+      <div className="flex items-center justify-end gap-2 mb-6">
+        <ListFilter size={18} className="text-ink" />
+        <SportSelector onSportsChange={setSelectedSports} />
+        <ShowFilter onFilterChange={setShowFilter} />
+      </div>
 
       {loading ? (
         <div className="text-center py-8 text-ink">Loading...</div>
@@ -223,15 +259,93 @@ export default function Home() {
         <EmptyState />
       ) : (
         <div className="flex flex-col gap-8">
-          {sortedDays.map((day) => (
-            <DaySection
-              key={day}
-              day={day}
-              spotsData={grouped[day]}
-              selectedSports={selectedSports}
-              spotsMap={spotsMap}
-            />
-          ))}
+          {sortedDays.map((day) => {
+            const dayData = grouped[day];
+            // Check if there are any forecast slots (not just tide-only entries)
+            const hasForecastSlots = Object.keys(dayData).some(spotId => {
+              if (spotId === '_tides') return false;
+              const slots = dayData[spotId] || [];
+              return slots.some(slot => !slot.isTideOnly);
+            });
+
+            if (!hasForecastSlots) {
+              // Get the actual date from any slot (including tide-only) to format properly
+              const getFormattedDay = () => {
+                // Try to find any slot with a timestamp
+                for (const spotId of Object.keys(dayData)) {
+                  if (spotId === '_tides') continue;
+                  const slots = dayData[spotId] || [];
+                  if (slots.length > 0) {
+                    const firstSlot = slots[0];
+                    if (firstSlot && firstSlot.timestamp) {
+                      const dateObj = new Date(firstSlot.timestamp);
+                      return dateObj.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      });
+                    }
+                  }
+                }
+                // Try tide entries
+                if (dayData._tides && dayData._tides.length > 0) {
+                  const firstTide = dayData._tides[0];
+                  if (firstTide && firstTide.tideTime) {
+                    const dateObj = new Date(firstTide.tideTime);
+                    return dateObj.toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    });
+                  }
+                }
+                // Parse the day string as fallback (format: "Mon, Dec 7")
+                try {
+                  const parts = day.split(', ');
+                  if (parts.length === 2) {
+                    const monthDay = parts[1].split(' ');
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const monthIndex = monthNames.indexOf(monthDay[0]);
+                    if (monthIndex !== -1) {
+                      const currentYear = new Date().getFullYear();
+                      const dateObj = new Date(currentYear, monthIndex, parseInt(monthDay[1]));
+                      return dateObj.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      });
+                    }
+                  }
+                } catch (e) {
+                  // If parsing fails, return original
+                }
+                // Final fallback to original format
+                return day;
+              };
+
+              return (
+                <div key={day} className="mb-4">
+                  <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-3 pb-1 text-ink pl-2">
+                    {getFormattedDay()}
+                  </div>
+                  <div className="text-left py-8 font-headline text-xl text-ink ml-2">
+                    No conditions
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <DaySection
+                key={day}
+                day={day}
+                spotsData={dayData}
+                selectedSports={selectedSports}
+                spotsMap={spotsMap}
+                showFilter={showFilter}
+              />
+            );
+          })}
         </div>
       )}
     </MainLayout>

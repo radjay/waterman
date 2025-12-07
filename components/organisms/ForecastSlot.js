@@ -3,13 +3,17 @@ import { WaveGroup } from "../molecules/WaveGroup";
 import { Badge } from "../atoms/Badge";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 
-export function ForecastSlot({ slot, nearbyTide, isSurfing = false, className = "" }) {
+export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter = "best", className = "" }) {
   return (
     <>
       {/* Desktop: Row layout */}
       <div
         className={`hidden md:grid grid-cols-[80px_1fr_1fr_100px_60px] items-stretch py-3 px-0 border-b border-ink font-body text-[0.95rem] ${
-          slot.isIdeal ? "is-ideal" : "bg-transparent"
+          showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
+            ? "bg-[rgba(134,239,172,0.15)]"
+            : slot.isIdeal
+            ? "bg-[rgba(134,239,172,0.3)]"
+            : "bg-transparent"
         } ${slot.isEpic ? "is-epic" : ""} ${className}`}
       >
         <div className="font-bold text-ink pl-3 flex items-center h-full">
@@ -53,8 +57,12 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, className = 
 
       {/* Mobile: Card layout */}
       <div
-        className={`md:hidden border-b border-ink p-4 bg-newsprint ${
-          slot.isIdeal ? "is-ideal" : ""
+        className={`md:hidden border-b border-ink p-4 ${
+          showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
+            ? "bg-[rgba(134,239,172,0.15)]"
+            : slot.isIdeal
+            ? "bg-[rgba(134,239,172,0.3)]"
+            : "bg-newsprint"
         } ${slot.isEpic ? "is-epic" : ""} ${className}`}
       >
         <div className="flex justify-between items-start mb-3">

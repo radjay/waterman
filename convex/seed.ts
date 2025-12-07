@@ -8,7 +8,9 @@ export const seedSpots = mutation({
             name: "Marina de Cascais",
             url: "https://windy.app/forecast2/spot/8512151/Marina+de+Cascais",
             country: "Portugal",
-            sports: ["wingfoil"]
+            sports: ["wingfoil"],
+            webcamUrl: "https://video-auth1.iol.pt/beachcam/praiadospescadores/playlist.m3u8",
+            webcamStreamSource: "iol"
         });
 
         await ctx.db.insert("spotConfigs", {
@@ -25,7 +27,9 @@ export const seedSpots = mutation({
             name: "Lagoa da Albufeira",
             url: "https://windy.app/forecast2/spot/8512085/Lagoa+de+Albufeira+kitesurfing",
             country: "Portugal",
-            sports: ["wingfoil"]
+            sports: ["wingfoil"],
+            webcamUrl: "https://video-auth1.iol.pt/beachcam/bclagoaalbufeira/playlist.m3u8",
+            webcamStreamSource: "iol"
         });
 
         await ctx.db.insert("spotConfigs", {
@@ -42,7 +46,9 @@ export const seedSpots = mutation({
             name: "Carcavelos",
             url: "https://windy.app/forecast2/spot/8512111/Carcavelos",
             country: "Portugal",
-            sports: ["surfing"]
+            sports: ["surfing"],
+            webcamUrl: "https://deliverys5.quanteec.com/contents/encodings/live/7dbfbd58-2c72-4c87-3135-3530-6d61-63-a1b9-8dc2ff272a5cd/media_0.m3u8",
+            webcamStreamSource: "quanteec"
         });
 
         await ctx.db.insert("spotConfigs", {

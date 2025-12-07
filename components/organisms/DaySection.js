@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { ForecastSlot } from "./ForecastSlot";
+import { WebcamModal } from "./WebcamModal";
+import { Video } from "lucide-react";
 
-export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {}, className = "" }) {
+export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {}, showFilter = "best", className = "" }) {
+  const [selectedWebcam, setSelectedWebcam] = useState(null);
   // Support both old format (slots array) and new format (spotsData object)
   const spots = spotsData || {};
   
@@ -110,10 +114,28 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
     }
   });
 
+  // Get the actual date from the first slot to format properly
+  const getFormattedDay = () => {
+    const firstSpotId = Object.keys(finalSpotsData).find(id => id !== '_tides');
+    if (firstSpotId && finalSpotsData[firstSpotId] && finalSpotsData[firstSpotId].length > 0) {
+      const firstSlot = finalSpotsData[firstSpotId].find(slot => !slot.isTideOnly);
+      if (firstSlot && firstSlot.timestamp) {
+        const dateObj = new Date(firstSlot.timestamp);
+        return dateObj.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        });
+      }
+    }
+    // Fallback to original format if we can't get the date
+    return day;
+  };
+
   return (
     <div className={`mb-4 ${className}`}>
-      <div className="font-headline text-[1.8rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-0 bg-newsprint z-10 text-ink">
-        {day.toUpperCase()}
+      <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-0 bg-newsprint z-10 text-ink pl-2">
+        {getFormattedDay()}
       </div>
       
       {spotIds.filter(id => id !== '_tides').map((spotId) => {
@@ -138,10 +160,22 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
         //   console.log(`Spot ${spotName} has ${spotTides.tides.length} tides`);
         // }
         
+        const webcamUrl = spot?.webcamUrl;
+        const webcamStreamSource = spot?.webcamStreamSource;
+        
         return (
           <div key={spotId} className="mb-6 last:mb-0">
-            <div className="font-headline text-[1.3rem] font-bold text-ink mb-2 px-2">
-              {spotName}
+            <div className="flex items-center gap-2 font-headline text-[1.3rem] font-bold text-ink mb-2 px-2">
+              <span>{spotName}</span>
+              {webcamUrl && (
+                <button
+                  onClick={() => setSelectedWebcam({ url: webcamUrl, name: spotName, streamSource: webcamStreamSource })}
+                  className="bg-[#e8ebe8] rounded-full p-1.5 hover:bg-[#dde0dd] transition-colors flex items-center justify-center"
+                  aria-label="View webcam"
+                >
+                  <Video size={18} className="text-black" />
+                </button>
+              )}
             </div>
             
             {/* Show message if no tide data */}
@@ -173,6 +207,7 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
                         slot={slot}
                         nearbyTide={nearbyTide}
                         isSurfing={isSurfingSpot}
+                        showFilter={showFilter}
                       />
                     );
                   });
@@ -181,6 +216,17 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
           </div>
         );
       })}
+      
+      {/* Webcam Modal */}
+      {selectedWebcam && (
+        <WebcamModal
+          isOpen={!!selectedWebcam}
+          onClose={() => setSelectedWebcam(null)}
+          webcamUrl={selectedWebcam.url}
+          spotName={selectedWebcam.name}
+          webcamStreamSource={selectedWebcam.streamSource}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,8 @@ export default defineSchema({
         url: v.string(),
         country: v.optional(v.string()),
         sports: v.optional(v.array(v.string())), // e.g. ["wingfoil", "surfing"] - optional for migration
+        webcamUrl: v.optional(v.string()), // URL to webcam feed
+        webcamStreamSource: v.optional(v.string()), // "quanteec" | "iol" - source of the webcam stream
     }),
     spotConfigs: defineTable({
         spotId: v.id("spots"),

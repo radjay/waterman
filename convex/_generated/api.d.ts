@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as addWebcams from "../addWebcams.js";
 import type * as fixConfig from "../fixConfig.js";
 import type * as migrate from "../migrate.js";
 import type * as seed from "../seed.js";
@@ -22,6 +23,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  addWebcams: typeof addWebcams;
   fixConfig: typeof fixConfig;
   migrate: typeof migrate;
   seed: typeof seed;
