@@ -9,6 +9,7 @@ export default defineSchema({
         sports: v.optional(v.array(v.string())), // e.g. ["wingfoil", "surfing"] - optional for migration
         webcamUrl: v.optional(v.string()), // URL to webcam feed
         webcamStreamSource: v.optional(v.string()), // "quanteec" | "iol" - source of the webcam stream
+        liveReportUrl: v.optional(v.string()), // URL to live wind report (e.g., Windguru station)
     }),
     spotConfigs: defineTable({
         spotId: v.id("spots"),

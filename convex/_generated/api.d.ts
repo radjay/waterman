@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as addLiveReports from "../addLiveReports.js";
 import type * as addWebcams from "../addWebcams.js";
 import type * as calendar from "../calendar.js";
 import type * as fixConfig from "../fixConfig.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  addLiveReports: typeof addLiveReports;
   addWebcams: typeof addWebcams;
   calendar: typeof calendar;
   fixConfig: typeof fixConfig;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ForecastSlot } from "./ForecastSlot";
 import { WebcamModal } from "./WebcamModal";
-import { Video } from "lucide-react";
+import { Video, ChartSpline } from "lucide-react";
 
 export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {}, showFilter = "best", className = "" }) {
   const [selectedWebcam, setSelectedWebcam] = useState(null);
@@ -162,20 +162,36 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
         
         const webcamUrl = spot?.webcamUrl;
         const webcamStreamSource = spot?.webcamStreamSource;
+        const liveReportUrl = spot?.liveReportUrl;
+        const isWindSport = spot && spot.sports && spot.sports.some(s => s === "wingfoil");
         
         return (
           <div key={spotId} className="mb-6 last:mb-0">
-            <div className="flex items-center gap-2 font-headline text-[1.3rem] font-bold text-ink mb-2 px-2">
+            <div className="flex items-center justify-between font-headline text-[1.3rem] font-bold text-ink mb-2 px-2">
               <span>{spotName}</span>
-              {webcamUrl && (
-                <button
-                  onClick={() => setSelectedWebcam({ url: webcamUrl, name: spotName, streamSource: webcamStreamSource })}
-                  className="bg-[#e8ebe8] rounded-full p-1.5 hover:bg-[#dde0dd] transition-colors flex items-center justify-center"
-                  aria-label="View webcam"
-                >
-                  <Video size={18} className="text-black" />
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {liveReportUrl && isWindSport && (
+                  <a
+                    href={liveReportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#e8ebe8] rounded-full p-1.5 hover:bg-[#dde0dd] transition-colors flex items-center justify-center"
+                    aria-label="View live wind report"
+                    title="Live wind report"
+                  >
+                    <ChartSpline size={18} className="text-black" />
+                  </a>
+                )}
+                {webcamUrl && (
+                  <button
+                    onClick={() => setSelectedWebcam({ url: webcamUrl, name: spotName, streamSource: webcamStreamSource })}
+                    className="bg-[#e8ebe8] rounded-full p-1.5 hover:bg-[#dde0dd] transition-colors flex items-center justify-center"
+                    aria-label="View webcam"
+                  >
+                    <Video size={18} className="text-black" />
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Show message if no tide data */}

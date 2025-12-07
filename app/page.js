@@ -9,8 +9,9 @@ import { SportSelector } from "../components/organisms/SportSelector";
 import { ShowFilter } from "../components/organisms/ShowFilter";
 import { EmptyState } from "../components/organisms/EmptyState";
 import { DaySection } from "../components/organisms/DaySection";
+import { Footer } from "../components/organisms/Footer";
 import { formatDate, formatTime } from "../lib/utils";
-import { ListFilter, Calendar } from "lucide-react";
+import { ListFilter } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -251,24 +252,6 @@ export default function Home() {
         <ListFilter size={18} className="text-ink" />
         <SportSelector onSportsChange={setSelectedSports} />
         <ShowFilter onFilterChange={setShowFilter} />
-        <div className="flex items-center gap-2">
-          <a
-            href="/api/calendar/wingfoil"
-            className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
-            title="Subscribe to wingfoil calendar feed"
-          >
-            <Calendar size={16} />
-            <span>Wing</span>
-          </a>
-          <a
-            href="/api/calendar/surfing"
-            className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
-            title="Subscribe to surfing calendar feed"
-          >
-            <Calendar size={16} />
-            <span>Surf</span>
-          </a>
-        </div>
       </div>
 
       {loading ? (
@@ -366,6 +349,7 @@ export default function Home() {
           })}
         </div>
       )}
+      <Footer />
     </MainLayout>
   );
 }

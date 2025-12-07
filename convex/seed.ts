@@ -10,7 +10,8 @@ export const seedSpots = mutation({
             country: "Portugal",
             sports: ["wingfoil"],
             webcamUrl: "https://video-auth1.iol.pt/beachcam/praiadospescadores/playlist.m3u8",
-            webcamStreamSource: "iol"
+            webcamStreamSource: "iol",
+            liveReportUrl: "https://www.windguru.cz/station/2329"
         });
 
         await ctx.db.insert("spotConfigs", {
