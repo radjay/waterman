@@ -10,7 +10,7 @@ import { ShowFilter } from "../components/organisms/ShowFilter";
 import { EmptyState } from "../components/organisms/EmptyState";
 import { DaySection } from "../components/organisms/DaySection";
 import { formatDate, formatTime } from "../lib/utils";
-import { ListFilter } from "lucide-react";
+import { ListFilter, Calendar } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -251,6 +251,14 @@ export default function Home() {
         <ListFilter size={18} className="text-ink" />
         <SportSelector onSportsChange={setSelectedSports} />
         <ShowFilter onFilterChange={setShowFilter} />
+        <a
+          href="/api/calendar"
+          className="flex items-center gap-1 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
+          title="Subscribe to calendar feed"
+        >
+          <Calendar size={16} />
+          <span>Calendar</span>
+        </a>
       </div>
 
       {loading ? (
