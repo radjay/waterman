@@ -180,6 +180,26 @@ export const getForecastSlots = query({
     }
 });
 
+export const getMostRecentScrapeTimestamp = query({
+    args: {},
+    handler: async (ctx) => {
+        // Get all successful scrapes
+        const allScrapes = await ctx.db.query("scrapes").collect();
+        const successfulScrapes = allScrapes.filter(s => s.isSuccessful);
+        
+        if (successfulScrapes.length === 0) {
+            return null;
+        }
+        
+        // Find the most recent successful scrape timestamp
+        const mostRecentTimestamp = Math.max(
+            ...successfulScrapes.map(s => s.scrapeTimestamp)
+        );
+        
+        return mostRecentTimestamp;
+    }
+});
+
 export const updateWindySpotId = mutation({
     args: {
         spotId: v.id("spots"),
@@ -217,5 +237,56 @@ export const addSpot = mutation({
             });
         }
         return spotId;
+    }
+});
+
+export const removeTodayScrapes = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Calculate start of today (midnight UTC)
+        const now = new Date();
+        const startOfToday = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0, 0, 0, 0
+        ));
+        const startOfTodayTimestamp = startOfToday.getTime();
+
+        // Find all scrapes from today
+        const allScrapes = await ctx.db.query("scrapes").collect();
+        const todayScrapes = allScrapes.filter(
+            scrape => scrape.scrapeTimestamp >= startOfTodayTimestamp
+        );
+
+        // Collect all scrape timestamps from today
+        const todayScrapeTimestamps = new Set(
+            todayScrapes.map(s => s.scrapeTimestamp)
+        );
+
+        // Delete all scrapes from today
+        let deletedScrapesCount = 0;
+        for (const scrape of todayScrapes) {
+            await ctx.db.delete(scrape._id);
+            deletedScrapesCount++;
+        }
+
+        // Delete all forecast_slots from today
+        const allSlots = await ctx.db.query("forecast_slots").collect();
+        const todaySlots = allSlots.filter(
+            slot => slot.scrapeTimestamp && todayScrapeTimestamps.has(slot.scrapeTimestamp)
+        );
+
+        let deletedSlotsCount = 0;
+        for (const slot of todaySlots) {
+            await ctx.db.delete(slot._id);
+            deletedSlotsCount++;
+        }
+
+        return {
+            deletedScrapesCount,
+            deletedSlotsCount,
+            message: `Removed ${deletedScrapesCount} scrapes and ${deletedSlotsCount} forecast slots from today`
+        };
     }
 });

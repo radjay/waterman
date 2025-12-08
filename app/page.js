@@ -22,6 +22,7 @@ export default function Home() {
   const [allSlots, setAllSlots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({}); // Map spotId to spot data
   const [loading, setLoading] = useState(true);
+  const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
 
   // Fetch spots filtered by selected sports
   useEffect(() => {
@@ -174,6 +175,10 @@ export default function Home() {
         // Include all slots (both forecast and tide-only) for grouping
         // Tide-only entries will be filtered out from display but used for tide matching
         setAllSlots(allFetchedSlots);
+
+        // Fetch most recent scrape timestamp
+        const scrapeTimestamp = await client.query(api.spots.getMostRecentScrapeTimestamp);
+        setMostRecentScrapeTimestamp(scrapeTimestamp);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -374,7 +379,7 @@ export default function Home() {
           })}
         </div>
       )}
-      <Footer />
+      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
     </MainLayout>
   );
 }
