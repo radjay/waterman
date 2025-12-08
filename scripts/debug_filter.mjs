@@ -29,17 +29,24 @@ async function main() {
         let passed = 0;
         let rejected = 0;
 
+        // Import direction range checking (note: this is a .mjs file, so we can't use ES6 imports easily)
+        // For now, we'll inline the function or use a simpler approach
+        function isDirectionInRange(direction, from, to) {
+            if (from === undefined || to === undefined) {
+                return true; // No direction filter
+            }
+            if (from <= to) {
+                return direction >= from && direction <= to;
+            } else {
+                return direction >= from || direction <= to;
+            }
+        }
+
         slots.forEach(slot => {
             // Simulate Logic
             const isSpeed = slot.speed >= config.minSpeed;
             const isGust = slot.gust >= config.minGust;
-
-            let isDir = false;
-            if (config.directionFrom <= config.directionTo) {
-                isDir = slot.direction >= config.directionFrom && slot.direction <= config.directionTo;
-            } else {
-                isDir = slot.direction >= config.directionFrom || slot.direction <= config.directionTo;
-            }
+            const isDir = isDirectionInRange(slot.direction, config.directionFrom, config.directionTo);
 
             // Check specific example case (Direction 0)
             if (slot.direction === 0) {

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ForecastSlot } from "./ForecastSlot";
 import { WebcamModal } from "../common/WebcamModal";
 import { Video, ChartSpline } from "lucide-react";
+import { findTideForSlot, collectTidesBySpot } from "../../lib/tides";
+import { formatFullDay } from "../../lib/utils";
 
 /**
  * DaySection component displays forecast slots grouped by day and spot.
@@ -43,91 +45,8 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
   // console.log("DaySection - finalSpotsData:", finalSpotsData);
   // console.log("DaySection - hasSurfing:", hasSurfing);
   
-  // Helper to find tide for a slot - show each tide only once
-  // A tide should be shown in a slot if:
-  // 1. It's between the current slot and the next slot, OR
-  // 2. It's between the previous slot and the current slot
-  const findTideForSlot = (slotTimestamp, nextSlotTimestamp, spotTides, usedTides) => {
-    if (!spotTides || spotTides.length === 0) return null;
-    
-    // Find tides that fit between current and next, or previous and current
-    let bestTide = null;
-    let bestDiff = Infinity;
-    
-    spotTides.forEach(tide => {
-      // Skip if this tide was already used
-      if (usedTides.has(tide.time)) return;
-      
-      const tideTime = tide.time;
-      
-      // Check if tide is between current and next slot
-      if (nextSlotTimestamp && tideTime >= slotTimestamp && tideTime < nextSlotTimestamp) {
-        const diff = tideTime - slotTimestamp;
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestTide = tide;
-        }
-      }
-      // Check if tide is between previous and current (tide is before current slot)
-      // We'll show it in the current slot if it's the closest one before
-      else if (tideTime < slotTimestamp) {
-        const diff = slotTimestamp - tideTime;
-        // Only consider if it's within 3 hours and closer than any other candidate
-        if (diff <= 3 * 60 * 60 * 1000 && diff < bestDiff) {
-          bestDiff = diff;
-          bestTide = tide;
-        }
-      }
-    });
-    
-    if (bestTide) {
-      usedTides.add(bestTide.time);
-      // Ensure type is preserved
-      return {
-        ...bestTide,
-        type: bestTide.type || (bestTide.height > 2 ? 'high' : 'low') // Fallback if type missing
-      };
-    }
-    return null;
-  };
-  
   // Get all tides grouped by spot
-  const tidesBySpot = {};
-  
-  // Collect all tides for each spot (from both forecast slots and tide-only entries)
-  Object.keys(finalSpotsData).forEach(spotId => {
-    if (spotId === '_tides') return;
-    const spotSlots = finalSpotsData[spotId];
-    
-    // Get tides from both forecast slots (that have tide data) and tide-only entries
-    const spotTides = spotSlots
-      .filter(s => s.tideTime && s.tideType) // Both regular slots with tide data and tide-only entries
-      .map(s => ({
-        time: s.tideTime,
-        type: s.tideType,
-        height: s.tideHeight,
-      }))
-      // Remove duplicates by time
-      .filter((tide, index, self) => 
-        index === self.findIndex(t => t.time === tide.time)
-      );
-    
-    if (spotTides.length > 0) {
-      const spotName = spotSlots.find(s => s.spotName)?.spotName || spotSlots[0]?.spotName || "Unknown Spot";
-      tidesBySpot[spotId] = {
-        spotName,
-        tides: spotTides.map(tide => {
-          const date = new Date(tide.time);
-          const hours = date.getHours().toString().padStart(2, '0');
-          const minutes = date.getMinutes().toString().padStart(2, '0');
-          return {
-            ...tide,
-            timeStr: `${hours}:${minutes}`
-          };
-        }).sort((a, b) => a.time - b.time) // Sort by time
-      };
-    }
-  });
+  const tidesBySpot = collectTidesBySpot(finalSpotsData);
 
   // Get the actual date from the first slot to format properly
   const getFormattedDay = () => {
@@ -135,12 +54,7 @@ export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {
     if (firstSpotId && finalSpotsData[firstSpotId] && finalSpotsData[firstSpotId].length > 0) {
       const firstSlot = finalSpotsData[firstSpotId].find(slot => !slot.isTideOnly);
       if (firstSlot && firstSlot.timestamp) {
-        const dateObj = new Date(firstSlot.timestamp);
-        return dateObj.toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        });
+        return formatFullDay(firstSlot.timestamp);
       }
     }
     // Fallback to original format if we can't get the date

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { getCardinalDirection, getDisplayWindDirection } from "../../../../lib/utils";
+import { getCardinalDirection, getDisplayWindDirection, formatTime, formatTideTime } from "../../../../lib/utils";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -21,15 +21,7 @@ function escapeICalText(text) {
 }
 
 
-// Helper to format time
-function formatTime(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
+// formatTime is now imported from utils
 
 export async function GET(request, { params }) {
   try {
@@ -81,7 +73,7 @@ export async function GET(request, { params }) {
       }
       
       if (slot.tideType) {
-        const tideTime = slot.tideTime ? formatTime(slot.tideTime) : "";
+        const tideTime = slot.tideTime ? formatTideTime(slot.tideTime) : "";
         const tideHeight = slot.tideHeight !== undefined ? `${slot.tideHeight.toFixed(1)}m` : "";
         descriptionParts.push(`Tide: ${slot.tideType} ${tideTime} ${tideHeight}`.trim());
       }

@@ -1,15 +1,15 @@
 import { Wind } from "lucide-react";
-import { Metric } from "../ui/Metric";
-import { DirectionIndicator } from "./DirectionIndicator";
+import { DataGroup } from "../ui/DataGroup";
 
 export function WindGroup({ speed, gust, direction, showGust = true, className = "" }) {
   return (
-    <div className={`flex items-center justify-start gap-6 ${className}`}>
-      <Metric icon={<Wind size={14} className="mr-2" />}>
-        {Math.round(speed)} kn {showGust && <span>({Math.round(gust)}*)</span>}
-      </Metric>
-      <DirectionIndicator direction={direction} />
-    </div>
+    <DataGroup
+      icon={<Wind size={14} className="mr-2" />}
+      direction={direction}
+      className={className}
+    >
+      {Math.round(speed)} kn {showGust && <span>({Math.round(gust)}*)</span>}
+    </DataGroup>
   );
 }
 

@@ -1,7 +1,7 @@
 import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { Badge } from "../ui/Badge";
-import { WavesArrowDown, WavesArrowUp } from "lucide-react";
+import { TideDisplay } from "../tide/TideDisplay";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -48,18 +48,7 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
 
         {/* Tide column */}
         {isSurfing && nearbyTide && (
-          <div className="flex items-center gap-2 text-sm text-ink">
-            {nearbyTide.type?.toLowerCase() === 'high' ? (
-              <WavesArrowUp size={16} className="text-ink flex-shrink-0" strokeWidth={2} />
-            ) : nearbyTide.type?.toLowerCase() === 'low' ? (
-              <WavesArrowDown size={16} className="text-ink flex-shrink-0" strokeWidth={2} />
-            ) : (
-              <span className="text-ink">•</span>
-            )}
-            <span className="font-body whitespace-nowrap">
-              {nearbyTide.timeStr} {nearbyTide.height !== null ? `(${nearbyTide.height.toFixed(1)}m)` : ''}
-            </span>
-          </div>
+          <TideDisplay tide={nearbyTide} />
         )}
 
         <div className="flex items-center">
@@ -97,18 +86,7 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
             waveDirection={slot.waveDirection}
           />
           {isSurfing && nearbyTide && (
-            <div className="flex items-center gap-2 text-sm text-ink">
-              {nearbyTide.type?.toLowerCase() === 'high' ? (
-                <WavesArrowUp size={16} className="text-ink flex-shrink-0" strokeWidth={2} />
-              ) : nearbyTide.type?.toLowerCase() === 'low' ? (
-                <WavesArrowDown size={16} className="text-ink flex-shrink-0" strokeWidth={2} />
-              ) : (
-                <span className="text-ink">•</span>
-              )}
-              <span className="font-body whitespace-nowrap">
-                {nearbyTide.timeStr} {nearbyTide.height !== null ? `(${nearbyTide.height.toFixed(1)}m)` : ''}
-              </span>
-            </div>
+            <TideDisplay tide={nearbyTide} />
           )}
         </div>
       </div>

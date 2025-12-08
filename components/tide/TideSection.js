@@ -1,5 +1,7 @@
 "use client";
 
+import { formatTideTime } from "../../lib/utils";
+
 export function TideSection({ slots, className = "" }) {
   // Extract unique tide events from slots
   const tideEvents = [];
@@ -8,10 +10,7 @@ export function TideSection({ slots, className = "" }) {
   slots.forEach((slot) => {
     if (slot.tideType && slot.tideTime && !seenTides.has(slot.tideTime)) {
       seenTides.add(slot.tideTime);
-      const date = new Date(slot.tideTime);
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const timeStr = `${hours}:${minutes}`;
+      const timeStr = formatTideTime(slot.tideTime);
       
       tideEvents.push({
         time: slot.tideTime,
