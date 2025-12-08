@@ -44,9 +44,17 @@ export default defineSchema({
         minPeriod: v.optional(v.number()),
         optimalTide: v.optional(v.string()),
     }).index("by_user_spot_sport", ["userId", "spotId", "sport"]),
+    scrapes: defineTable({
+        spotId: v.id("spots"),
+        scrapeTimestamp: v.number(), // When the scrape ran (epoch ms)
+        isSuccessful: v.boolean(), // Whether this scrape was successful
+        slotsCount: v.number(), // Number of slots collected
+        errorMessage: v.optional(v.string()), // Error message if scrape failed
+    }).index("by_spot_and_timestamp", ["spotId", "scrapeTimestamp"]),
     forecast_slots: defineTable({
         spotId: v.id("spots"),
-        timestamp: v.number(), // Epoch ms
+        timestamp: v.number(), // Epoch ms - forecast time
+        scrapeTimestamp: v.optional(v.number()), // When this data was scraped (epoch ms) - optional for migration
         speed: v.number(),
         gust: v.number(),
         direction: v.number(),
@@ -57,5 +65,6 @@ export default defineSchema({
         tideHeight: v.optional(v.number()),
         tideType: v.optional(v.string()), // "high" | "low"
         tideTime: v.optional(v.number()), // timestamp
-    }).index("by_spot", ["spotId"]),
+    }).index("by_spot", ["spotId"])
+      .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"]),
 });

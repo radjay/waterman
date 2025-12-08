@@ -34,9 +34,17 @@ async function main() {
     // 2. Scrape Each Spot
     for (const spot of spots) {
         console.log(`\nSurfing to ${spot.name} (${spot.url})...`);
+        const scrapeTimestamp = Date.now(); // Record when this scrape started
+        
         try {
             const slots = await getForecast(spot.url, spot._id);
             console.log(`   -> Found ${slots.length} slots.`);
+
+            // If no slots scraped, don't write anything (keep last successful scrape)
+            if (slots.length === 0) {
+                console.log("   -> No slots collected, skipping write (keeping last successful scrape).");
+                continue;
+            }
 
             // Map to DB schema (remove extra fields if any, only include tide if not null)
             // Include both forecast slots and tide-only entries
@@ -65,23 +73,17 @@ async function main() {
                 return slot;
             });
 
-            // Assuming 'suitableSlots' is intended to be 'dbSlots' or a filtered version of it
-            // and 'convex' is intended to be 'client'.
-            // The instruction is to log the first slot of 'suitableSlots'.
-            // Since 'suitableSlots' is not defined, we'll assume it refers to 'dbSlots' for logging.
-            // The provided code snippet also includes a conditional save and a log for 'suitableSlots'.
-            // We will integrate the provided snippet as faithfully as possible,
-            // assuming 'suitableSlots' refers to 'dbSlots' and 'convex' refers to 'client'.
+            // Store Granular Slots with scrape metadata
+            const saveResult = await client.mutation(api.spots.saveForecastSlots, {
+                spotId: spot._id,
+                slots: dbSlots,
+                scrapeTimestamp: scrapeTimestamp
+            });
 
-            // Store Granular Slots
-            if (dbSlots.length > 0) {
-                await client.mutation(api.spots.saveForecastSlots, {
-                    spotId: spot._id,
-                    slots: dbSlots
-                });
-                console.log(`   -> Saved ${dbSlots.length} slots to DB (Granular).`);
+            if (saveResult.isSuccessful) {
+                console.log(`   -> Saved ${dbSlots.length} slots to DB (successful scrape).`);
             } else {
-                console.log("   -> No suitable slots found.");
+                console.log(`   -> Saved ${dbSlots.length} slots to DB (partial/failed scrape - validation failed).`);
             }
 
         } catch (err) {

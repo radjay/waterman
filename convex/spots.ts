@@ -129,7 +129,50 @@ export const deleteUserSpotConfig = mutation({
     }
 });
 
-// New Granular Storage
+// Helper function to validate if a scrape is successful
+// A successful scrape should have several days worth of forecast data
+function validateScrape(slots: Array<{ timestamp: number; speed: number; gust: number; direction: number }>): { isValid: boolean; errorMessage?: string } {
+    if (slots.length === 0) {
+        return { isValid: false, errorMessage: "No slots collected" };
+    }
+
+    // Filter out tide-only entries (they have speed/gust/direction = 0)
+    const forecastSlots = slots.filter(slot => 
+        slot.speed > 0 || slot.gust > 0 || slot.direction > 0
+    );
+
+    if (forecastSlots.length === 0) {
+        return { isValid: false, errorMessage: "No forecast slots with valid wind data" };
+    }
+
+    // Check that we have data for future timestamps (not all in the past)
+    const now = Date.now();
+    const futureSlots = forecastSlots.filter(slot => slot.timestamp > now);
+    
+    if (futureSlots.length === 0) {
+        return { isValid: false, errorMessage: "No future forecast data" };
+    }
+
+    // Check that we have data spanning several days
+    // Calculate the time span covered by the forecast
+    const timestamps = forecastSlots.map(s => s.timestamp).sort((a, b) => a - b);
+    const timeSpan = timestamps[timestamps.length - 1] - timestamps[0];
+    const daysSpan = timeSpan / (1000 * 60 * 60 * 24); // Convert ms to days
+
+    // Require at least 2 days of forecast data
+    if (daysSpan < 2) {
+        return { isValid: false, errorMessage: `Only ${daysSpan.toFixed(1)} days of data, need at least 2 days` };
+    }
+
+    // Require minimum number of slots (at least 20 slots for 2+ days)
+    if (forecastSlots.length < 20) {
+        return { isValid: false, errorMessage: `Only ${forecastSlots.length} forecast slots, need at least 20` };
+    }
+
+    return { isValid: true };
+}
+
+// New Granular Storage with Historical Tracking
 export const saveForecastSlots = mutation({
     args: {
         spotId: v.id("spots"),
@@ -144,37 +187,91 @@ export const saveForecastSlots = mutation({
             tideHeight: v.optional(v.number()),
             tideType: v.optional(v.string()),
             tideTime: v.optional(v.number()),
-        }))
+        })),
+        scrapeTimestamp: v.number(), // When this scrape ran
     },
+    returns: v.object({
+        scrapeId: v.id("scrapes"),
+        isSuccessful: v.boolean(),
+    }),
     handler: async (ctx, args) => {
-        // 1. Delete existing future slots for this spot to avoid duplicates
-        // (For simplicity, we delete all and rewrite. Efficient enough for <100 slots)
-        const existing = await ctx.db
-            .query("forecast_slots")
-            .withIndex("by_spot", q => q.eq("spotId", args.spotId))
-            .collect();
+        // Validate the scrape
+        const validation = validateScrape(args.slots);
+        const isSuccessful = validation.isValid;
 
-        for (const slot of existing) {
-            await ctx.db.delete(slot._id);
+        // Record the scrape in the scrapes table
+        const scrapeId = await ctx.db.insert("scrapes", {
+            spotId: args.spotId,
+            scrapeTimestamp: args.scrapeTimestamp,
+            isSuccessful,
+            slotsCount: args.slots.length,
+            errorMessage: validation.errorMessage,
+        });
+
+        // Only write slots if we have data (even if unsuccessful, we write partial data)
+        if (args.slots.length > 0) {
+            // Append new slots with scrapeTimestamp (never delete existing)
+            for (const slot of args.slots) {
+                await ctx.db.insert("forecast_slots", {
+                    spotId: args.spotId,
+                    scrapeTimestamp: args.scrapeTimestamp,
+                    ...slot
+                });
+            }
         }
 
-        // 2. Insert new slots
-        for (const slot of args.slots) {
-            await ctx.db.insert("forecast_slots", {
-                spotId: args.spotId,
-                ...slot
-            });
-        }
+        return {
+            scrapeId,
+            isSuccessful,
+        };
     }
 });
 
 export const getForecastSlots = query({
     args: { spotId: v.id("spots") },
+    returns: v.array(v.object({
+        _id: v.id("forecast_slots"),
+        _creationTime: v.number(),
+        spotId: v.id("spots"),
+        timestamp: v.number(),
+        scrapeTimestamp: v.optional(v.number()),
+        speed: v.number(),
+        gust: v.number(),
+        direction: v.number(),
+        waveHeight: v.optional(v.number()),
+        wavePeriod: v.optional(v.number()),
+        waveDirection: v.optional(v.number()),
+        tideHeight: v.optional(v.number()),
+        tideType: v.optional(v.string()),
+        tideTime: v.optional(v.number()),
+    })),
     handler: async (ctx, args) => {
-        return await ctx.db
-            .query("forecast_slots")
-            .withIndex("by_spot", q => q.eq("spotId", args.spotId))
+        // Find all scrapes for this spot, ordered by timestamp descending
+        const allScrapes = await ctx.db
+            .query("scrapes")
+            .withIndex("by_spot_and_timestamp", q => q.eq("spotId", args.spotId))
+            .order("desc")
             .collect();
+
+        // Find the most recent successful scrape
+        const lastSuccessfulScrape = allScrapes.find(scrape => scrape.isSuccessful);
+
+        if (!lastSuccessfulScrape) {
+            // No successful scrapes yet, return empty array
+            return [];
+        }
+
+        // Return only slots from this successful scrape
+        const slots = await ctx.db
+            .query("forecast_slots")
+            .withIndex("by_spot_and_scrape_timestamp", q => 
+                q.eq("spotId", args.spotId)
+                 .eq("scrapeTimestamp", lastSuccessfulScrape.scrapeTimestamp)
+            )
+            .collect();
+        
+        // Filter out any slots without scrapeTimestamp (shouldn't happen for new scrapes, but safety check)
+        return slots.filter(slot => slot.scrapeTimestamp !== undefined);
     }
 });
 

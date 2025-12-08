@@ -16,20 +16,37 @@ export const getIdealSlots = query({
             return spotSports.length > 0 && spotSports.some(sport => sports.includes(sport));
         });
 
-        // Get all forecast slots for matching spots
+        // Get all forecast slots for matching spots (only from last successful scrape)
         const allSlots = [];
         for (const spot of matchingSpots) {
-            const slots = await ctx.db
-                .query("forecast_slots")
-                .withIndex("by_spot", q => q.eq("spotId", spot._id))
-                .filter(q => q.gte(q.field("timestamp"), today))
+            // Find the most recent successful scrape for this spot
+            const allScrapes = await ctx.db
+                .query("scrapes")
+                .withIndex("by_spot_and_timestamp", q => q.eq("spotId", spot._id))
+                .order("desc")
                 .collect();
-            
-            for (const slot of slots) {
-                allSlots.push({
-                    ...slot,
-                    spot: spot,
-                });
+
+            const lastSuccessfulScrape = allScrapes.find(scrape => scrape.isSuccessful);
+
+            if (lastSuccessfulScrape) {
+                // Get slots from the last successful scrape
+                const slots = await ctx.db
+                    .query("forecast_slots")
+                    .withIndex("by_spot_and_scrape_timestamp", q => 
+                        q.eq("spotId", spot._id)
+                         .eq("scrapeTimestamp", lastSuccessfulScrape.scrapeTimestamp)
+                    )
+                    .collect();
+                
+                // Filter for future slots in memory, and only include slots with scrapeTimestamp (new format)
+                for (const slot of slots) {
+                    if (slot.timestamp >= today && slot.scrapeTimestamp !== undefined) {
+                        allSlots.push({
+                            ...slot,
+                            spot: spot,
+                        });
+                    }
+                }
             }
         }
 

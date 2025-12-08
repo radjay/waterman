@@ -42,9 +42,23 @@ export async function POST(request) {
     // 2. Scrape Each Spot
     for (const spot of spots) {
       console.log(`\nScraping ${spot.name} (${spot.url})...`);
+      const scrapeTimestamp = Date.now(); // Record when this scrape started
+      
       try {
         const slots = await getForecast(spot.url, spot._id);
         console.log(`   -> Found ${slots.length} slots.`);
+
+        // If no slots scraped, don't write anything (keep last successful scrape)
+        if (slots.length === 0) {
+          console.log("   -> No slots collected, skipping write (keeping last successful scrape).");
+          results.push({
+            spot: spot.name,
+            success: false,
+            slotsCount: 0,
+            error: "No slots collected"
+          });
+          continue;
+        }
 
         // Map to DB schema
         const dbSlots = slots.map(s => {
@@ -72,24 +86,29 @@ export async function POST(request) {
           return slot;
         });
 
-        // Store Granular Slots
-        if (dbSlots.length > 0) {
-          await client.mutation(api.spots.saveForecastSlots, {
-            spotId: spot._id,
-            slots: dbSlots
-          });
-          console.log(`   -> Saved ${dbSlots.length} slots to DB.`);
+        // Store Granular Slots with scrape metadata
+        const saveResult = await client.mutation(api.spots.saveForecastSlots, {
+          spotId: spot._id,
+          slots: dbSlots,
+          scrapeTimestamp: scrapeTimestamp
+        });
+
+        if (saveResult.isSuccessful) {
+          console.log(`   -> Saved ${dbSlots.length} slots to DB (successful scrape).`);
           results.push({
             spot: spot.name,
             success: true,
-            slotsCount: dbSlots.length
+            slotsCount: dbSlots.length,
+            isSuccessful: true
           });
         } else {
-          console.log("   -> No suitable slots found.");
+          console.log(`   -> Saved ${dbSlots.length} slots to DB (partial/failed scrape - validation failed).`);
           results.push({
             spot: spot.name,
-            success: true,
-            slotsCount: 0
+            success: true, // Scrape completed but validation failed
+            slotsCount: dbSlots.length,
+            isSuccessful: false,
+            error: "Scrape validation failed"
           });
         }
 
