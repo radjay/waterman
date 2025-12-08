@@ -2,6 +2,7 @@ import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { Badge } from "../ui/Badge";
 import { TideDisplay } from "../tide/TideDisplay";
+import { Flame } from "lucide-react";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -20,7 +21,7 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
     <>
       {/* Desktop: Row layout */}
       <div
-        className={`hidden md:grid grid-cols-[80px_1fr_1fr_100px_60px] items-stretch py-3 px-0 border-b border-ink font-body text-[0.95rem] ${
+        className={`hidden md:grid grid-cols-[80px_1fr_1fr_100px_auto] items-stretch py-3 px-0 border-b border-ink font-body text-[0.95rem] w-full ${
           showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
@@ -51,8 +52,13 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
           <TideDisplay tide={nearbyTide} />
         )}
 
-        <div className="flex items-center">
-          {slot.isEpic && <Badge variant="epic">EPIC</Badge>}
+        <div className="flex items-center justify-end mr-2 ml-auto">
+          {slot.isEpic && (
+            <Badge variant="epic" className="flex items-center gap-1">
+              <Flame size={12} className="text-red-accent" />
+              EPIC
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -70,7 +76,12 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
           <div>
             <div className="font-bold text-ink text-lg">{slot.hour}</div>
           </div>
-          {slot.isEpic && <Badge variant="epic">EPIC</Badge>}
+          {slot.isEpic && (
+            <Badge variant="epic" className="flex items-center gap-1">
+              <Flame size={12} className="text-red-accent" />
+              EPIC
+            </Badge>
+          )}
         </div>
 
         <div className="space-y-3">

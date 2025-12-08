@@ -232,6 +232,25 @@ components/
 
 ---
 
+## Design System
+
+### Button Styles
+
+**Secondary Buttons** (Dropdowns, Icon Buttons):
+- **Border**: `border border-ink/30` - Faint grey border (30% opacity)
+- **Background**: `bg-newsprint` - Matches page background
+- **Hover**: `hover:bg-ink/5` - Subtle hover effect (5% black overlay)
+- **Transitions**: `transition-colors` - Smooth color transitions
+- **Usage**: Dropdown selects, webcam buttons, live report buttons
+
+**Design Rationale**:
+- Minimal, unobtrusive appearance
+- Consistent with the newsprint aesthetic
+- Subtle hover feedback without heavy backgrounds
+- Maintains visual hierarchy while staying understated
+
+---
+
 ## Data Flow
 
 ### 1. Initial Page Load
