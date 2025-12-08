@@ -41,6 +41,8 @@ page.on("request", (request) => {
   const shouldBlock = blockedDomains.some((domain) => url.includes(domain));
   
   if (shouldBlock) {
+    blockedUrls.add(url);
+    blockedCount++;
     request.abort();
   } else {
     request.continue();
@@ -76,14 +78,8 @@ console.log("Navigating with request blocking enabled...");
 console.log(`Blocking: ${blockedDomains.join(", ")}`);
 
 let blockedCount = 0;
-page.on("request", (request) => {
-  if (request.isInterceptionResolutionHandled()) {
-    const url = request.url();
-    if (blockedDomains.some((d) => url.includes(d))) {
-      blockedCount++;
-    }
-  }
-});
+// Track blocked requests separately
+const blockedUrls = new Set();
 
 try {
   const response = await page.goto(url, {
