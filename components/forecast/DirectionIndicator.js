@@ -1,4 +1,4 @@
-import { Arrow } from "../atoms/Arrow";
+import { Arrow } from "../ui/Arrow";
 import { getDisplayWindDirection } from "../../lib/utils";
 
 export function DirectionIndicator({ direction, className = "" }) {

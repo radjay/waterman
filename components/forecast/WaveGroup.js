@@ -1,5 +1,5 @@
 import { Waves } from "lucide-react";
-import { Metric } from "./Metric";
+import { Metric } from "../ui/Metric";
 import { DirectionIndicator } from "./DirectionIndicator";
 
 export function WaveGroup({ waveHeight, wavePeriod, waveDirection, className = "" }) {

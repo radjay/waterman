@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
-import { MainLayout } from "../components/templates/MainLayout";
-import { Header } from "../components/organisms/Header";
-import { SportSelector } from "../components/organisms/SportSelector";
-import { ShowFilter } from "../components/organisms/ShowFilter";
-import { EmptyState } from "../components/organisms/EmptyState";
-import { DaySection } from "../components/organisms/DaySection";
-import { Footer } from "../components/organisms/Footer";
+import { MainLayout } from "../components/layout/MainLayout";
+import { Header } from "../components/layout/Header";
+import { SportSelector } from "../components/layout/SportSelector";
+import { ShowFilter } from "../components/layout/ShowFilter";
+import { EmptyState } from "../components/common/EmptyState";
+import { DaySection } from "../components/forecast/DaySection";
+import { Footer } from "../components/layout/Footer";
 import { formatDate, formatTime } from "../lib/utils";
 import { ListFilter } from "lucide-react";
 

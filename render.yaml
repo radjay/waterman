@@ -12,7 +12,7 @@ services:
     name: waterman-scraper
     schedule: "0 0,6,12,18 * * *"  # Run at midnight, 6 AM, noon, and 6 PM UTC (4 times per day)
     env: node
-    buildCommand: npm install && npx puppeteer browsers install chrome
+    buildCommand: npm install && tes
     startCommand: node scripts/scrape.mjs
     envVars:
       - key: NEXT_PUBLIC_CONVEX_URL

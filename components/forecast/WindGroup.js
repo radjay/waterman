@@ -1,5 +1,5 @@
 import { Wind } from "lucide-react";
-import { Metric } from "./Metric";
+import { Metric } from "../ui/Metric";
 import { DirectionIndicator } from "./DirectionIndicator";
 
 export function WindGroup({ speed, gust, direction, showGust = true, className = "" }) {

@@ -43,3 +43,5 @@ export function TideTable({ tides, spotName, className = "" }) {
   );
 }
 
+
+

@@ -2,9 +2,24 @@
 
 import { useState } from "react";
 import { ForecastSlot } from "./ForecastSlot";
-import { WebcamModal } from "./WebcamModal";
+import { WebcamModal } from "../common/WebcamModal";
 import { Video, ChartSpline } from "lucide-react";
 
+/**
+ * DaySection component displays forecast slots grouped by day and spot.
+ * 
+ * Groups forecast data by day, then by spot within each day. Shows webcam
+ * and live report links for spots that have them. Handles tide data display
+ * for surfing spots.
+ * 
+ * @param {string} day - Day label (e.g., "Monday, January 1")
+ * @param {Array} slots - Legacy slots array (deprecated, use spotsData instead)
+ * @param {Object} spotsData - Object mapping spotId to array of forecast slots
+ * @param {Array<string>} selectedSports - Currently selected sports
+ * @param {Object} spotsMap - Map of spotId to spot metadata
+ * @param {string} showFilter - Filter mode: "best" or "all"
+ * @param {string} className - Additional CSS classes
+ */
 export function DaySection({ day, slots, spotsData, selectedSports, spotsMap = {}, showFilter = "best", className = "" }) {
   const [selectedWebcam, setSelectedWebcam] = useState(null);
   // Support both old format (slots array) and new format (spotsData object)

@@ -1,8 +1,20 @@
-import { WindGroup } from "../molecules/WindGroup";
-import { WaveGroup } from "../molecules/WaveGroup";
-import { Badge } from "../atoms/Badge";
+import { WindGroup } from "./WindGroup";
+import { WaveGroup } from "./WaveGroup";
+import { Badge } from "../ui/Badge";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 
+/**
+ * ForecastSlot component displays a single forecast time slot.
+ * 
+ * Shows wind, wave, and tide data for a specific time. Displays differently
+ * on desktop (row layout) vs mobile (card layout).
+ * 
+ * @param {Object} slot - Forecast slot data with timestamp, speed, gust, direction, wave data, etc.
+ * @param {Object|null} nearbyTide - Nearby tide information (for surfing spots)
+ * @param {boolean} isSurfing - Whether this is a surfing spot
+ * @param {string} showFilter - Filter mode: "best" (only ideal conditions) or "all" (all conditions)
+ * @param {string} className - Additional CSS classes
+ */
 export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter = "best", className = "" }) {
   return (
     <>

@@ -1,7 +1,17 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Validate that a scrape contains sufficient data
+/**
+ * Validates that a scrape contains sufficient forecast data.
+ * 
+ * Requirements:
+ * - At least 10 forecast slots
+ * - Contains future forecast data
+ * - At least 24 hours of future coverage
+ * 
+ * @param {Array} slots - Array of forecast slot objects
+ * @returns {{isValid: boolean, errorMessage?: string}} Validation result
+ */
 function validateScrape(slots) {
     const MIN_SLOTS = 10; // Minimum number of slots for a successful scrape
     const now = Date.now();
@@ -35,6 +45,12 @@ function validateScrape(slots) {
     return { isValid: true, errorMessage: undefined };
 }
 
+/**
+ * Query to list all spots, optionally filtered by sports.
+ * 
+ * @param {Array<string>} [sports] - Optional array of sport IDs to filter by
+ * @returns {Array} Array of spot objects that support at least one of the specified sports
+ */
 export const list = query({
     args: { sports: v.optional(v.array(v.string())) },
     handler: async (ctx, args) => {
@@ -52,6 +68,13 @@ export const list = query({
     },
 });
 
+/**
+ * Query to get the configuration for a specific spot and sport.
+ * 
+ * @param {Id<"spots">} spotId - The spot ID
+ * @param {string} sport - The sport name (e.g., "wingfoil", "surfing")
+ * @returns {Object|null} Spot configuration object or null if not found
+ */
 export const getSpotConfig = query({
     args: { 
         spotId: v.id("spots"),
@@ -70,7 +93,17 @@ export const getSpotConfig = query({
     }
 });
 
-// New Granular Storage
+/**
+ * Mutation to save forecast slots from a scrape.
+ * 
+ * Validates the scrape data, records the scrape execution, and stores forecast slots.
+ * Keeps historical data by associating slots with scrapeTimestamp.
+ * 
+ * @param {Id<"spots">} spotId - The spot ID
+ * @param {number} scrapeTimestamp - Timestamp when the scrape ran (epoch ms)
+ * @param {Array} slots - Array of forecast slot objects
+ * @returns {{scrapeId: Id<"scrapes">, isSuccessful: boolean}} Scrape record ID and success status
+ */
 export const saveForecastSlots = mutation({
     args: {
         spotId: v.id("spots"),
@@ -121,6 +154,15 @@ export const saveForecastSlots = mutation({
     }
 });
 
+/**
+ * Query to get forecast slots for a spot.
+ * 
+ * Returns slots from the most recent successful scrape. If no successful scrapes exist,
+ * returns slots from the most recent scrape timestamp found in the slots themselves.
+ * 
+ * @param {Id<"spots">} spotId - The spot ID
+ * @returns {Array} Array of forecast slot objects from the most recent scrape
+ */
 export const getForecastSlots = query({
     args: { spotId: v.id("spots") },
     handler: async (ctx, args) => {
@@ -180,6 +222,11 @@ export const getForecastSlots = query({
     }
 });
 
+/**
+ * Query to get the most recent successful scrape timestamp across all spots.
+ * 
+ * @returns {number|null} Most recent successful scrape timestamp (epoch ms) or null if none exist
+ */
 export const getMostRecentScrapeTimestamp = query({
     args: {},
     handler: async (ctx) => {
@@ -200,6 +247,12 @@ export const getMostRecentScrapeTimestamp = query({
     }
 });
 
+/**
+ * Mutation to update a spot's Windy.app spot ID.
+ * 
+ * @param {Id<"spots">} spotId - The spot ID
+ * @param {string} windySpotId - The Windy.app spot ID (e.g., "8512151")
+ */
 export const updateWindySpotId = mutation({
     args: {
         spotId: v.id("spots"),
@@ -212,6 +265,14 @@ export const updateWindySpotId = mutation({
     },
 });
 
+/**
+ * Mutation to add a new spot with its configurations.
+ * 
+ * @param {string} name - Spot name
+ * @param {string} url - Windy.app URL for the spot
+ * @param {Array} configs - Array of spot configuration objects (one per sport)
+ * @returns {Id<"spots">} The created spot ID
+ */
 export const addSpot = mutation({
     args: {
         name: v.string(),
@@ -240,6 +301,14 @@ export const addSpot = mutation({
     }
 });
 
+/**
+ * Mutation to remove all scrapes and forecast slots from today.
+ * 
+ * Useful for debugging or forcing a fresh scrape. Removes all scrapes and associated
+ * forecast slots that were created today (UTC).
+ * 
+ * @returns {{deletedScrapesCount: number, deletedSlotsCount: number, message: string}}
+ */
 export const removeTodayScrapes = mutation({
     args: {},
     handler: async (ctx) => {
