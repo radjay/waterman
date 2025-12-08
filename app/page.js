@@ -111,14 +111,20 @@ export default function Home() {
                     }
                   } else if (config.sport === "surfing") {
                     const hasSwell = slot.waveHeight >= (config.minSwellHeight || 0);
+                    const maxSwell = config.maxSwellHeight 
+                      ? slot.waveHeight <= config.maxSwellHeight 
+                      : true;
                     const hasPeriod = slot.wavePeriod >= (config.minPeriod || 0);
+                    
+                    // Direction check is only for marking as "ideal", not for filtering
                     let isDir = true;
-                    if (config.swellDirectionFrom && config.swellDirectionTo) {
+                    if (config.swellDirectionFrom !== undefined && config.swellDirectionTo !== undefined && slot.waveDirection !== undefined) {
                       if (config.swellDirectionFrom <= config.swellDirectionTo) {
                         isDir =
                           slot.waveDirection >= config.swellDirectionFrom &&
                           slot.waveDirection <= config.swellDirectionTo;
                       } else {
+                        // Handle wrap-around case (e.g., 350-10 degrees)
                         isDir =
                           slot.waveDirection >= config.swellDirectionFrom ||
                           slot.waveDirection <= config.swellDirectionTo;
@@ -136,9 +142,12 @@ export default function Home() {
                       // "both" means any tide is fine
                     }
 
-                    if (hasSwell && hasPeriod && isDir && isTide) {
+                    // For surfing: show if wave height, period, and tide match (direction is only for ideal marking)
+                    if (hasSwell && maxSwell && hasPeriod && isTide) {
                       matchesCriteria = true;
                       matchedSport = "surfing";
+                      // Store direction match separately for ideal marking
+                      slot.isIdealDirection = isDir;
                       break;
                     }
                   }
@@ -235,9 +244,25 @@ export default function Home() {
       const matchingSlots = slots.filter(s => s.matchesCriteria && !s.isTideOnly);
       
       if (matchingSlots.length > 0) {
-        // Find max speed slot for wingfoil, or best swell for surfing
-        const maxSpeed = Math.max(...matchingSlots.map((s) => s.speed || 0));
-        const idealSlot = matchingSlots.find((s) => s.speed === maxSpeed);
+        // Check if this is a surfing spot (has slots with sport === "surfing")
+        const isSurfingSpot = matchingSlots.some(s => s.sport === "surfing");
+        
+        let idealSlot = null;
+        
+        if (isSurfingSpot) {
+          // For surfing: prioritize slots with ideal direction, then best wave height/period
+          const idealDirectionSlots = matchingSlots.filter(s => s.isIdealDirection === true);
+          const candidates = idealDirectionSlots.length > 0 ? idealDirectionSlots : matchingSlots;
+          
+          // Find best wave (height * period as a simple quality metric)
+          const bestWave = Math.max(...candidates.map((s) => (s.waveHeight || 0) * (s.wavePeriod || 0)));
+          idealSlot = candidates.find((s) => (s.waveHeight || 0) * (s.wavePeriod || 0) === bestWave);
+        } else {
+          // For wingfoil: find max speed slot
+          const maxSpeed = Math.max(...matchingSlots.map((s) => s.speed || 0));
+          idealSlot = matchingSlots.find((s) => s.speed === maxSpeed);
+        }
+        
         if (idealSlot) {
           idealSlot.isIdeal = true;
         }
