@@ -5,9 +5,9 @@ export function Header({ className = "" }) {
 
   return (
     <header
-      className={`text-center border-b-2 border-ink pb-4 mb-6 ${className}`}
+      className={`text-center border-b-2 border-ink pb-4 mb-6 pt-6 md:pt-0 ${className}`}
     >
-      <h1 className="font-headline text-[3.5rem] font-black uppercase tracking-[-2px] leading-none mb-3 text-ink">
+      <h1 className="font-headline text-[1.8rem] md:text-[3.5rem] font-black uppercase tracking-[-2px] leading-none mb-3 text-ink">
         The Waterman Report
       </h1>
       <div className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink py-4">
