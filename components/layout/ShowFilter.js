@@ -7,19 +7,12 @@ const SHOW_OPTIONS = [
   { id: "all", label: "All times" },
 ];
 
-export function ShowFilter({ onFilterChange, className = "" }) {
-  const handleChange = (filterId) => {
-    if (onFilterChange) {
-      onFilterChange(filterId);
-    }
-  };
-
+export function ShowFilter({ onFilterChange, value, className = "" }) {
   return (
     <Select
       options={SHOW_OPTIONS}
-      onChange={handleChange}
-      storageKey="waterman_show_filter"
-      defaultValue="best"
+      value={value}
+      onChange={onFilterChange}
       className={className}
     />
   );

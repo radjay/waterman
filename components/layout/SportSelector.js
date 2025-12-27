@@ -7,19 +7,12 @@ const SPORTS = [
   { id: "surfing", label: "Surf" },
 ];
 
-export function SportSelector({ onSportsChange, className = "" }) {
-  const handleChange = (sportId) => {
-    if (onSportsChange) {
-      onSportsChange([sportId]);
-    }
-  };
-
+export function SportSelector({ onSportsChange, value, className = "" }) {
   return (
     <Select
       options={SPORTS}
-      onChange={handleChange}
-      storageKey="waterman_selected_sport"
-      defaultValue="wingfoil"
+      value={value}
+      onChange={onSportsChange}
       className={className}
     />
   );

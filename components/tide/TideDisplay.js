@@ -32,3 +32,4 @@ export function TideDisplay({ tide, className = "" }) {
   );
 }
 
+
