@@ -38,7 +38,10 @@ export function ForecastSlot({
             ? "grid-cols-[80px_0.7fr_1.1fr_150px_120px] gap-2"
             : "grid-cols-[80px_1fr_1fr_120px] gap-2"
         } items-stretch py-3 px-0 border-b border-ink/20 font-body text-[0.95rem] w-full group ${
-          showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
+          showFilter === "all" &&
+          slot.score &&
+          slot.score.value >= 60 &&
+          !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"
@@ -91,7 +94,10 @@ export function ForecastSlot({
       {/* Mobile: Card layout */}
       <div
         className={`md:hidden border-b border-ink/20 p-4 ${
-          showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
+          showFilter === "all" &&
+          slot.score &&
+          slot.score.value >= 60 &&
+          !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"

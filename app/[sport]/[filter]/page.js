@@ -190,12 +190,18 @@ export default function SportFilterPage() {
   }, [selectedSports]);
 
   // Filter slots based on showFilter
-  // "best" shows all slots that match criteria
-  // "all" shows all slots regardless of criteria matching
+  // "best" shows slots with scores >= 60 (good conditions per PRD 02)
+  // "all" shows all slots regardless of score
   const filteredSlots =
     showFilter === "best"
-      ? allSlots.filter((slot) => slot.matchesCriteria || slot.isTideOnly)
-      : allSlots; // "all" shows all slots (including those that don't match criteria)
+      ? allSlots.filter((slot) => {
+          // Show slots with score >= 60 (good conditions per PRD 02)
+          if (slot.score && slot.score.value >= 60) return true;
+          // Always show tide-only entries
+          if (slot.isTideOnly) return true;
+          return false;
+        })
+      : allSlots; // "all" shows all slots
 
   // Group by Date, then by Spot
   // Separate tide-only entries to include in tide section
