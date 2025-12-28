@@ -13,7 +13,8 @@ import { Arrow } from "../ui/Arrow";
  * @param {Array} sortedDays - Sorted array of day strings
  * @param {Object} spotsMap - Map of spotId to spot metadata
  * @param {Array<string>} selectedSports - All sports (always ["wingfoil", "surfing"] for calendar)
- * @param {Function} onDayClick - Callback when a day is clicked
+ * @param {Function} onDayClick - Callback when a day is clicked (deprecated, use onSpotClick instead)
+ * @param {Function} onSpotClick - Callback when a spot/sport combo is clicked (sport, dayStr)
  */
 export function CalendarView({
   grouped,
@@ -21,6 +22,7 @@ export function CalendarView({
   spotsMap,
   selectedSports,
   onDayClick,
+  onSpotClick,
 }) {
   // Get the next 9 days starting from today
   const next9Days = useMemo(() => {
@@ -212,8 +214,7 @@ export function CalendarView({
         return (
           <div
             key={dayStr}
-            className="border border-ink/20 rounded-lg p-5 bg-newsprint hover:bg-ink/5 transition-colors cursor-pointer flex flex-col"
-            onClick={() => onDayClick(dayStr)}
+            className="border border-ink/20 rounded-lg p-5 bg-newsprint flex flex-col"
           >
             {/* Day header */}
             <div className="font-headline font-bold text-ink mb-3 text-base border-b border-ink/20 pb-2">
@@ -232,7 +233,18 @@ export function CalendarView({
                         const wingfoilSportData = spot.sportData?.find(sd => sd.sport === "wingfoil");
                         const bestTime = wingfoilSportData?.bestTime;
                         return (
-                        <div key={spot.spotId} className="border-b border-ink/10 pb-3 last:border-0 last:pb-0">
+                        <div 
+                          key={spot.spotId} 
+                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSpotClick) {
+                              onSpotClick("wingfoil", dayStr);
+                            } else if (onDayClick) {
+                              onDayClick(dayStr);
+                            }
+                          }}
+                        >
                           <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
                             {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
                           </div>
@@ -292,7 +304,18 @@ export function CalendarView({
                         const surfingSportData = spot.sportData?.find(sd => sd.sport === "surfing");
                         const bestTime = surfingSportData?.bestTime;
                         return (
-                        <div key={spot.spotId} className="border-b border-ink/10 pb-3 last:border-0 last:pb-0">
+                        <div 
+                          key={spot.spotId} 
+                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSpotClick) {
+                              onSpotClick("surfing", dayStr);
+                            } else if (onDayClick) {
+                              onDayClick(dayStr);
+                            }
+                          }}
+                        >
                           <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
                             {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
                           </div>

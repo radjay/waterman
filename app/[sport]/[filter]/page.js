@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
 import { MainLayout } from "../../../components/layout/MainLayout";
@@ -33,6 +33,10 @@ const reverseSportMap = {
 export default function SportFilterPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get highlighted day from URL params
+  const highlightedDay = searchParams?.get("day") || null;
   
   // Extract sport and filter from URL params
   const urlSport = params.sport?.toLowerCase();
@@ -227,6 +231,33 @@ export default function SportFilterPage() {
   // Only mark as ideal if the slot matches criteria
   markIdealSlots(grouped, selectedSports);
 
+  // Scroll to highlighted day when it changes
+  useEffect(() => {
+    if (highlightedDay && !loading) {
+      // Wait for DOM to be ready, with retries if element isn't found immediately
+      const scrollToDay = () => {
+        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
+        if (element) {
+          // Use a small additional delay to ensure layout is stable
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+            // Remove the day param from URL after scrolling
+            setTimeout(() => {
+              const urlSportValue = reverseSportMap[selectedSport] || "wing";
+              router.push(`/${urlSportValue}/${showFilter}`, { scroll: false });
+            }, 2000);
+          }, 200);
+        } else {
+          // Retry after a short delay if element not found
+          setTimeout(scrollToDay, 100);
+        }
+      };
+      
+      // Initial delay to ensure content is rendered
+      setTimeout(scrollToDay, 300);
+    }
+  }, [highlightedDay, loading, router, selectedSport, showFilter]);
+
   return (
     <MainLayout>
       <Header />
@@ -327,12 +358,14 @@ export default function SportFilterPage() {
             return (
               <DaySection
                 key={day}
+                id={`day-${encodeURIComponent(day)}`}
                 day={day}
                 spotsData={dayData}
                 selectedSports={selectedSports}
                 spotsMap={spotsMap}
                 showFilter={showFilter}
                 tidesBySpot={tidesBySpot}
+                isHighlighted={highlightedDay === day}
               />
             );
           })}

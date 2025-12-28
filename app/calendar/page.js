@@ -150,7 +150,15 @@ export default function CalendarPage() {
   // Sort slots within each spot group and identify ideal slot
   markIdealSlots(grouped, selectedSports);
 
-  // Handle day click from calendar view
+  // Handle spot click from calendar view - navigate to sport-specific route
+  const handleSpotClick = (sport, dayStr) => {
+    // Map sport to URL format
+    const urlSport = sport === "wingfoil" ? "wing" : "surf";
+    // Navigate to sport route with "all" filter and day parameter for scrolling
+    router.push(`/${urlSport}/all?day=${encodeURIComponent(dayStr)}`);
+  };
+
+  // Handle day click from calendar view (fallback)
   const handleDayClick = (dayStr) => {
     // Navigate to list view with day parameter for scrolling
     router.push(`/?day=${encodeURIComponent(dayStr)}`);
@@ -176,6 +184,7 @@ export default function CalendarPage() {
           sortedDays={sortedDays}
           spotsMap={spotsMap}
           selectedSports={selectedSports}
+          onSpotClick={handleSpotClick}
           onDayClick={handleDayClick}
         />
       ) : (
