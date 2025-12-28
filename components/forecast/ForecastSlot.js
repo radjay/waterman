@@ -6,39 +6,48 @@ import { Flame } from "lucide-react";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
- * 
+ *
  * Shows wind, wave, and tide data for a specific time. Displays differently
  * on desktop (row layout) vs mobile (card layout).
- * 
+ *
  * @param {Object} slot - Forecast slot data with timestamp, speed, gust, direction, wave data, etc.
  * @param {Object|null} nearbyTide - Nearby tide information (for surfing spots)
  * @param {boolean} isSurfing - Whether this is a surfing spot
  * @param {string} showFilter - Filter mode: "best" (only ideal conditions) or "all" (all conditions)
  * @param {string} className - Additional CSS classes
  */
-export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter = "best", className = "" }) {
+export function ForecastSlot({
+  slot,
+  nearbyTide,
+  isSurfing = false,
+  showFilter = "best",
+  className = "",
+}) {
   return (
     <>
       {/* Desktop: Row layout */}
       <div
-        className={`hidden md:grid grid-cols-[80px_1fr_1fr_100px_auto] items-stretch py-3 px-0 border-b border-ink font-body text-[0.95rem] w-full ${
+        className={`hidden md:grid ${
+          isSurfing
+            ? "grid-cols-[80px_0.7fr_1.1fr_150px_auto] gap-2"
+            : "grid-cols-[80px_1fr_1fr_100px_auto] gap-2"
+        } items-stretch py-3 px-0 border-b border-ink/20 font-body text-[0.95rem] w-full ${
           showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
-            ? "bg-[rgba(134,239,172,0.3)]"
-            : "bg-transparent"
+              ? "bg-[rgba(134,239,172,0.3)]"
+              : "bg-transparent"
         } ${slot.isEpic ? "is-epic" : ""} ${className}`}
       >
         <div className="font-bold text-ink pl-3 flex items-center h-full">
           {slot.hour}
         </div>
 
-        <WindGroup 
-          speed={slot.speed} 
-          gust={slot.gust} 
+        <WindGroup
+          speed={slot.speed}
+          gust={slot.gust}
           direction={slot.direction}
           showGust={!isSurfing}
-          className="mr-8"
         />
 
         <WaveGroup
@@ -48,9 +57,7 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
         />
 
         {/* Tide column */}
-        {isSurfing && nearbyTide && (
-          <TideDisplay tide={nearbyTide} />
-        )}
+        {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
         <div className="flex items-center justify-end mr-2 ml-auto">
           {slot.isEpic && (
@@ -64,12 +71,12 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
 
       {/* Mobile: Card layout */}
       <div
-        className={`md:hidden border-b border-ink p-4 ${
+        className={`md:hidden border-b border-ink/20 p-4 ${
           showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
-            ? "bg-[rgba(134,239,172,0.3)]"
-            : "bg-newsprint"
+              ? "bg-[rgba(134,239,172,0.3)]"
+              : "bg-newsprint"
         } ${slot.isEpic ? "is-epic" : ""} ${className}`}
       >
         <div className="flex justify-between items-start mb-3">
@@ -85,9 +92,9 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
         </div>
 
         <div className="space-y-3">
-          <WindGroup 
-            speed={slot.speed} 
-            gust={slot.gust} 
+          <WindGroup
+            speed={slot.speed}
+            gust={slot.gust}
             direction={slot.direction}
             showGust={!isSurfing}
           />
@@ -96,12 +103,9 @@ export function ForecastSlot({ slot, nearbyTide, isSurfing = false, showFilter =
             wavePeriod={slot.wavePeriod}
             waveDirection={slot.waveDirection}
           />
-          {isSurfing && nearbyTide && (
-            <TideDisplay tide={nearbyTide} />
-          )}
+          {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
         </div>
       </div>
     </>
   );
 }
-

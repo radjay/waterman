@@ -10,9 +10,9 @@ import { DirectionIndicator } from "../forecast/DirectionIndicator";
  * @param {boolean} showDirection - Whether to show direction indicator
  * @param {string} className - Additional CSS classes
  */
-export function DataGroup({ icon, children, direction, showDirection = true, className = "" }) {
+export function DataGroup({ icon, children, direction, showDirection = true, gap = "gap-6", className = "" }) {
   return (
-    <div className={`flex items-center justify-start gap-6 ${className}`}>
+    <div className={`flex items-center justify-start ${gap} ${className}`}>
       <Metric icon={icon}>
         {children}
       </Metric>

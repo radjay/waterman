@@ -17,7 +17,7 @@ export function Footer({ className = "", mostRecentScrapeTimestamp }) {
   const formattedDateTime = formatDateTime(mostRecentScrapeTimestamp);
 
   return (
-    <footer className={`mt-12 pt-8 border-t-2 border-ink ${className}`}>
+    <footer className={`mt-12 pt-8 border-t-2 border-ink/20 ${className}`}>
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="flex items-center justify-center gap-4">
           <a

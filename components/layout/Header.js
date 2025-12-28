@@ -5,7 +5,7 @@ export function Header({ className = "" }) {
 
   return (
     <header
-      className={`text-center border-b-2 border-ink pb-4 mb-6 pt-6 md:pt-0 ${className}`}
+      className={`text-center border-b-2 border-ink/20 pb-4 mb-6 pt-6 md:pt-0 ${className}`}
     >
       <h1 className="font-headline text-[1.8rem] md:text-[3.5rem] font-black uppercase tracking-[-2px] leading-none mb-3 text-ink">
         The Waterman Report
@@ -16,4 +16,3 @@ export function Header({ className = "" }) {
     </header>
   );
 }
-
