@@ -1081,6 +1081,11 @@ export const updateScoringPrompt = mutation({
  * Migration: Remove systemPrompt field from existing scoring_prompts records.
  * This field has been moved to the separate system_sport_prompts table.
  */
+/**
+ * @deprecated One-time migration - already completed.
+ * This mutation was used to migrate scoring_prompts by removing the systemPrompt field.
+ * Kept for reference only - do not use.
+ */
 export const removeSystemPromptField = mutation({
     args: {},
     handler: async (ctx) => {
@@ -1118,6 +1123,7 @@ export const removeSystemPromptField = mutation({
 });
 
 /**
+ * @deprecated One-time migration - already completed.
  * Migration: Remove tide fields from forecast_slots table.
  * 
  * This migration removes tideHeight, tideType, and tideTime fields from all
