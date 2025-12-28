@@ -2,7 +2,9 @@ import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { Badge } from "../ui/Badge";
 import { TideDisplay } from "../tide/TideDisplay";
-import { Flame } from "lucide-react";
+import { Flame, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ScoreModal } from "../common/ScoreModal";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -14,6 +16,7 @@ import { Flame } from "lucide-react";
  * @param {Object|null} nearbyTide - Nearby tide information (for surfing spots)
  * @param {boolean} isSurfing - Whether this is a surfing spot
  * @param {string} showFilter - Filter mode: "best" (only ideal conditions) or "all" (all conditions)
+ * @param {string} spotName - Name of the spot (for score modal)
  * @param {string} className - Additional CSS classes
  */
 export function ForecastSlot({
@@ -21,17 +24,20 @@ export function ForecastSlot({
   nearbyTide,
   isSurfing = false,
   showFilter = "best",
+  spotName = "",
   className = "",
 }) {
+  const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
+
   return (
     <>
       {/* Desktop: Row layout */}
       <div
         className={`hidden md:grid ${
           isSurfing
-            ? "grid-cols-[80px_0.7fr_1.1fr_150px_auto] gap-2"
-            : "grid-cols-[80px_1fr_1fr_100px_auto] gap-2"
-        } items-stretch py-3 px-0 border-b border-ink/20 font-body text-[0.95rem] w-full ${
+            ? "grid-cols-[80px_0.7fr_1.1fr_150px_120px] gap-2"
+            : "grid-cols-[80px_1fr_1fr_120px] gap-2"
+        } items-stretch py-3 px-0 border-b border-ink/20 font-body text-[0.95rem] w-full group ${
           showFilter === "all" && slot.matchesCriteria && !slot.isIdeal
             ? "bg-[rgba(134,239,172,0.15)]"
             : slot.isIdeal
@@ -59,7 +65,20 @@ export function ForecastSlot({
         {/* Tide column */}
         {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
-        <div className="flex items-center justify-end mr-2 ml-auto">
+        <div className="flex items-center justify-end mr-2 gap-2 min-w-[120px]">
+          {/* Score button - only show on hover if score exists */}
+          {/* Always reserve space for the button to prevent layout shift */}
+          {slot.score ? (
+            <button
+              onClick={() => setIsScoreModalOpen(true)}
+              className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-ink hover:text-ink/60 pointer-events-none group-hover:pointer-events-auto w-[18px]"
+              aria-label="View score report"
+            >
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <div className="w-[18px]"></div>
+          )}
           {slot.isEpic && (
             <Badge variant="epic" className="flex items-center gap-1">
               <Flame size={12} className="text-red-accent" />
@@ -83,12 +102,24 @@ export function ForecastSlot({
           <div>
             <div className="font-bold text-ink text-lg">{slot.hour}</div>
           </div>
-          {slot.isEpic && (
-            <Badge variant="epic" className="flex items-center gap-1">
-              <Flame size={12} className="text-red-accent" />
-              EPIC
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Score button for mobile */}
+            {slot.score && (
+              <button
+                onClick={() => setIsScoreModalOpen(true)}
+                className="flex items-center justify-center text-ink hover:text-ink/60 transition-colors"
+                aria-label="View score report"
+              >
+                <ChevronRight size={18} />
+              </button>
+            )}
+            {slot.isEpic && (
+              <Badge variant="epic" className="flex items-center gap-1">
+                <Flame size={12} className="text-red-accent" />
+                EPIC
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -106,6 +137,17 @@ export function ForecastSlot({
           {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
         </div>
       </div>
+
+      {/* Score Modal */}
+      {slot.score && (
+        <ScoreModal
+          isOpen={isScoreModalOpen}
+          onClose={() => setIsScoreModalOpen(false)}
+          score={slot.score}
+          slot={slot}
+          spotName={spotName}
+        />
+      )}
     </>
   );
 }

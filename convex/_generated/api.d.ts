@@ -8,14 +8,17 @@
  * @module
  */
 
-import type * as addLiveReports from "../addLiveReports.js";
-import type * as addWebcams from "../addWebcams.js";
-import type * as fixConfig from "../fixConfig.js";
-import type * as migrate from "../migrate.js";
+import type * as _archive_addLiveReports from "../_archive/addLiveReports.js";
+import type * as _archive_addWebcams from "../_archive/addWebcams.js";
+import type * as _archive_fixConfig from "../_archive/fixConfig.js";
+import type * as _archive_migrate from "../_archive/migrate.js";
+import type * as _archive_updateCarcavelosConfig from "../_archive/updateCarcavelosConfig.js";
+import type * as _archive_updateStats from "../_archive/updateStats.js";
+import type * as calendar from "../calendar.js";
+import type * as prompts from "../prompts.js";
 import type * as seed from "../seed.js";
+import type * as seedScoringPrompts from "../seedScoringPrompts.js";
 import type * as spots from "../spots.js";
-import type * as updateCarcavelosConfig from "../updateCarcavelosConfig.js";
-import type * as updateStats from "../updateStats.js";
 
 import type {
   ApiFromModules,
@@ -24,14 +27,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  addLiveReports: typeof addLiveReports;
-  addWebcams: typeof addWebcams;
-  fixConfig: typeof fixConfig;
-  migrate: typeof migrate;
+  "_archive/addLiveReports": typeof _archive_addLiveReports;
+  "_archive/addWebcams": typeof _archive_addWebcams;
+  "_archive/fixConfig": typeof _archive_fixConfig;
+  "_archive/migrate": typeof _archive_migrate;
+  "_archive/updateCarcavelosConfig": typeof _archive_updateCarcavelosConfig;
+  "_archive/updateStats": typeof _archive_updateStats;
+  calendar: typeof calendar;
+  prompts: typeof prompts;
   seed: typeof seed;
+  seedScoringPrompts: typeof seedScoringPrompts;
   spots: typeof spots;
-  updateCarcavelosConfig: typeof updateCarcavelosConfig;
-  updateStats: typeof updateStats;
 }>;
 
 /**

@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation } from "../_generated/server";
 
 export default mutation(async (ctx) => {
     const configs = await ctx.db.query("spotConfigs").collect();

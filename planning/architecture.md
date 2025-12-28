@@ -1,7 +1,7 @@
 # Waterman Architecture
 
 **Version**: 1.0  
-**Last Updated**: 2024
+**Last Updated**: 2025-12-28
 
 ## Overview
 
@@ -53,6 +53,7 @@ Waterman is a watersports monitoring system that aggregates weather forecast dat
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js 16**: React framework with App Router
 - **React 19**: UI library
 - **Tailwind CSS**: Utility-first CSS framework
@@ -60,6 +61,7 @@ Waterman is a watersports monitoring system that aggregates weather forecast dat
 - **HLS.js**: Video streaming for webcams
 
 ### Backend
+
 - **Convex**: Serverless backend and database
   - Real-time database
   - Serverless functions (queries, mutations, actions)
@@ -67,10 +69,12 @@ Waterman is a watersports monitoring system that aggregates weather forecast dat
   - Automatic API generation
 
 ### Data Collection
+
 - **Puppeteer**: Web scraping (fallback)
 - **Direct API**: Windy.app widget API (primary method)
 
 ### Deployment
+
 - **Render.com**: Hosting for Next.js app
 - **Convex Cloud**: Hosted Convex backend
 
@@ -83,9 +87,11 @@ Waterman is a watersports monitoring system that aggregates weather forecast dat
 The database uses a normalized schema with four main tables:
 
 #### 1. `spots` Table
+
 Stores water sports locations (beaches, spots).
 
 **Fields:**
+
 - `name` (string): Spot name
 - `url` (string): Windy.app URL
 - `country` (optional string): Country location
@@ -96,14 +102,17 @@ Stores water sports locations (beaches, spots).
 - `liveReportUrl` (optional string): Live wind report URL
 
 **Design Decisions:**
+
 - `sports` is an array to support multi-sport spots
 - Optional fields allow gradual data enrichment
 - No indexes needed (small dataset, full table scans acceptable)
 
 #### 2. `spotConfigs` Table
+
 Stores sport-specific condition criteria for each spot.
 
 **Fields:**
+
 - `spotId` (Id<"spots">): Reference to spot
 - `sport` (string): Sport name (e.g., "wingfoil", "surfing")
 - **Wingfoiling criteria:**
@@ -120,14 +129,17 @@ Stores sport-specific condition criteria for each spot.
   - `optimalTide` (optional string): "high", "low", or "both"
 
 **Design Decisions:**
+
 - Separate table allows multiple configs per spot (one per sport)
 - Optional fields support different criteria per sport
 - Flexible schema accommodates future sports with different criteria
 
 #### 3. `forecast_slots` Table
+
 Time-series forecast data for each spot.
 
 **Fields:**
+
 - `spotId` (Id<"spots">): Reference to spot
 - `timestamp` (number): Forecast time (epoch ms)
 - `scrapeTimestamp` (optional number): When data was scraped (epoch ms)
@@ -142,18 +154,22 @@ Time-series forecast data for each spot.
 - `tideTime` (optional number): Tide event timestamp
 
 **Indexes:**
+
 - `by_spot`: On `spotId` - Fast lookups by spot
 - `by_spot_and_scrape_timestamp`: On `[spotId, scrapeTimestamp]` - Efficient scrape-based queries
 
 **Design Decisions:**
+
 - `scrapeTimestamp` enables historical data retention
 - Optional wave/tide fields support different sports
 - Indexes optimized for common query patterns
 
 #### 4. `scrapes` Table
+
 Tracks scrape execution metadata.
 
 **Fields:**
+
 - `spotId` (Id<"spots">): Reference to spot
 - `scrapeTimestamp` (number): When scrape ran (epoch ms)
 - `isSuccessful` (boolean): Whether scrape succeeded
@@ -161,9 +177,11 @@ Tracks scrape execution metadata.
 - `errorMessage` (optional string): Error if scrape failed
 
 **Indexes:**
+
 - `by_spot_and_timestamp`: On `[spotId, scrapeTimestamp]` - Efficient scrape history queries
 
 **Design Decisions:**
+
 - Separate table enables scrape monitoring and debugging
 - Tracks success/failure for reliability monitoring
 - Enables data freshness checks
@@ -237,6 +255,7 @@ components/
 ### Button Styles
 
 **Secondary Buttons** (Dropdowns, Icon Buttons):
+
 - **Border**: `border border-ink/30` - Faint grey border (30% opacity)
 - **Background**: `bg-newsprint` - Matches page background
 - **Hover**: `hover:bg-ink/5` - Subtle hover effect (5% black overlay)
@@ -244,6 +263,7 @@ components/
 - **Usage**: Dropdown selects, webcam buttons, live report buttons
 
 **Design Rationale**:
+
 - Minimal, unobtrusive appearance
 - Consistent with the newsprint aesthetic
 - Subtle hover feedback without heavy backgrounds
@@ -353,24 +373,28 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 #### Queries (Read-Only)
 
 **`spots.list`**
+
 - **Purpose**: List all spots, optionally filtered by sports
 - **Args**: `{ sports?: string[] }`
 - **Returns**: `Spot[]`
 - **Usage**: Get spots for selected sports
 
 **`spots.getSpotConfig`**
+
 - **Purpose**: Get configuration for a spot-sport combination
 - **Args**: `{ spotId: Id<"spots">, sport: string }`
 - **Returns**: `SpotConfig | null`
 - **Usage**: Get criteria for filtering
 
 **`spots.getForecastSlots`**
+
 - **Purpose**: Get forecast slots for a spot (from most recent scrape)
 - **Args**: `{ spotId: Id<"spots"> }`
 - **Returns**: `ForecastSlot[]`
 - **Usage**: Get forecast data for display
 
 **`spots.getMostRecentScrapeTimestamp`**
+
 - **Purpose**: Get most recent successful scrape timestamp
 - **Args**: `{}`
 - **Returns**: `number | null`
@@ -379,24 +403,28 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 #### Mutations (Write)
 
 **`spots.saveForecastSlots`**
+
 - **Purpose**: Save forecast data from a scrape
 - **Args**: `{ spotId, scrapeTimestamp, slots }`
 - **Returns**: `{ scrapeId, isSuccessful }`
 - **Usage**: Scraper saves data after collection
 
 **`spots.addSpot`**
+
 - **Purpose**: Add a new spot with configurations
 - **Args**: `{ name, url, configs }`
 - **Returns**: `Id<"spots">`
 - **Usage**: Admin/manual spot addition
 
 **`spots.updateWindySpotId`**
+
 - **Purpose**: Update a spot's Windy.app ID
 - **Args**: `{ spotId, windySpotId }`
 - **Returns**: `void`
 - **Usage**: Fix/update spot IDs
 
 **`spots.removeTodayScrapes`**
+
 - **Purpose**: Remove all scrapes and slots from today
 - **Args**: `{}`
 - **Returns**: `{ deletedScrapesCount, deletedSlotsCount, message }`
@@ -405,12 +433,14 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 ### Next.js API Routes
 
 **`/api/scrape`** (POST)
+
 - **Purpose**: Trigger scraping via HTTP
 - **Auth**: Optional `SCRAPE_SECRET_TOKEN` header
 - **Returns**: JSON with scrape results
 - **Usage**: Manual scraping, cron job integration
 
 **`/api/calendar/[sport]`** (GET)
+
 - **Purpose**: Generate iCal calendar feed for ideal conditions
 - **Params**: `sport` (wingfoil or surfing)
 - **Returns**: iCal format text
@@ -423,6 +453,7 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 ### Data Source
 
 **Windy.app Widget API**
+
 - Endpoint: `https://windy.app/widget/data.php?id=wfwindyapp&spotID={spotId}&timelineRange=future`
 - Returns: JSON wrapped in `window.wfwindyapp = {...}`
 - Contains: Forecast data and tide data
@@ -435,11 +466,13 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 ### Data Transformation
 
 **Input** (Windy.app format):
+
 - Timestamps in seconds
 - Wind speed in m/s
 - All data in single array
 
 **Output** (Our format):
+
 - Timestamps in milliseconds (epoch ms)
 - Wind speed in knots
 - Separate tide entries
@@ -449,6 +482,7 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 ### Validation
 
 Before saving, scrapes are validated:
+
 - Minimum 10 slots
 - Contains future data
 - At least 24 hours of future coverage
@@ -467,6 +501,7 @@ Before saving, scrapes are validated:
 ### Client-Side State
 
 **React State** (in `app/page.js`):
+
 - `selectedSports`: Currently selected sports
 - `showFilter`: "best" or "all"
 - `spots`: Array of spot objects
@@ -476,12 +511,14 @@ Before saving, scrapes are validated:
 - `mostRecentScrapeTimestamp`: Data freshness
 
 **LocalStorage**:
+
 - `waterman_selected_sport`: Selected sports (persisted)
 - `waterman_show_filter`: Filter preference (persisted)
 
 ### Server-Side State
 
 All persistent state stored in Convex database:
+
 - Spots, configs, forecast slots, scrapes
 
 ### Data Fetching
@@ -497,12 +534,14 @@ All persistent state stored in Convex database:
 ### Sport-Specific Criteria
 
 **Wingfoiling:**
+
 - Wind speed ≥ `minSpeed`
 - Wind gust ≥ `minGust`
 - Wind direction within `directionFrom` → `directionTo` range
 - Handles wrap-around (e.g., 315° → 135° crosses 0°)
 
 **Surfing:**
+
 - Wave height within `minSwellHeight` → `maxSwellHeight`
 - Wave period ≥ `minPeriod`
 - Wave direction within `swellDirectionFrom` → `swellDirectionTo`
@@ -511,16 +550,19 @@ All persistent state stored in Convex database:
 ### Filter Modes
 
 **"best"** (default):
+
 - Shows only slots where `isIdeal === true`
 - Ideal = matches all criteria + direction matches (for surfing)
 
 **"all"**:
+
 - Shows all slots where `matchesCriteria === true`
 - Includes slots that match basic criteria but may not be ideal
 
 ### Epic Conditions
 
 Slots marked as "epic" when:
+
 - Wind speed ≥ 20 knots
 - Gust - speed ≤ 10 knots (steady wind)
 
@@ -531,6 +573,7 @@ Slots marked as "epic" when:
 ### Frontend (Next.js)
 
 **Hosting**: Render.com
+
 - Static site generation where possible
 - Server-side rendering for dynamic content
 - Environment variables for Convex URL
@@ -538,6 +581,7 @@ Slots marked as "epic" when:
 ### Backend (Convex)
 
 **Hosting**: Convex Cloud
+
 - Serverless functions
 - Managed database
 - Automatic scaling
@@ -546,6 +590,7 @@ Slots marked as "epic" when:
 ### Scraping
 
 **Options**:
+
 1. **Render Cron Jobs**: Scheduled scraping
 2. **API Endpoint**: Manual/HTTP-triggered scraping
 3. **Local Scripts**: Development/debugging
@@ -553,9 +598,11 @@ Slots marked as "epic" when:
 ### Environment Variables
 
 **Required**:
+
 - `NEXT_PUBLIC_CONVEX_URL`: Convex deployment URL
 
 **Optional**:
+
 - `SCRAPE_SECRET_TOKEN`: API endpoint authentication
 
 ---
@@ -563,31 +610,37 @@ Slots marked as "epic" when:
 ## Design Patterns
 
 ### 1. Feature-Based Organization
+
 Components organized by feature, not size/complexity.
 
 **Rationale**: Easier to find related code, better scalability.
 
 ### 2. Configuration-Driven Filtering
+
 Filtering logic driven by database configs, not hardcoded.
 
 **Rationale**: Easy to add new spots/sports without code changes.
 
 ### 3. Historical Data Retention
+
 Forecast slots retain `scrapeTimestamp` for history.
 
 **Rationale**: Enables data analysis, debugging, and rollback.
 
 ### 4. Multi-Sport Support
+
 Spots can support multiple sports with separate configs.
 
 **Rationale**: Many spots work for multiple sports (e.g., wingfoiling + surfing).
 
 ### 5. Client-Side Enrichment
+
 Forecast slots enriched on client with criteria matching.
 
 **Rationale**: Keeps backend simple, allows flexible filtering.
 
 ### 6. Validation Before Save
+
 Scrapes validated before saving to database.
 
 **Rationale**: Prevents bad data, ensures data quality.
@@ -726,10 +779,11 @@ Scrapes validated before saving to database.
 - **Convex Documentation**: https://docs.convex.dev
 - **Next.js Documentation**: https://nextjs.org/docs
 - **Refactoring Summary**: `/planning/refactor/01.md`
-- **PRD**: `/planning/prds/01.md`
+- **PRDs**:
+  - `/planning/prds/01.md` - Additional Features
+  - `/planning/prds/02.md` - LLM-Based Condition Scoring System
 
 ---
 
 **Document Maintained By**: Engineering Team  
 **Last Review**: 2024
-

@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2025-12-28]
 
+### Changed
+- Improved tide detection: Simplified algorithm to extract high/low tide times from granular data using direction-change detection
+- Fixed tide display: Now correctly shows exact high/low tide times when they occur within forecast slots
+- Fixed tide trend logic: Improved rising/falling tide indicators when exact tide events are not present in a slot
+- Tide data storage: Moved tide data to separate database table for better organization and accuracy
+
+---
+
+## [2025-12-28]
+
 ### Added
 - Changelog page accessible at `/changelog`
 - Changelog link in footer navigation

@@ -10,7 +10,7 @@ import { ShowFilter } from "../components/layout/ShowFilter";
 import { EmptyState } from "../components/common/EmptyState";
 import { DaySection } from "../components/forecast/DaySection";
 import { Footer } from "../components/layout/Footer";
-import { formatDate, formatFullDay } from "../lib/utils";
+import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../lib/slots";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { ListFilter } from "lucide-react";
@@ -43,6 +43,7 @@ export default function Home() {
   const [spots, setSpots] = useState([]);
   const [allSlots, setAllSlots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({}); // Map spotId to spot data
+  const [tidesBySpot, setTidesBySpot] = useState({}); // Map spotId to tides data
   const [loading, setLoading] = useState(true);
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] =
     useState(null);
@@ -82,23 +83,68 @@ export default function Home() {
             })
           );
 
-          const [slotsData, ...configs] = await Promise.all([
+          // Fetch scores for each relevant sport
+          const scoresPromises = relevantSports.map((sport) =>
+            client.query(api.spots.getConditionScores, {
+              spotId: spot._id,
+              sport: sport,
+            })
+          );
+
+          // Fetch slots, tides, and configs in parallel
+          const [slotsData, tidesData, ...configs] = await Promise.all([
             client.query(api.spots.getForecastSlots, { spotId: spot._id }),
+            client.query(api.spots.getTides, { spotId: spot._id }),
             ...configPromises,
           ]);
 
-          if (!slotsData) return [];
+          // Fetch scores separately (after slots are fetched)
+          const scoresArrays = await Promise.all(scoresPromises);
+          
+          // Create a map of slotId -> score for quick lookup
+          const scoresMap = {};
+          scoresArrays.forEach((scores, index) => {
+            const sport = relevantSports[index];
+            scores.forEach((score) => {
+              // Map by slotId and sport (since multiple sports can have scores for same slot)
+              const key = `${score.slotId}_${sport}`;
+              scoresMap[key] = score;
+            });
+          });
 
-          const enrichedSlots = enrichSlots(slotsData, spot, configs);
+          if (!slotsData) return { slots: [], tides: tidesData || [] };
 
-          return enrichedSlots;
+          const enrichedSlots = enrichSlots(slotsData, spot, configs, scoresMap, relevantSports);
+
+          return { slots: enrichedSlots, tides: tidesData || [] };
         });
 
-        const allFetchedSlots = (await Promise.all(slotsPromises)).flat();
+        const allFetchedData = await Promise.all(slotsPromises);
+        const allFetchedSlots = allFetchedData.map(d => d.slots).flat();
+        
+        // Collect tides by spot
+        const tidesBySpot = {};
+        allFetchedData.forEach((data, index) => {
+          const spot = fetchedSpots[index];
+          if (data.tides && data.tides.length > 0) {
+            tidesBySpot[spot._id] = {
+              spotName: spot.name,
+              tides: data.tides.map(tide => ({
+                time: tide.time,
+                type: tide.type,
+                height: tide.height,
+                timeStr: formatTideTime(new Date(tide.time)),
+              })),
+            };
+          }
+        });
 
         // Include all slots (both forecast and tide-only) for grouping
         // Tide-only entries will be filtered out from display but used for tide matching
         setAllSlots(allFetchedSlots);
+        
+        // Store tides separately
+        setTidesBySpot(tidesBySpot);
 
         // Fetch most recent scrape timestamp
         const scrapeTimestamp = await client.query(
@@ -251,6 +297,7 @@ export default function Home() {
                 selectedSports={selectedSports}
                 spotsMap={spotsMap}
                 showFilter={showFilter}
+                tidesBySpot={tidesBySpot}
               />
             );
           })}

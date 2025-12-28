@@ -49,8 +49,11 @@ async function main() {
             }
 
             // Use the spot ID directly for scraping
-            const slots = await getForecast(windySpotId);
-            console.log(`   -> Found ${slots.length} slots.`);
+            const forecastData = await getForecast(windySpotId);
+            const slots = forecastData.slots || [];
+            const tides = forecastData.tides || [];
+            
+            console.log(`   -> Found ${slots.length} slots and ${tides.length} tide events.`);
 
             // Map to DB schema (include all fields from scraper)
             const dbSlots = slots.map(s => ({
@@ -61,31 +64,29 @@ async function main() {
                 waveHeight: s.waveHeight,
                 wavePeriod: s.wavePeriod,
                 waveDirection: s.waveDirection,
-                // Tide data (optional)
-                tideHeight: s.tideHeight || undefined,
-                tideType: s.tideType || undefined,
-                tideTime: s.tideTime || undefined,
             }));
 
-            // Assuming 'suitableSlots' is intended to be 'dbSlots' or a filtered version of it
-            // and 'convex' is intended to be 'client'.
-            // The instruction is to log the first slot of 'suitableSlots'.
-            // Since 'suitableSlots' is not defined, we'll assume it refers to 'dbSlots' for logging.
-            // The provided code snippet also includes a conditional save and a log for 'suitableSlots'.
-            // We will integrate the provided snippet as faithfully as possible,
-            // assuming 'suitableSlots' refers to 'dbSlots' and 'convex' refers to 'client'.
-
             // Store Granular Slots
+            const scrapeTimestamp = Date.now();
             if (dbSlots.length > 0) {
-                const scrapeTimestamp = Date.now();
                 await client.mutation(api.spots.saveForecastSlots, {
                     spotId: spot._id,
                     scrapeTimestamp: scrapeTimestamp,
                     slots: dbSlots
                 });
-                console.log(`   -> Saved ${dbSlots.length} slots to DB (Granular).`);
+                console.log(`   -> Saved ${dbSlots.length} slots to DB.`);
             } else {
                 console.log("   -> No suitable slots found.");
+            }
+
+            // Store Tide Events separately
+            if (tides.length > 0) {
+                await client.mutation(api.spots.saveTides, {
+                    spotId: spot._id,
+                    scrapeTimestamp: scrapeTimestamp,
+                    tides: tides
+                });
+                console.log(`   -> Saved ${tides.length} tide events to DB.`);
             }
 
         } catch (err) {

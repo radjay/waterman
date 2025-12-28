@@ -9,7 +9,7 @@ import {
   CircleGauge,
   ChartNoAxesCombined,
 } from "lucide-react";
-import { findTideForSlot, collectTidesBySpot } from "../../lib/tides";
+import { findTideForSlot } from "../../lib/tides";
 import { formatFullDay } from "../../lib/utils";
 
 /**
@@ -34,6 +34,7 @@ export function DaySection({
   selectedSports,
   spotsMap = {},
   showFilter = "best",
+  tidesBySpot: tidesBySpotProp = {},
   className = "",
 }) {
   const [selectedWebcam, setSelectedWebcam] = useState(null);
@@ -59,8 +60,9 @@ export function DaySection({
   // console.log("DaySection - finalSpotsData:", finalSpotsData);
   // console.log("DaySection - hasSurfing:", hasSurfing);
 
-  // Get all tides grouped by spot
-  const tidesBySpot = collectTidesBySpot(finalSpotsData);
+  // Use tides from prop (from database) - never read from slots
+  // If no tide data is provided, tidesBySpot will be empty and we'll show "No tide data available"
+  const tidesBySpot = tidesBySpotProp || {};
 
   // Get the actual date from the first slot to format properly
   const getFormattedDay = () => {
@@ -248,6 +250,7 @@ export function DaySection({
                             nearbyTide={nearbyTide}
                             isSurfing={isSurfingSpot}
                             showFilter={showFilter}
+                            spotName={spotName}
                           />
                         );
                       });
