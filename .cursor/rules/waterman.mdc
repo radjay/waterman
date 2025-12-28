@@ -5,3 +5,4 @@ alwaysApply: true
 - Always consult planning/architecture.md when making changes or implementing features in this repo. Update this file whenever needed to accurately reflect the state of the repo.
 - When running the dev server (`npm run dev`), always use `required_permissions: ['all']` to bypass sandbox restrictions that prevent binding to network ports.
 - When implementing a feature, change or bug, you should always test in the browser tool if its working correctly before concluding it's working!
+- When a feature is finished, committed, and pushed, always update the CHANGELOG.md file with the new features, changes, or fixes. Group entries by date (YYYY-MM-DD format) and use user-facing language to describe what was added or changed.

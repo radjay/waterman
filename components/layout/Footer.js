@@ -1,4 +1,5 @@
 import { Calendar } from "lucide-react";
+import Link from "next/link";
 
 function formatDateTime(timestamp) {
   if (!timestamp) return null;
@@ -19,7 +20,7 @@ export function Footer({ className = "", mostRecentScrapeTimestamp }) {
   return (
     <footer className={`mt-12 pt-8 border-t-2 border-ink/20 ${className}`}>
       <div className="flex flex-col items-center justify-center gap-4">
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-4 flex-wrap">
           <a
             href="/api/calendar/wingfoil"
             className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
@@ -36,6 +37,13 @@ export function Footer({ className = "", mostRecentScrapeTimestamp }) {
             <Calendar size={16} />
             <span>Surf Calendar</span>
           </a>
+          <Link
+            href="/changelog"
+            className="text-ink hover:text-ink/70 transition-colors text-xs uppercase font-body font-medium"
+            title="View changelog"
+          >
+            Changelog
+          </Link>
         </div>
         {formattedDateTime && (
           <div className="text-xs text-ink/60 font-body">
