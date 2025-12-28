@@ -7,27 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- AI-powered condition scoring system (in development)
-- Changelog page to track feature updates
-
 ---
 
 ## [2025-12-28]
+
+### Added
+- AI-powered condition scoring system using Groq LLM (GPT-OSS-120b model)
+- LLM-based scoring replaces heuristic-based condition evaluation
+- Score display with detailed reasoning and factor breakdown (wind quality, wave quality, tide quality, overall conditions)
+- Score modal accessible via hover-triggered ">" icon on forecast rows
+- Scoring prompts system: System-wide sport prompts and spot-specific prompts stored in database
+- Scoring scripts: check-scores, check-scoring-status, seed-prompts, migrate-prompts
+- Scoring documentation: SCORING_PROMPTS_GUIDE.md and TESTING_SCORING.md
+- Changelog page accessible at `/changelog`
+- Changelog link in footer navigation
 
 ### Changed
 - Improved tide detection: Simplified algorithm to extract high/low tide times from granular data using direction-change detection
 - Fixed tide display: Now correctly shows exact high/low tide times when they occur within forecast slots
 - Fixed tide trend logic: Improved rising/falling tide indicators when exact tide events are not present in a slot
 - Tide data storage: Moved tide data to separate database table for better organization and accuracy
-
----
-
-## [2025-12-28]
-
-### Added
-- Changelog page accessible at `/changelog`
-- Changelog link in footer navigation
+- Database schema: Added condition_scores, scoring_prompts, system_sport_prompts, and tides tables
+- Scoring workflow: Asynchronous, non-blocking scoring triggered after data scraping
+- Removed heuristic-based scoring from criteria.js (replaced by LLM scoring)
 
 ### Changed
 - UI improvements: lighter borders, spacing adjustments, and surfing layout fixes
