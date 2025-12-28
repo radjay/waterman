@@ -11,9 +11,9 @@
 
   body {
     @apply bg-newsprint text-ink font-body min-h-screen;
-    /* Subtle grain texture */
-    background-image: radial-gradient(#d3cfc6 1px, transparent 1px);
-    background-size: 20px 20px;
+    /* Subtle wave texture */
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q10 5 20 10 T40 10' stroke='%23d3cfc6' stroke-width='0.5' fill='none'/%3E%3C/svg%3E");
+    background-size: 40px 20px;
   }
 }
 
@@ -47,5 +47,21 @@
     content: '';
     @apply absolute left-0 top-0 bottom-0 w-1;
     background-color: #ffd700;
+  }
+
+  .loader {
+    height: 15px;
+    width: 5px;
+    border-radius: 2px;
+    color: #808080;
+    background: currentColor;
+    position: relative;
+    animation: ht 1s ease-in infinite alternate;
+    box-shadow: 7.5px 0 0 -0.5px , -7.5px 0 0 -0.5px ,
+                15px 0 0 -1px , -15px 0 0 -1px,
+                22.5px 0 0 -1.5px , -22.5px 0 0 -1.5px;
+  }
+  @keyframes ht {
+    100% { height: 0px }
   }
 }

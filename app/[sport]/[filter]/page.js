@@ -9,6 +9,7 @@ import { Header } from "../../../components/layout/Header";
 import { SportSelector } from "../../../components/layout/SportSelector";
 import { ShowFilter } from "../../../components/layout/ShowFilter";
 import { EmptyState } from "../../../components/common/EmptyState";
+import { Loader } from "../../../components/common/Loader";
 import { DaySection } from "../../../components/forecast/DaySection";
 import { Footer } from "../../../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
@@ -239,7 +240,7 @@ export default function SportFilterPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-ink">Loading...</div>
+        <Loader />
       ) : sortedDays.length === 0 ? (
         <EmptyState />
       ) : (

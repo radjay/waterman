@@ -36,6 +36,8 @@ export function DaySection({
   showFilter = "best",
   tidesBySpot: tidesBySpotProp = {},
   className = "",
+  id = null,
+  isHighlighted = false,
 }) {
   const [selectedWebcam, setSelectedWebcam] = useState(null);
   // Support both old format (slots array) and new format (spotsData object)
@@ -116,7 +118,11 @@ export function DaySection({
   };
 
   return (
-    <div className={`mb-4 ${className}`}>
+    <div
+      id={id || undefined}
+      className={`mb-4 ${isHighlighted ? "bg-yellow-50" : ""} ${className}`}
+      style={isHighlighted ? { scrollMarginTop: "80px" } : {}}
+    >
       <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-0 bg-newsprint z-10 text-ink pl-2">
         {getFormattedDay()}
       </div>

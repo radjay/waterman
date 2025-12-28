@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import { MainLayout } from "../components/layout/MainLayout";
@@ -8,16 +9,21 @@ import { Header } from "../components/layout/Header";
 import { SportSelector } from "../components/layout/SportSelector";
 import { ShowFilter } from "../components/layout/ShowFilter";
 import { EmptyState } from "../components/common/EmptyState";
+import { Loader } from "../components/common/Loader";
 import { DaySection } from "../components/forecast/DaySection";
 import { Footer } from "../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../lib/slots";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { ListFilter } from "lucide-react";
+import { ViewToggle } from "../components/layout/ViewToggle";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Use persisted state hook for sport selection
   const [selectedSport, setSelectedSport] = usePersistedState(
     "waterman_selected_sport",
@@ -40,6 +46,9 @@ export default function Home() {
     "best",
     (val) => val === "best" || val === "all"
   );
+
+  // Get highlighted day from URL params
+  const highlightedDay = searchParams?.get("day") || null;
   const [spots, setSpots] = useState([]);
   const [allSlots, setAllSlots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({}); // Map spotId to spot data
@@ -198,25 +207,52 @@ export default function Home() {
   // Only mark as ideal if the slot matches criteria
   markIdealSlots(grouped, selectedSports);
 
+  // Handle view toggle - navigate to calendar view
+  const handleViewChange = (view) => {
+    if (view === "calendar") {
+      router.push("/calendar");
+    }
+  };
+
+  // Scroll to highlighted day when it changes
+  useEffect(() => {
+    if (highlightedDay) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Remove the day param from URL after scrolling
+          setTimeout(() => {
+            router.push("/", { scroll: false });
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [highlightedDay, router]);
+
   return (
     <MainLayout>
       <Header />
-      <div className="flex items-center justify-end gap-2 mb-6">
-        <ListFilter size={18} className="text-ink" />
-        <SportSelector
-          value={selectedSport}
-          onSportsChange={handleSportChange}
-        />
-        <ShowFilter value={showFilter} onFilterChange={setShowFilter} />
+      <div className="flex items-center justify-between gap-2 mb-6">
+        <ViewToggle onChange={handleViewChange} />
+        <div className="flex items-center gap-2">
+          <ListFilter size={18} className="text-ink" />
+          <SportSelector
+            value={selectedSport}
+            onSportsChange={handleSportChange}
+          />
+          <ShowFilter value={showFilter} onFilterChange={setShowFilter} />
+        </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-ink">Loading...</div>
-      ) : sortedDays.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="flex flex-col gap-8">
-          {sortedDays.map((day) => {
+            <Loader />
+          ) : sortedDays.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="flex flex-col gap-8">
+              {sortedDays.map((day) => {
             const dayData = grouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
             const hasForecastSlots = Object.keys(dayData).some((spotId) => {
@@ -295,20 +331,23 @@ export default function Home() {
               );
             }
 
-            return (
-              <DaySection
-                key={day}
-                day={day}
-                spotsData={dayData}
-                selectedSports={selectedSports}
-                spotsMap={spotsMap}
-                showFilter={showFilter}
-                tidesBySpot={tidesBySpot}
-              />
-            );
-          })}
-        </div>
-      )}
+                return (
+                  <DaySection
+                    key={day}
+                    id={`day-${encodeURIComponent(day)}`}
+                    day={day}
+                    spotsData={dayData}
+                    selectedSports={selectedSports}
+                    spotsMap={spotsMap}
+                    showFilter={showFilter}
+                    tidesBySpot={tidesBySpot}
+                    isHighlighted={highlightedDay === day}
+                  />
+                );
+              })}
+            </div>
+          )}
+
       <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
     </MainLayout>
   );
