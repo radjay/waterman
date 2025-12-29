@@ -207,10 +207,12 @@ function HomeContent() {
   // Only mark as ideal if the slot matches criteria
   markIdealSlots(grouped, selectedSports);
 
-  // Handle view toggle - navigate to calendar view
+  // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
     if (view === "calendar") {
       router.push("/calendar");
+    } else if (view === "cams") {
+      router.push("/cams");
     }
   };
 

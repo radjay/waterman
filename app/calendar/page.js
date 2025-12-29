@@ -164,10 +164,12 @@ export default function CalendarPage() {
     router.push(`/?day=${encodeURIComponent(dayStr)}`);
   };
 
-  // Handle view toggle - navigate to list view
+  // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
     if (view === "list") {
       router.push("/");
+    } else if (view === "cams") {
+      router.push("/cams");
     }
   };
 

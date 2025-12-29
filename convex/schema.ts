@@ -24,7 +24,14 @@ export default defineSchema({
         sports: v.optional(v.array(v.string())),
         webcamUrl: v.optional(v.string()),
         webcamStreamSource: v.optional(v.string()),
+        webcamStreamId: v.optional(v.string()), // Stream ID for webcam (quanteec ID or IOL URL)
         liveReportUrl: v.optional(v.string()),
+        // Webcam-specific fields
+        webcamOnly: v.optional(v.boolean()), // If true, this spot is webcam-only (not scraped/scored)
+        town: v.optional(v.string()), // Town name for webcam spots
+        region: v.optional(v.string()), // Region name for webcam spots
+        latitude: v.optional(v.number()), // Latitude for webcam spots
+        longitude: v.optional(v.number()), // Longitude for webcam spots
     }),
     /**
      * Sport-specific condition criteria for spots.

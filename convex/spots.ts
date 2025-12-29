@@ -50,24 +50,58 @@ function validateScrape(slots) {
 
 /**
  * Query to list all spots, optionally filtered by sports.
+ * Excludes webcam-only spots unless explicitly requested.
  * 
  * @param {Array<string>} [sports] - Optional array of sport IDs to filter by
+ * @param {boolean} [includeWebcams] - If true, include webcam-only spots (default: false)
  * @returns {Array} Array of spot objects that support at least one of the specified sports
  */
 export const list = query({
-    args: { sports: v.optional(v.array(v.string())) },
+    args: { 
+        sports: v.optional(v.array(v.string())),
+        includeWebcams: v.optional(v.boolean()),
+    },
     handler: async (ctx, args) => {
         const allSpots = await ctx.db.query("spots").collect();
         
+        // Filter out webcam-only spots unless explicitly requested
+        let filteredSpots = allSpots;
+        if (!args.includeWebcams) {
+            filteredSpots = allSpots.filter(spot => !spot.webcamOnly);
+        }
+        
         // If sports filter is provided, filter spots that have any of those sports
         if (args.sports && args.sports.length > 0) {
-            return allSpots.filter(spot => {
+            return filteredSpots.filter(spot => {
                 const spotSports = spot.sports || [];
                 return args.sports.some(sport => spotSports.includes(sport));
             });
         }
         
-        return allSpots;
+        return filteredSpots;
+    },
+});
+
+/**
+ * Query to list all webcam spots.
+ * 
+ * @returns {Array} Array of webcam spot objects
+ */
+export const listWebcams = query({
+    args: {},
+    handler: async (ctx) => {
+        const allSpots = await ctx.db.query("spots").collect();
+        // Return spots that have usable webcam data:
+        // 1. webcamOnly spots with webcamStreamId (new format)
+        // 2. Spots with webcamUrl (old format - full URL)
+        // 3. Spots with webcamStreamId (new format without webcamOnly flag)
+        return allSpots.filter(spot => {
+            // New format: has webcamStreamId
+            if (spot.webcamStreamId !== undefined) return true;
+            // Old format: has webcamUrl (full URL)
+            if (spot.webcamUrl !== undefined && spot.webcamUrl.trim() !== "") return true;
+            return false;
+        });
     },
 });
 
@@ -401,6 +435,49 @@ export const addSpot = mutation({
                 ...config
             });
         }
+        return spotId;
+    }
+});
+
+/**
+ * Mutation to add a webcam-only spot (not scraped/scored).
+ * 
+ * @param {string} name - Spot name
+ * @param {string} url - Placeholder URL (webcam spots don't need Windy.app URLs)
+ * @param {Array<string>} sports - Array of sports supported at this spot
+ * @param {string} webcamStreamId - Stream ID or URL for the webcam
+ * @param {string} webcamStreamSource - Stream source ("quanteec" or "iol")
+ * @param {string} town - Town name
+ * @param {string} region - Region name
+ * @param {number} latitude - Latitude
+ * @param {number} longitude - Longitude
+ * @returns {Id<"spots">} The created spot ID
+ */
+export const addWebcamSpot = mutation({
+    args: {
+        name: v.string(),
+        url: v.string(),
+        sports: v.array(v.string()),
+        webcamStreamId: v.string(),
+        webcamStreamSource: v.string(),
+        town: v.string(),
+        region: v.string(),
+        latitude: v.number(),
+        longitude: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const spotId = await ctx.db.insert("spots", {
+            name: args.name,
+            url: args.url,
+            sports: args.sports,
+            webcamStreamId: args.webcamStreamId,
+            webcamStreamSource: args.webcamStreamSource,
+            webcamOnly: true,
+            town: args.town,
+            region: args.region,
+            latitude: args.latitude,
+            longitude: args.longitude,
+        });
         return spotId;
     }
 });

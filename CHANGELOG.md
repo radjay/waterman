@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2025-01-XX]
+
+### Added
+- Cams view with live webcam streams from 14 spots
+- Fullscreen webcam view with current conditions (wind, waves, tides)
+- Responsive metadata display: single row on desktop, stacked on mobile portrait, hidden on mobile landscape
+- Webcam-only spots stored separately and excluded from forecast scraping/scoring
+- Import script to migrate webcam spots from Portufornia
+
+### Changed
+- Added Cams toggle option alongside Report and Calendar views
+- Updated database schema to support webcam data (streamId, streamSource, coordinates, region, town)
+- Webcam spots filtered out from Report/Calendar views unless explicitly requested
+
+---
+
 ## [2025-12-28]
 
 ### Added

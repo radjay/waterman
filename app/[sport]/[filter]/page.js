@@ -259,10 +259,12 @@ function SportFilterPageContent() {
     }
   }, [highlightedDay, loading, router, selectedSport, showFilter]);
 
-  // Handle view toggle - navigate to calendar view
+  // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
     if (view === "calendar") {
       router.push("/calendar");
+    } else if (view === "cams") {
+      router.push("/cams");
     } else {
       // Navigate to report view (main page)
       router.push("/");
