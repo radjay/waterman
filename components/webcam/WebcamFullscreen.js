@@ -292,8 +292,8 @@ export function WebcamFullscreen({ spot, onClose }) {
                 <h2 className="font-headline text-xl font-bold text-white mb-1">
                   {spot.name}
                 </h2>
-                {spot.town && spot.region && (
-                  <p className="text-white/60 text-sm">{spot.town}, {spot.region}</p>
+                {spot.town && (
+                  <p className="text-white/60 text-sm">{spot.town}</p>
                 )}
               </div>
 
@@ -356,14 +356,14 @@ export function WebcamFullscreen({ spot, onClose }) {
             </div>
 
             {/* Mobile portrait: stacked layout */}
-            <div className="md:hidden portrait:block landscape:hidden">
+            <div className="md:hidden">
               {/* Spot name */}
               <div className="mb-4">
                 <h2 className="font-headline text-lg font-bold text-white mb-1">
                   {spot.name}
                 </h2>
-                {spot.town && spot.region && (
-                  <p className="text-white/60 text-sm">{spot.town}, {spot.region}</p>
+                {spot.town && (
+                  <p className="text-white/60 text-sm">{spot.town}</p>
                 )}
               </div>
 

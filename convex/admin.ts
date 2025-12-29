@@ -106,6 +106,7 @@ export const createSpot = mutation({
     name: v.string(),
     url: v.string(),
     country: v.optional(v.string()),
+    town: v.optional(v.string()),
     windySpotId: v.optional(v.string()),
     sports: v.optional(v.array(v.string())),
     webcamUrl: v.optional(v.string()),
@@ -121,6 +122,7 @@ export const createSpot = mutation({
       name: args.name,
       url: args.url,
       country: args.country,
+      town: args.town,
       windySpotId: args.windySpotId,
       sports: args.sports,
       webcamUrl: args.webcamUrl,
@@ -142,6 +144,7 @@ export const updateSpot = mutation({
     name: v.optional(v.string()),
     url: v.optional(v.string()),
     country: v.optional(v.string()),
+    town: v.optional(v.string()),
     windySpotId: v.optional(v.string()),
     sports: v.optional(v.array(v.string())),
     webcamUrl: v.optional(v.string()),
@@ -1017,6 +1020,32 @@ export const triggerScoring = action({
       failed: results.filter(r => !r.success).length,
       results,
     };
+  },
+});
+
+/**
+ * Update all spots to have country = "Portugal" (admin only)
+ */
+export const updateAllSpotsToPortugal = mutation({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (!verifyAdmin(args.sessionToken)) {
+      throw new Error("Unauthorized");
+    }
+    
+    const spots = await ctx.db.query("spots").collect();
+    let updated = 0;
+    
+    for (const spot of spots) {
+      await ctx.db.patch(spot._id, {
+        country: "Portugal",
+      });
+      updated++;
+    }
+    
+    return { updated, total: spots.length };
   },
 });
 

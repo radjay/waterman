@@ -193,8 +193,8 @@ export function WebcamCard({ spot, isFocused = false }) {
       <div className="p-4">
         <div>
           <h3 className="font-headline text-lg font-bold text-ink">{spot.name}</h3>
-          {spot.town && spot.region && (
-            <p className="text-sm text-ink/60">{spot.town}, {spot.region}</p>
+          {spot.town && (
+            <p className="text-sm text-ink/60">{spot.town}</p>
           )}
         </div>
       </div>

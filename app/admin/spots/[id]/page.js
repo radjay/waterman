@@ -23,6 +23,7 @@ export default function SpotEdit() {
     name: "",
     url: "",
     country: "",
+    town: "",
     windySpotId: "",
     sports: [],
     webcamUrl: "",
@@ -57,6 +58,7 @@ export default function SpotEdit() {
             name: spot.name || "",
             url: spot.url || "",
             country: spot.country || "",
+            town: spot.town || "",
             windySpotId: spot.windySpotId || "",
             sports: spot.sports || [],
             webcamUrl: spot.webcamUrl || "",
@@ -98,8 +100,10 @@ export default function SpotEdit() {
       if (isNew) {
         const result = await client.mutation(api.admin.createSpot, {
           sessionToken,
-          ...formData,
+          name: formData.name,
+          url: formData.url,
           country: formData.country || undefined,
+          town: formData.town || undefined,
           windySpotId: formData.windySpotId || undefined,
           sports: formData.sports.length > 0 ? formData.sports : undefined,
           webcamUrl: formData.webcamUrl || undefined,
@@ -111,8 +115,10 @@ export default function SpotEdit() {
         await client.mutation(api.admin.updateSpot, {
           sessionToken,
           spotId: spotId,
-          ...formData,
+          name: formData.name,
+          url: formData.url,
           country: formData.country || undefined,
+          town: formData.town || undefined,
           windySpotId: formData.windySpotId || undefined,
           sports: formData.sports.length > 0 ? formData.sports : undefined,
           webcamUrl: formData.webcamUrl || undefined,
@@ -188,13 +194,39 @@ export default function SpotEdit() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Country</label>
+          <label className="block text-sm font-medium mb-2">City</label>
           <input
             type="text"
+            value={formData.town}
+            onChange={(e) => setFormData({ ...formData, town: e.target.value })}
+            className="w-full px-4 py-2 border border-ink/30 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Country</label>
+          <select
             value={formData.country}
             onChange={(e) => setFormData({ ...formData, country: e.target.value })}
             className="w-full px-4 py-2 border border-ink/30 rounded-md"
-          />
+          >
+            <option value="">Select a country</option>
+            <option value="Portugal">Portugal</option>
+            <option value="Spain">Spain</option>
+            <option value="France">France</option>
+            <option value="Morocco">Morocco</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Ireland">Ireland</option>
+            <option value="Italy">Italy</option>
+            <option value="Greece">Greece</option>
+            <option value="Croatia">Croatia</option>
+            <option value="Brazil">Brazil</option>
+            <option value="United States">United States</option>
+            <option value="Australia">Australia</option>
+            <option value="South Africa">South Africa</option>
+            <option value="Indonesia">Indonesia</option>
+            <option value="Philippines">Philippines</option>
+          </select>
         </div>
 
         <div>

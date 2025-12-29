@@ -89,6 +89,38 @@ export default function Operations() {
     }
   };
 
+  const handleUpdateAllToPortugal = async () => {
+    if (!confirm("Are you sure you want to update all spots to Portugal? This cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResults(null);
+
+    try {
+      const sessionToken = localStorage.getItem("admin_session_token");
+      if (!sessionToken) {
+        setError("Not authenticated");
+        return;
+      }
+
+      const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      const result = await client.mutation(api.admin.updateAllSpotsToPortugal, {
+        sessionToken,
+      });
+
+      setResults({ total: result.total, successful: result.updated, failed: 0 });
+      setOperation("updatePortugal");
+      showToast(`Updated ${result.updated} spots to Portugal`);
+    } catch (err) {
+      setError(err.message || "Failed to update spots");
+      showToast(`Error: ${err.message || "Failed to update spots"}`, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleSpot = (spotId) => {
     setSelectedSpots((prev) =>
       prev.includes(spotId)
@@ -117,6 +149,22 @@ export default function Operations() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Update All to Portugal */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Update All Spots</h2>
+          <p className="text-ink/70 mb-4">
+            Update all spots to have country = "Portugal".
+          </p>
+
+          <button
+            onClick={handleUpdateAllToPortugal}
+            disabled={loading}
+            className="w-full bg-ink text-white py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50"
+          >
+            {loading ? "Updating..." : "Update All Spots to Portugal"}
+          </button>
+        </div>
+
         {/* Trigger Scrape */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Trigger Scrape</h2>
@@ -246,7 +294,7 @@ export default function Operations() {
       {results && (
         <div className="mt-8 bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">
-            {operation === "scrape" ? "Scrape Results" : "Scoring Results"}
+            {operation === "scrape" ? "Scrape Results" : operation === "scoring" ? "Scoring Results" : "Update Results"}
           </h2>
           <div className="space-y-2">
             <div>
