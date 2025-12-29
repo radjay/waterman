@@ -15,6 +15,7 @@ import { Footer } from "../../../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../../../lib/slots";
 import { ListFilter } from "lucide-react";
+import { ViewToggle } from "../../../components/layout/ViewToggle";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -258,16 +259,29 @@ function SportFilterPageContent() {
     }
   }, [highlightedDay, loading, router, selectedSport, showFilter]);
 
+  // Handle view toggle - navigate to calendar view
+  const handleViewChange = (view) => {
+    if (view === "calendar") {
+      router.push("/calendar");
+    } else {
+      // Navigate to report view (main page)
+      router.push("/");
+    }
+  };
+
   return (
     <MainLayout>
       <Header />
-      <div className="flex items-center justify-end gap-2 mb-6">
-        <ListFilter size={18} className="text-ink" />
-        <SportSelector
-          value={selectedSport}
-          onSportsChange={handleSportChange}
-        />
-        <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
+      <div className="flex items-center justify-between gap-2 mb-6">
+        <ViewToggle onChange={handleViewChange} />
+        <div className="flex items-center gap-2">
+          <ListFilter size={18} className="text-ink" />
+          <SportSelector
+            value={selectedSport}
+            onSportsChange={handleSportChange}
+          />
+          <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
+        </div>
       </div>
 
       {loading ? (
