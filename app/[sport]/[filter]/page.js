@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
@@ -30,7 +30,7 @@ const reverseSportMap = {
   surfing: "surf",
 };
 
-export default function SportFilterPage() {
+function SportFilterPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -373,6 +373,22 @@ export default function SportFilterPage() {
       )}
       <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
     </MainLayout>
+  );
+}
+
+export default function SportFilterPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <Header />
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader />
+        </div>
+        <Footer />
+      </MainLayout>
+    }>
+      <SportFilterPageContent />
+    </Suspense>
   );
 }
 

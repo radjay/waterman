@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
@@ -20,7 +20,7 @@ import { ViewToggle } from "../components/layout/ViewToggle";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -350,5 +350,21 @@ export default function Home() {
 
       <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
     </MainLayout>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <Header />
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader />
+        </div>
+        <Footer />
+      </MainLayout>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
