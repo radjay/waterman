@@ -3,6 +3,15 @@ import './globals.css'
 export const metadata = {
     title: 'Waterman | Wingfoil Forecast',
     description: 'Premium wingfoiling forecast for Cascais',
+    icons: {
+        icon: '/favicon.png',
+        apple: '/apple-touch-icon.png',
+    },
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'black-translucent',
+        title: 'Waterman',
+    },
 }
 
 export default function RootLayout({ children }) {

@@ -255,11 +255,27 @@ export function WebcamFullscreen({ spot, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
     >
+      {/* Background layer that extends into safe areas */}
+      <div
+        className="absolute inset-0 bg-black/95"
+        style={{
+          top: 'calc(-1 * env(safe-area-inset-top, 0px))',
+          right: 'calc(-1 * env(safe-area-inset-right, 0px))',
+          bottom: 'calc(-1 * env(safe-area-inset-bottom, 0px))',
+          left: 'calc(-1 * env(safe-area-inset-left, 0px))',
+        }}
+      />
       <div
         className="relative w-full h-full flex flex-col"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
@@ -283,7 +299,7 @@ export function WebcamFullscreen({ spot, onClose }) {
         </div>
 
         {/* Metadata overlay at bottom - responsive layout */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 p-4 md:p-6">
+        <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 landscape:hidden">
           <div className="max-w-6xl mx-auto">
             {/* Large screens: single row with spot name and metadata side by side */}
             <div className="hidden md:flex items-center w-full gap-8">
@@ -367,11 +383,11 @@ export function WebcamFullscreen({ spot, onClose }) {
                 )}
               </div>
 
-              {/* Metadata stacked */}
+              {/* Metadata stacked in three rows */}
               {loading ? (
                 <div className="text-white/60 text-sm">Loading conditions...</div>
               ) : currentConditions ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-3">
                   {/* Wind */}
                   <div className="bg-white/5 rounded-lg p-3">
                     <div className="text-white">
@@ -396,9 +412,9 @@ export function WebcamFullscreen({ spot, onClose }) {
                     </div>
                   )}
 
-                  {/* Tides - full width, horizontal */}
+                  {/* Tides */}
                   {tides.length > 0 && (
-                    <div className="bg-white/5 rounded-lg p-3 col-span-2">
+                    <div className="bg-white/5 rounded-lg p-3">
                       <div className="flex items-center gap-3">
                         {tides.map((tide, idx) => {
                           const type = tide.type?.toLowerCase();
@@ -424,8 +440,6 @@ export function WebcamFullscreen({ spot, onClose }) {
                 <div className="text-white/60 text-sm">No condition data available</div>
               )}
             </div>
-
-            {/* Mobile landscape: hide everything to maximize video space */}
           </div>
         </div>
       </div>
