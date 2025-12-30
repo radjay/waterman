@@ -7,19 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2025-12-30]
+
 ### Added
 - Score history tracking: Historical scores are now archived when replaced, including prompt information used
 - Prompt history tracking: Changes to scoring prompts (both system and spot-specific) are now tracked
 - Admin improvements: Added webcamOnly checkbox to spot edit form to control visibility in forecast reports
 - Admin improvements: Added "Edit prompt" links next to sport checkboxes for quick access to prompt editing
+- Favicon and Apple touch icon for browser tabs and iOS home screen
+- Clickable "The Waterman Report" header logo that links to home page
 
 ### Fixed
 - Fixed scoring trigger to correctly identify unscored slots by checking per-slot instead of per-spot
 - Fixed Sao Pedro do Estoril spot visibility issue (was marked as webcamOnly, now can be toggled)
+- Fixed mobile webcam fullscreen: improved portrait layout with three-row metadata display
+- Fixed mobile webcam fullscreen: metadata panel now hidden in landscape mode to maximize video space
+- Fixed white band in notch area on landscape mode by extending background into safe areas
+- Fixed page title display: home page shows "The Waterman Report", subpages show "Waterman - [Page Name]"
+- Fixed layout files for calendar and cams pages to properly export React components
 
 ### Changed
 - Removed spot configurations section from admin interface (now using LLM scoring exclusively)
 - Improved prompt editing workflow with direct links from spot edit page
+- Improved mobile navigation layout: tabs and filters now display on separate rows for better organization
+- Split home page into server component (for metadata) and client component (for interactivity)
 
 ---
 
