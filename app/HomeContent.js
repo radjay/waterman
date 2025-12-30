@@ -1,79 +1,54 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../convex/_generated/api";
-import { MainLayout } from "../../../components/layout/MainLayout";
-import { Header } from "../../../components/layout/Header";
-import { SportSelector } from "../../../components/layout/SportSelector";
-import { ShowFilter } from "../../../components/layout/ShowFilter";
-import { EmptyState } from "../../../components/common/EmptyState";
-import { Loader } from "../../../components/common/Loader";
-import { DaySection } from "../../../components/forecast/DaySection";
-import { Footer } from "../../../components/layout/Footer";
-import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
-import { enrichSlots, filterAndSortDays, markIdealSlots } from "../../../lib/slots";
+import { api } from "../convex/_generated/api";
+import { MainLayout } from "../components/layout/MainLayout";
+import { Header } from "../components/layout/Header";
+import { SportSelector } from "../components/layout/SportSelector";
+import { ShowFilter } from "../components/layout/ShowFilter";
+import { EmptyState } from "../components/common/EmptyState";
+import { Loader } from "../components/common/Loader";
+import { DaySection } from "../components/forecast/DaySection";
+import { Footer } from "../components/layout/Footer";
+import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
+import { enrichSlots, filterAndSortDays, markIdealSlots } from "../lib/slots";
+import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { ListFilter } from "lucide-react";
-import { ViewToggle } from "../../../components/layout/ViewToggle";
+import { ViewToggle } from "../components/layout/ViewToggle";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-// Map URL sport values to internal sport values
-const sportMap = {
-  wing: "wingfoil",
-  surf: "surfing",
-};
-
-// Map internal sport values to URL sport values
-const reverseSportMap = {
-  wingfoil: "wing",
-  surfing: "surf",
-};
-
-function SportFilterPageContent() {
-  const params = useParams();
+export default function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // Get highlighted day from URL params
-  const highlightedDay = searchParams?.get("day") || null;
-  
-  // Extract sport and filter from URL params
-  const urlSport = params.sport?.toLowerCase();
-  const urlFilter = params.filter?.toLowerCase();
 
-  // Map URL sport to internal sport value, default to wingfoil if invalid
-  const selectedSport = useMemo(() => {
-    if (urlSport && sportMap[urlSport]) {
-      return sportMap[urlSport];
-    }
-    return "wingfoil";
-  }, [urlSport]);
-
-  // Validate and use filter from URL, default to best if invalid
-  const showFilter = useMemo(() => {
-    if (urlFilter === "all" || urlFilter === "best") {
-      return urlFilter;
-    }
-    return "best";
-  }, [urlFilter]);
+  // Use persisted state hook for sport selection
+  const [selectedSport, setSelectedSport] = usePersistedState(
+    "waterman_selected_sport",
+    "wingfoil",
+    (val) => val === "wingfoil" || val === "surfing"
+  );
 
   // Convert single sport to array format (used throughout the app)
+  // Memoize to prevent infinite loops in useEffect dependencies
   const selectedSports = useMemo(() => [selectedSport], [selectedSport]);
 
-  // Handle sport change from SportSelector (navigate to new URL)
+  // Handle sport change from SportSelector
   const handleSportChange = (sportId) => {
-    const urlSportValue = reverseSportMap[sportId] || "wing";
-    router.push(`/${urlSportValue}/${showFilter}`);
+    setSelectedSport(sportId);
   };
 
-  // Handle filter change (navigate to new URL)
-  const handleFilterChange = (filterValue) => {
-    const urlSportValue = reverseSportMap[selectedSport] || "wing";
-    router.push(`/${urlSportValue}/${filterValue}`);
-  };
+  // Use persisted state hook for filter
+  const [showFilter, setShowFilter] = usePersistedState(
+    "waterman_show_filter",
+    "best",
+    (val) => val === "best" || val === "all"
+  );
 
+  // Get highlighted day from URL params
+  const highlightedDay = searchParams?.get("day") || null;
   const [spots, setSpots] = useState([]);
   const [allSlots, setAllSlots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({}); // Map spotId to spot data
@@ -157,11 +132,11 @@ function SportFilterPageContent() {
         const allFetchedSlots = allFetchedData.map(d => d.slots).flat();
         
         // Collect tides by spot
-        const tidesBySpot = {};
+        const tidesBySpotObj = {};
         allFetchedData.forEach((data, index) => {
           const spot = fetchedSpots[index];
           if (data.tides && data.tides.length > 0) {
-            tidesBySpot[spot._id] = {
+            tidesBySpotObj[spot._id] = {
               spotName: spot.name,
               tides: data.tides.map(tide => ({
                 time: tide.time,
@@ -178,7 +153,7 @@ function SportFilterPageContent() {
         setAllSlots(allFetchedSlots);
         
         // Store tides separately
-        setTidesBySpot(tidesBySpot);
+        setTidesBySpot(tidesBySpotObj);
 
         // Fetch most recent scrape timestamp
         const scrapeTimestamp = await client.query(
@@ -232,44 +207,31 @@ function SportFilterPageContent() {
   // Only mark as ideal if the slot matches criteria
   markIdealSlots(grouped, selectedSports);
 
-  // Scroll to highlighted day when it changes
-  useEffect(() => {
-    if (highlightedDay && !loading) {
-      // Wait for DOM to be ready, with retries if element isn't found immediately
-      const scrollToDay = () => {
-        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
-        if (element) {
-          // Use a small additional delay to ensure layout is stable
-          setTimeout(() => {
-            element.scrollIntoView({ behavior: "smooth", block: "start" });
-            // Remove the day param from URL after scrolling
-            setTimeout(() => {
-              const urlSportValue = reverseSportMap[selectedSport] || "wing";
-              router.push(`/${urlSportValue}/${showFilter}`, { scroll: false });
-            }, 2000);
-          }, 200);
-        } else {
-          // Retry after a short delay if element not found
-          setTimeout(scrollToDay, 100);
-        }
-      };
-      
-      // Initial delay to ensure content is rendered
-      setTimeout(scrollToDay, 300);
-    }
-  }, [highlightedDay, loading, router, selectedSport, showFilter]);
-
   // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
     if (view === "calendar") {
       router.push("/calendar");
     } else if (view === "cams") {
       router.push("/cams");
-    } else {
-      // Navigate to report view (main page)
-      router.push("/");
     }
   };
+
+  // Scroll to highlighted day when it changes
+  useEffect(() => {
+    if (highlightedDay) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Remove the day param from URL after scrolling
+          setTimeout(() => {
+            router.push("/", { scroll: false });
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [highlightedDay, router]);
 
   return (
     <MainLayout>
@@ -284,17 +246,17 @@ function SportFilterPageContent() {
             value={selectedSport}
             onSportsChange={handleSportChange}
           />
-          <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
+          <ShowFilter value={showFilter} onFilterChange={setShowFilter} />
         </div>
       </div>
 
       {loading ? (
-        <Loader />
-      ) : sortedDays.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="flex flex-col gap-8">
-          {sortedDays.map((day) => {
+            <Loader />
+          ) : sortedDays.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="flex flex-col gap-8">
+              {sortedDays.map((day) => {
             const dayData = grouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
             const hasForecastSlots = Object.keys(dayData).some((spotId) => {
@@ -373,40 +335,24 @@ function SportFilterPageContent() {
               );
             }
 
-            return (
-              <DaySection
-                key={day}
-                id={`day-${encodeURIComponent(day)}`}
-                day={day}
-                spotsData={dayData}
-                selectedSports={selectedSports}
-                spotsMap={spotsMap}
-                showFilter={showFilter}
-                tidesBySpot={tidesBySpot}
-                isHighlighted={highlightedDay === day}
-              />
-            );
-          })}
-        </div>
-      )}
+                return (
+                  <DaySection
+                    key={day}
+                    id={`day-${encodeURIComponent(day)}`}
+                    day={day}
+                    spotsData={dayData}
+                    selectedSports={selectedSports}
+                    spotsMap={spotsMap}
+                    showFilter={showFilter}
+                    tidesBySpot={tidesBySpot}
+                    isHighlighted={highlightedDay === day}
+                  />
+                );
+              })}
+            </div>
+          )}
+
       <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
     </MainLayout>
   );
 }
-
-export default function SportFilterPage() {
-  return (
-    <Suspense fallback={
-      <MainLayout>
-        <Header />
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader />
-        </div>
-        <Footer />
-      </MainLayout>
-    }>
-      <SportFilterPageContent />
-    </Suspense>
-  );
-}
-

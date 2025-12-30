@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-    title: 'Waterman | Wingfoil Forecast',
+    title: 'Waterman',
     description: 'Premium wingfoiling forecast for Cascais',
     icons: {
         icon: '/favicon.png',

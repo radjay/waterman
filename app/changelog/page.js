@@ -5,6 +5,10 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 
+export const metadata = {
+    title: 'Waterman - Changelog',
+};
+
 export default async function ChangelogPage() {
   // Read the changelog file at request time
   const changelogPath = join(process.cwd(), "CHANGELOG.md");
