@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Score history tracking: Historical scores are now archived when replaced, including prompt information used
+- Prompt history tracking: Changes to scoring prompts (both system and spot-specific) are now tracked
+- Admin improvements: Added webcamOnly checkbox to spot edit form to control visibility in forecast reports
+- Admin improvements: Added "Edit prompt" links next to sport checkboxes for quick access to prompt editing
+
+### Fixed
+- Fixed scoring trigger to correctly identify unscored slots by checking per-slot instead of per-spot
+- Fixed Sao Pedro do Estoril spot visibility issue (was marked as webcamOnly, now can be toggled)
+
+### Changed
+- Removed spot configurations section from admin interface (now using LLM scoring exclusively)
+- Improved prompt editing workflow with direct links from spot edit page
+
 ---
 
 ## [2025-12-29]
