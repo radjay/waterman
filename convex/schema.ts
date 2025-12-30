@@ -158,4 +158,79 @@ export default defineSchema({
     })
         .index("by_spot_sport", ["spotId", "sport"])
         .index("by_user_spot_sport", ["userId", "spotId", "sport"]),
+    /**
+     * Historical record of condition scores.
+     * Archives previous scores when they are replaced by new scores.
+     * Used to evaluate scoring accuracy against observed conditions.
+     */
+    score_history: defineTable({
+        // Original score data (from condition_scores)
+        slotId: v.id("forecast_slots"),
+        spotId: v.id("spots"),
+        timestamp: v.number(), // Slot timestamp (epoch ms)
+        sport: v.string(),
+        userId: v.union(v.string(), v.null()),
+        score: v.number(), // 0-100
+        reasoning: v.string(),
+        factors: v.optional(v.object({
+            windQuality: v.optional(v.number()),
+            waveQuality: v.optional(v.number()),
+            tideQuality: v.optional(v.number()),
+            overallConditions: v.optional(v.number()),
+        })),
+        scoredAt: v.number(), // When this score was originally created (epoch ms)
+        model: v.optional(v.string()),
+        scrapeTimestamp: v.optional(v.number()),
+        // Prompt information used for this score
+        systemPromptId: v.optional(v.id("system_sport_prompts")), // ID of system prompt used
+        spotPromptId: v.optional(v.id("scoring_prompts")), // ID of spot prompt used
+        systemPromptText: v.optional(v.string()), // Snapshot of system prompt text
+        spotPromptText: v.optional(v.string()), // Snapshot of spot prompt text
+        temporalPromptText: v.optional(v.string()), // Snapshot of temporal prompt text
+        // Archive metadata
+        replacedAt: v.number(), // When this score was replaced (epoch ms)
+        replacedByScoreId: v.id("condition_scores"), // ID of the score that replaced this one
+    })
+        .index("by_slot_sport", ["slotId", "sport"])
+        .index("by_spot_timestamp", ["spotId", "timestamp"])
+        .index("by_replaced_by", ["replacedByScoreId"]),
+    /**
+     * Historical record of scoring prompts (spot-specific).
+     * Archives previous prompt versions when they are updated.
+     * Used to track which prompts were used for historical scores.
+     */
+    prompt_history: defineTable({
+        // Original prompt data (from scoring_prompts)
+        spotId: v.id("spots"),
+        sport: v.string(),
+        userId: v.union(v.string(), v.null()),
+        spotPrompt: v.string(),
+        temporalPrompt: v.string(),
+        isActive: v.boolean(),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        // Archive metadata
+        replacedAt: v.number(), // When this prompt was replaced (epoch ms)
+        replacedByPromptId: v.id("scoring_prompts"), // ID of the prompt that replaced this one
+    })
+        .index("by_spot_sport", ["spotId", "sport"])
+        .index("by_replaced_by", ["replacedByPromptId"]),
+    /**
+     * Historical record of system sport prompts.
+     * Archives previous prompt versions when they are updated.
+     * Used to track which prompts were used for historical scores.
+     */
+    system_prompt_history: defineTable({
+        // Original prompt data (from system_sport_prompts)
+        sport: v.string(),
+        prompt: v.string(),
+        isActive: v.boolean(),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+        // Archive metadata
+        replacedAt: v.number(), // When this prompt was replaced (epoch ms)
+        replacedByPromptId: v.id("system_sport_prompts"), // ID of the prompt that replaced this one
+    })
+        .index("by_sport", ["sport"])
+        .index("by_replaced_by", ["replacedByPromptId"]),
 });

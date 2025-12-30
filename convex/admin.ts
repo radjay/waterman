@@ -112,6 +112,7 @@ export const createSpot = mutation({
     webcamUrl: v.optional(v.string()),
     webcamStreamSource: v.optional(v.string()),
     liveReportUrl: v.optional(v.string()),
+    webcamOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!verifyAdmin(args.sessionToken)) {
@@ -128,6 +129,7 @@ export const createSpot = mutation({
       webcamUrl: args.webcamUrl,
       webcamStreamSource: args.webcamStreamSource,
       liveReportUrl: args.liveReportUrl,
+      webcamOnly: args.webcamOnly,
     });
     
     return { spotId };
@@ -150,6 +152,7 @@ export const updateSpot = mutation({
     webcamUrl: v.optional(v.string()),
     webcamStreamSource: v.optional(v.string()),
     liveReportUrl: v.optional(v.string()),
+    webcamOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     if (!verifyAdmin(args.sessionToken)) {
@@ -158,11 +161,15 @@ export const updateSpot = mutation({
     
     const { sessionToken, spotId, ...updates } = args;
     
-    // Remove undefined values
+    // Build updates object - include all non-undefined values
+    // For booleans, explicitly include false values
     const cleanUpdates: any = {};
     Object.keys(updates).forEach(key => {
-      if (updates[key as keyof typeof updates] !== undefined) {
-        cleanUpdates[key] = updates[key as keyof typeof updates];
+      const value = updates[key as keyof typeof updates];
+      // Include the value if it's not undefined
+      // This allows setting booleans to false explicitly
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
       }
     });
     
@@ -397,6 +404,17 @@ export const upsertSystemSportPrompt = mutation({
     };
     
     if (existing) {
+      // Archive the old prompt to history before updating
+      await ctx.db.insert("system_prompt_history", {
+        sport: existing.sport,
+        prompt: existing.prompt,
+        isActive: existing.isActive,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+        replacedAt: now,
+        replacedByPromptId: existing._id, // Will point to the updated prompt
+      });
+
       await ctx.db.patch(existing._id, promptData);
       return { promptId: existing._id, isNew: false };
     } else {
@@ -500,6 +518,20 @@ export const upsertSpotSportPrompt = mutation({
     };
     
     if (existing) {
+      // Archive the old prompt to history before updating
+      await ctx.db.insert("prompt_history", {
+        spotId: existing.spotId,
+        sport: existing.sport,
+        userId: existing.userId,
+        spotPrompt: existing.spotPrompt,
+        temporalPrompt: existing.temporalPrompt,
+        isActive: existing.isActive,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+        replacedAt: now,
+        replacedByPromptId: existing._id, // Will point to the updated prompt
+      });
+
       await ctx.db.patch(existing._id, promptData);
       return { promptId: existing._id, isNew: false };
     } else {
@@ -968,14 +1000,13 @@ export const triggerScoring = action({
     const unscoredSlots = [];
     for (const slot of filteredSlots) {
       for (const sport of sportsToScore) {
-        // Check if score already exists
-        // Note: getConditionScores expects spotId, not slotId
-        const existingScores = await ctx.runQuery(api.spots.getConditionScores, {
-          spotId: slot.spotId,
+        // Check if score already exists for this specific slot-sport combination
+        const existingScore = await ctx.runQuery(api.spots.getConditionScoreBySlot, {
+          slotId: slot._id,
           sport,
         });
         
-        if (!existingScores || existingScores.length === 0) {
+        if (!existingScore) {
           unscoredSlots.push({ slot, sport });
         }
       }

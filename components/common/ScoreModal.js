@@ -112,3 +112,4 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
   );
 }
 
+

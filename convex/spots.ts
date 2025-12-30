@@ -706,6 +706,12 @@ export const saveConditionScore = mutation({
         })),
         model: v.optional(v.string()),
         scrapeTimestamp: v.optional(v.number()),
+        // Prompt tracking fields
+        systemPromptId: v.optional(v.id("system_sport_prompts")),
+        spotPromptId: v.optional(v.id("scoring_prompts")),
+        systemPromptText: v.optional(v.string()),
+        spotPromptText: v.optional(v.string()),
+        temporalPromptText: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const scoredAt = Date.now();
@@ -722,6 +728,32 @@ export const saveConditionScore = mutation({
                 .first();
 
             if (existingScore) {
+                // Archive the old score to history BEFORE updating
+                // Note: For old scores, we don't have the prompt info that was used originally,
+                // so these fields will be undefined. New scores going forward will capture this.
+                await ctx.db.insert("score_history", {
+                    slotId: existingScore.slotId,
+                    spotId: existingScore.spotId,
+                    timestamp: existingScore.timestamp,
+                    sport: existingScore.sport,
+                    userId: existingScore.userId,
+                    score: existingScore.score,
+                    reasoning: existingScore.reasoning,
+                    factors: existingScore.factors,
+                    scoredAt: existingScore.scoredAt,
+                    model: existingScore.model,
+                    scrapeTimestamp: existingScore.scrapeTimestamp,
+                    // Prompt info used for the NEW score (the one replacing this)
+                    // For old scores archived, we don't know what prompts were originally used
+                    systemPromptId: args.systemPromptId,
+                    spotPromptId: args.spotPromptId,
+                    systemPromptText: args.systemPromptText,
+                    spotPromptText: args.spotPromptText,
+                    temporalPromptText: args.temporalPromptText,
+                    replacedAt: scoredAt,
+                    replacedByScoreId: existingScore._id, // Will point to the same score after update
+                });
+
                 // Update existing system score
                 await ctx.db.patch(existingScore._id, {
                     score: args.score,
@@ -730,11 +762,14 @@ export const saveConditionScore = mutation({
                     scoredAt,
                     model: args.model,
                 });
+
                 return existingScore._id;
             }
         }
 
         // Insert new score (for user scores or new system scores)
+        // Note: We don't store prompt IDs in condition_scores to keep it lean
+        // Prompt information is captured in score_history when scores are replaced
         const scoreId = await ctx.db.insert("condition_scores", {
             slotId: args.slotId,
             spotId: args.spotId,
@@ -871,7 +906,11 @@ export const scoreSingleSlot = action({
                 // Round score to integer
                 const score = Math.round(response.score);
 
-                // Save score to database
+                // Get prompt IDs and text for history tracking
+                const systemPromptId = systemPromptData?._id;
+                const spotPromptId = spotPromptData?._id;
+
+                // Save score to database with prompt tracking
                 await ctx.runMutation(api.spots.saveConditionScore, {
                     slotId: args.slotId,
                     spotId: args.spotId,
@@ -883,6 +922,11 @@ export const scoreSingleSlot = action({
                     factors: response.factors || undefined,
                     model: "openai/gpt-oss-120b",
                     scrapeTimestamp: slot.scrapeTimestamp,
+                    systemPromptId,
+                    spotPromptId,
+                    systemPromptText: systemPrompt,
+                    spotPromptText: spotPrompt,
+                    temporalPromptText: temporalPrompt,
                 });
 
                 return {
@@ -1037,6 +1081,41 @@ export const getConditionScores = query({
 
         // Sort by timestamp
         return filtered.sort((a, b) => a.timestamp - b.timestamp);
+    },
+});
+
+/**
+ * Query to get a condition score for a specific slot-sport combination.
+ * 
+ * @param {Id<"forecast_slots">} slotId - The slot ID
+ * @param {string} sport - The sport name
+ * @param {string} [userId] - Optional user ID (null for system scores)
+ * @returns {Object|null} Condition score object or null if not found
+ */
+export const getConditionScoreBySlot = query({
+    args: {
+        slotId: v.id("forecast_slots"),
+        sport: v.string(),
+        userId: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const score = await ctx.db
+            .query("condition_scores")
+            .withIndex("by_slot_sport", q => 
+                q.eq("slotId", args.slotId)
+                 .eq("sport", args.sport)
+            )
+            .filter(q => {
+                if (args.userId !== undefined) {
+                    return q.eq(q.field("userId"), args.userId);
+                } else {
+                    // Default to system scores (userId: null)
+                    return q.eq(q.field("userId"), null);
+                }
+            })
+            .first();
+
+        return score;
     },
 });
 

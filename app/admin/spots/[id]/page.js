@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "../../../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
-import { SpotConfigForm } from "../../../../components/admin/SpotConfigForm";
 import { useToast } from "../../../../components/admin/ToastProvider";
 
 export default function SpotEdit() {
@@ -29,9 +28,9 @@ export default function SpotEdit() {
     webcamUrl: "",
     webcamStreamSource: "",
     liveReportUrl: "",
+    webcamOnly: false,
   });
 
-  const [configs, setConfigs] = useState([]);
 
   useEffect(() => {
     if (isNew) {
@@ -64,14 +63,9 @@ export default function SpotEdit() {
             webcamUrl: spot.webcamUrl || "",
             webcamStreamSource: spot.webcamStreamSource || "",
             liveReportUrl: spot.liveReportUrl || "",
+            webcamOnly: spot.webcamOnly || false,
           });
 
-          // Fetch configs
-          const spotConfigs = await client.query(api.admin.getSpotConfigs, {
-            sessionToken,
-            spotId: spotId,
-          });
-          setConfigs(spotConfigs || []);
         }
       } catch (err) {
         setError(err.message || "Failed to load spot");
@@ -109,10 +103,11 @@ export default function SpotEdit() {
           webcamUrl: formData.webcamUrl || undefined,
           webcamStreamSource: formData.webcamStreamSource || undefined,
           liveReportUrl: formData.liveReportUrl || undefined,
+          webcamOnly: formData.webcamOnly,
         });
         router.push(`/admin/spots/${result.spotId}`);
       } else {
-        await client.mutation(api.admin.updateSpot, {
+        const updateData = {
           sessionToken,
           spotId: spotId,
           name: formData.name,
@@ -124,10 +119,35 @@ export default function SpotEdit() {
           webcamUrl: formData.webcamUrl || undefined,
           webcamStreamSource: formData.webcamStreamSource || undefined,
           liveReportUrl: formData.liveReportUrl || undefined,
-        });
+          webcamOnly: formData.webcamOnly,
+        };
+        
+        console.log("Updating spot with data:", updateData);
+        await client.mutation(api.admin.updateSpot, updateData);
         showToast("Spot updated successfully!");
+        
+        // Refresh the spot data to show updated values
+        const updatedSpot = await client.query(api.admin.getSpot, {
+          sessionToken,
+          spotId: spotId,
+        });
+        if (updatedSpot) {
+          setFormData({
+            name: updatedSpot.name || "",
+            url: updatedSpot.url || "",
+            country: updatedSpot.country || "",
+            town: updatedSpot.town || "",
+            windySpotId: updatedSpot.windySpotId || "",
+            sports: updatedSpot.sports || [],
+            webcamUrl: updatedSpot.webcamUrl || "",
+            webcamStreamSource: updatedSpot.webcamStreamSource || "",
+            liveReportUrl: updatedSpot.liveReportUrl || "",
+            webcamOnly: updatedSpot.webcamOnly || false,
+          });
+        }
       }
       } catch (err) {
+      console.error("Error saving spot:", err);
       setError(err.message || "Failed to save spot");
       showToast(`Error: ${err.message || "Failed to save spot"}`, "error");
     } finally {
@@ -244,15 +264,25 @@ export default function SpotEdit() {
           <label className="block text-sm font-medium mb-2">Sports</label>
           <div className="space-y-2">
             {["wingfoil", "surfing"].map((sport) => (
-              <label key={sport} className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.sports.includes(sport)}
-                  onChange={() => toggleSport(sport)}
-                  className="mr-2"
-                />
-                <span className="capitalize">{sport}</span>
-              </label>
+              <div key={sport} className="flex items-center justify-between">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.sports.includes(sport)}
+                    onChange={() => toggleSport(sport)}
+                    className="mr-2"
+                  />
+                  <span className="capitalize">{sport}</span>
+                </label>
+                {!isNew && formData.sports.includes(sport) && (
+                  <Link
+                    href={`/admin/prompts?spot=${spotId}&sport=${sport}`}
+                    className="text-sm text-ink/60 hover:text-ink/80 underline"
+                  >
+                    Edit prompt
+                  </Link>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -292,6 +322,21 @@ export default function SpotEdit() {
           />
         </div>
 
+        <div>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.webcamOnly}
+              onChange={(e) => setFormData({ ...formData, webcamOnly: e.target.checked })}
+              className="mr-2"
+            />
+            <span className="text-sm font-medium">Webcam Only (exclude from forecast reports)</span>
+          </label>
+          <p className="text-sm text-ink/70 mt-1">
+            If checked, this spot will only appear in the webcam section and will not be included in forecast reports.
+          </p>
+        </div>
+
         <div className="flex justify-end space-x-4">
           <Link
             href="/admin/spots"
@@ -308,42 +353,6 @@ export default function SpotEdit() {
           </button>
         </div>
       </form>
-
-      {!isNew && (
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Spot Configurations</h2>
-          <p className="text-ink/70 mb-4">
-            Configure sport-specific criteria for this spot. These determine which conditions are marked as "ideal".
-          </p>
-
-          {["wingfoil", "surfing"].map((sport) => {
-            const config = configs.find((c) => c.sport === sport);
-
-            return (
-              <SpotConfigForm
-                key={sport}
-                spotId={spotId}
-                sport={sport}
-                config={config}
-                onSave={() => {
-                  // Refresh configs after save
-                  const fetchConfigs = async () => {
-                    const sessionToken = localStorage.getItem("admin_session_token");
-                    if (!sessionToken) return;
-                    const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-                    const spotConfigs = await client.query(api.admin.getSpotConfigs, {
-                      sessionToken,
-                      spotId: spotId,
-                    });
-                    setConfigs(spotConfigs || []);
-                  };
-                  fetchConfigs();
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

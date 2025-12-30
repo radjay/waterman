@@ -192,3 +192,4 @@ Check Convex Dashboard → **Logs** for:
 - **Scoring logic**: `convex/spots.ts` → `scoreForecastSlots`, `scoreSingleSlot`
 - **Prompts**: `convex/prompts.ts` (system prompts), Database (spot prompts)
 
+

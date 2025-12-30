@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import Link from "next/link";
 import { useToast } from "../../../components/admin/ToastProvider";
 
-export default function PromptsManagement() {
-  const [activeTab, setActiveTab] = useState("system");
+function PromptsManagementContent() {
+  const searchParams = useSearchParams();
+  const spotIdParam = searchParams?.get("spot");
+  const sportParam = searchParams?.get("sport");
+  
+  // If spot and sport params are present, default to "spots" tab
+  const [activeTab, setActiveTab] = useState(spotIdParam && sportParam ? "spots" : "system");
   const [systemPrompts, setSystemPrompts] = useState([]);
   const [spotPrompts, setSpotPrompts] = useState([]);
   const [spots, setSpots] = useState([]);
@@ -131,9 +137,19 @@ export default function PromptsManagement() {
           prompts={spotPrompts}
           spots={spots}
           onUpdate={handleRefresh}
+          initialSpotId={spotIdParam || undefined}
+          initialSport={sportParam || undefined}
         />
       )}
     </div>
+  );
+}
+
+export default function PromptsManagement() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PromptsManagementContent />
+    </Suspense>
   );
 }
 
@@ -273,12 +289,12 @@ function SystemPromptsTab({ prompts, onUpdate }) {
   );
 }
 
-function SpotPromptsTab({ prompts, spots, onUpdate }) {
+function SpotPromptsTab({ prompts, spots, onUpdate, initialSpotId, initialSport }) {
   const [editingId, setEditingId] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    spotId: "",
-    sport: "",
+    spotId: initialSpotId || "",
+    sport: initialSport || "",
     spotPrompt: "",
     temporalPrompt: "",
     isActive: true,
@@ -358,6 +374,36 @@ function SpotPromptsTab({ prompts, spots, onUpdate }) {
     const spot = spots.find((s) => s._id === spotId);
     return spot ? spot.name : spotId;
   };
+
+  // Handle initial params - check if prompt exists and open edit/create form
+  useEffect(() => {
+    if (initialSpotId && initialSport && prompts.length > 0 && spots.length > 0) {
+      const existingPrompt = prompts.find(
+        p => p.spotId === initialSpotId && p.sport === initialSport
+      );
+      if (existingPrompt && editingId !== existingPrompt._id) {
+        setEditingId(existingPrompt._id);
+        setShowCreateForm(false);
+        setFormData({
+          spotId: existingPrompt.spotId,
+          sport: existingPrompt.sport,
+          spotPrompt: existingPrompt.spotPrompt,
+          temporalPrompt: existingPrompt.temporalPrompt,
+          isActive: existingPrompt.isActive,
+        });
+      } else if (!existingPrompt && !showCreateForm) {
+        setShowCreateForm(true);
+        setEditingId(null);
+        setFormData({
+          spotId: initialSpotId,
+          sport: initialSport,
+          spotPrompt: "",
+          temporalPrompt: "",
+          isActive: true,
+        });
+      }
+    }
+  }, [initialSpotId, initialSport, prompts, spots]);
 
   return (
     <div>
