@@ -446,6 +446,15 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 - **Returns**: iCal format text
 - **Usage**: Calendar subscription for ideal conditions
 
+**`/api/conditions/[sport]/[filter]`** (GET)
+
+- **Purpose**: Public, open (no API key) REST endpoint returning enriched forecast conditions using LLM scores
+- **Params**:
+  - `sport`: `wingfoil` or `surfing`
+  - `filter`: `best` or `all`
+- **Returns**: JSON `{ sport, filter, generatedAt, spots: [{ id, name, slots, tides }] }`
+- **Usage**: External consumers can fetch conditions data without running Convex client code
+
 ---
 
 ## Scraping Architecture
@@ -547,24 +556,17 @@ All persistent state stored in Convex database:
 - Wave direction within `swellDirectionFrom` → `swellDirectionTo`
 - Tide matches `optimalTide` ("high", "low", or "both")
 
-### Filter Modes
+### Filter Modes (LLM scoring)
 
-**"best"** (default):
+The UI and API rely on LLM condition scores stored in `condition_scores`:
 
-- Shows only slots where `isIdeal === true`
-- Ideal = matches all criteria + direction matches (for surfing)
+- **"best"**: includes slots with `score.value >= 60` and also includes tide-only entries
+- **"all"**: includes all forecast slots (tide-only entries included)
 
-**"all"**:
+### Ideal + Epic (LLM scoring)
 
-- Shows all slots where `matchesCriteria === true`
-- Includes slots that match basic criteria but may not be ideal
-
-### Epic Conditions
-
-Slots marked as "epic" when:
-
-- Wind speed ≥ 20 knots
-- Gust - speed ≤ 10 knots (steady wind)
+- **Ideal**: `score.value >= 75` (used for marking the best slot per day/spot)
+- **Epic**: `score.value >= 90`
 
 ---
 

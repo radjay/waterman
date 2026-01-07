@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-01-07]
+
+### Added
+- Public REST endpoint to fetch conditions data by sport and filter (`/api/conditions/[sport]/[filter]`)
+
+---
+
 ## [2025-12-30]
 
 ### Added
