@@ -5,12 +5,59 @@ import { v } from "convex/values";
  * Database schema for Waterman application.
  * 
  * Tables:
+ * - users: User accounts for personalization
+ * - magic_links: Temporary links for passwordless authentication
+ * - sessions: Active user sessions
  * - spots: Water sports locations (beaches, spots)
  * - spotConfigs: Sport-specific condition criteria for each spot
  * - forecast_slots: Time-series forecast data for each spot
  * - scrapes: Tracking metadata for forecast data collection runs
  */
 export default defineSchema({
+    /**
+     * User accounts for personalization.
+     * Users can sign up with email (passwordless) to save preferences.
+     */
+    users: defineTable({
+        email: v.string(),
+        name: v.optional(v.string()),
+        emailVerified: v.boolean(), // True after first magic link use
+        onboardingCompleted: v.boolean(), // True after completing onboarding flow
+        favoriteSpots: v.optional(v.array(v.id("spots"))),
+        favoriteSports: v.optional(v.array(v.string())), // e.g., ["wingfoil", "surfing"]
+        createdAt: v.number(),
+        lastLoginAt: v.optional(v.number()),
+    })
+        .index("by_email", ["email"]),
+    /**
+     * Magic links for passwordless authentication.
+     * Each link is single-use and expires after 15 minutes.
+     */
+    magic_links: defineTable({
+        userId: v.id("users"),
+        email: v.string(),
+        token: v.string(), // Secure random token (32 bytes, URL-safe)
+        expiresAt: v.number(), // Timestamp (epoch ms)
+        used: v.boolean(),
+        usedAt: v.optional(v.number()),
+        createdAt: v.number(),
+    })
+        .index("by_token", ["token"])
+        .index("by_email", ["email"])
+        .index("by_user", ["userId"]),
+    /**
+     * Active user sessions.
+     * Sessions expire after 30 days of inactivity.
+     */
+    sessions: defineTable({
+        userId: v.id("users"),
+        token: v.string(), // Secure random session token
+        expiresAt: v.number(), // Timestamp (epoch ms)
+        lastActivityAt: v.number(),
+        createdAt: v.number(),
+    })
+        .index("by_token", ["token"])
+        .index("by_user", ["userId"]),
     /**
      * Water sports spots/locations.
      * Each spot can support multiple sports (e.g., wingfoiling, surfing).
