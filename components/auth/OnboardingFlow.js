@@ -313,22 +313,13 @@ export default function OnboardingFlow({ onComplete }) {
               )}
             </button>
             
-            <div className="flex gap-3">
-              <button
-                onClick={handleBack}
-                disabled={loading}
-                className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleComplete}
-                disabled={loading}
-                className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
-              >
-                Skip
-              </button>
-            </div>
+            <button
+              onClick={handleBack}
+              disabled={loading}
+              className="w-full border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
           </div>
         </div>
       )}
