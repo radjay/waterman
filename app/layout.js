@@ -1,4 +1,5 @@
 import './globals.css'
+import { AuthProvider } from '../components/auth/AuthProvider'
 
 export const metadata = {
     title: 'Waterman',
@@ -20,7 +21,11 @@ export default function RootLayout({ children }) {
             <head>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
             </head>
-            <body>{children}</body>
+            <body>
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
+            </body>
         </html>
     )
 }

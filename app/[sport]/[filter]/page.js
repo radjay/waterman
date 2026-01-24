@@ -14,6 +14,7 @@ import { DaySection } from "../../../components/forecast/DaySection";
 import { Footer } from "../../../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../../../lib/slots";
+import { useUser } from "../../../components/auth/AuthProvider";
 import { ListFilter } from "lucide-react";
 import { ViewToggle } from "../../../components/layout/ViewToggle";
 
@@ -35,6 +36,7 @@ function SportFilterPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const user = useUser();
   
   // Get highlighted day from URL params
   const highlightedDay = searchParams?.get("day") || null;
@@ -92,7 +94,17 @@ function SportFilterPageContent() {
           sports: selectedSports,
         });
 
-        setSpots(fetchedSpots);
+        // Order spots: favorites first for authenticated users
+        let orderedSpots = fetchedSpots;
+        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
+          const favoriteSpotIds = new Set(user.favoriteSpots);
+          orderedSpots = [
+            ...fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id)),
+            ...fetchedSpots.filter((spot) => !favoriteSpotIds.has(spot._id)),
+          ];
+        }
+
+        setSpots(orderedSpots);
 
         // Create a map of spotId to spot data for easy lookup
         const spotsMapObj = {};
@@ -193,7 +205,7 @@ function SportFilterPageContent() {
     }
 
     fetchData();
-  }, [selectedSports]);
+  }, [selectedSports, user]);
 
   // Filter slots based on showFilter
   // "best" shows slots with scores >= 60 (good conditions per PRD 02)
