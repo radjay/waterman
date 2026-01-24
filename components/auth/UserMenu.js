@@ -59,11 +59,11 @@ export default function UserMenu() {
         <div className="w-8 h-8 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
           {getInitials()}
         </div>
-        <span className="hidden sm:block text-sm text-ink">
+        <span className="hidden sm:block text-sm text-ink max-w-[150px] truncate">
           {user.name || user.email}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-ink transition-transform ${
+          className={`hidden sm:block w-4 h-4 text-ink transition-transform ${
             isOpen ? "transform rotate-180" : ""
           }`}
         />
