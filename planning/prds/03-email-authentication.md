@@ -587,20 +587,19 @@ SESSION_EXPIRY_DAYS=30
 
 ### Phase 2: Polish & Optimization (Post-MVP)
 
-1. Rate limiting improvements
-2. Better error messages
-3. Email template styling (HTML)
-4. Profile page (basic)
-5. User preferences expansion
-6. Performance monitoring
+1. Rate limiting improvements ✅
+2. Better error messages ✅
+3. Profile page (basic) ✅
 
 ### Phase 3: Advanced Features (Future)
 
-1. Email notifications for ideal conditions
-2. Custom scoring prompts per user
-3. User-created spots (private/public)
-4. Social features (share conditions)
-5. Account settings (email change, deletion)
+1. User preferences expansion (advanced settings, custom thresholds, etc.)
+2. Performance monitoring and analytics
+3. Email notifications for ideal conditions
+4. Custom scoring prompts per user
+5. User-created spots (private/public)
+6. Social features (share conditions)
+7. Account settings (email change, deletion)
 
 ---
 
