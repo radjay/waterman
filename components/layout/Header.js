@@ -14,10 +14,10 @@ export function Header({ className = "" }) {
 
   return (
     <header className={`border-b-2 border-ink/20 pb-4 mb-6 ${className}`}>
-      {/* Main header row - title and auth on same line */}
-      <div className="flex items-center justify-between gap-4 pt-6 md:pt-0 mb-3">
-        {/* Title - centered with flex */}
-        <div className="flex-1 text-center">
+      {/* Main header row - title centered, auth absolute positioned */}
+      <div className="relative pt-6 md:pt-0 mb-3">
+        {/* Title - centered on page */}
+        <div className="text-center">
           <h1 className="font-headline text-[1.2rem] sm:text-[1.5rem] md:text-[2rem] font-black uppercase tracking-[-1px] leading-none text-ink">
             <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
               The Waterman Report
@@ -25,8 +25,8 @@ export function Header({ className = "" }) {
           </h1>
         </div>
 
-        {/* Auth UI - right side */}
-        <div className="flex-shrink-0">
+        {/* Auth UI - absolute positioned top right */}
+        <div className="absolute right-0 top-0">
           {!loading && (
             <>
               {isAuthenticated ? (
