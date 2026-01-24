@@ -8,7 +8,7 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -137,6 +137,15 @@ export default function ProfilePage() {
     <MainLayout>
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
+        {/* Back to home button */}
+        <button
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
+        >
+          <ArrowLeft size={20} />
+          <span className="text-sm font-medium">Back to home</span>
+        </button>
+        
         <h1 className="text-3xl font-semibold text-ink mb-8">Profile</h1>
 
         <div className="space-y-8">
