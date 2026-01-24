@@ -1,4 +1,5 @@
 import './globals.css'
+import { ConvexProvider } from '../components/ConvexProvider'
 import { AuthProvider } from '../components/auth/AuthProvider'
 
 export const metadata = {
@@ -22,9 +23,11 @@ export default function RootLayout({ children }) {
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
             </head>
             <body>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
+                <ConvexProvider>
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
+                </ConvexProvider>
             </body>
         </html>
     )
