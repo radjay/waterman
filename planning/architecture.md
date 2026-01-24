@@ -439,12 +439,20 @@ All backend logic is implemented as Convex functions (queries, mutations, action
 - **Returns**: JSON with scrape results
 - **Usage**: Manual scraping, cron job integration
 
-**`/api/calendar/[sport]`** (GET)
+**`/api/calendar/[sport]/feed.ics`** (GET)
 
-- **Purpose**: Generate iCal calendar feed for ideal conditions
+- **Purpose**: Generate iCal calendar feed for a specific sport
 - **Params**: `sport` (wingfoil or surfing)
-- **Returns**: iCal format text
-- **Usage**: Calendar subscription for ideal conditions
+- **Query Params**: 
+  - `token` (optional, filters to user's favorite spots if provided)
+  - `spots` (optional, comma-separated spot IDs, overrides token)
+- **Returns**: iCal format text (RFC 5545)
+- **Behavior**:
+  - With token: Personalized feed (user's favorite spots for that sport)
+  - Without token: Public feed (all spots for that sport)
+  - Shows best slot per day per spot, max 2 events per day
+  - Events are 1.5 hours duration
+- **Caching**: 1 hour (matches calendar refresh interval)
 
 **`/api/conditions/[sport]/[filter]`** (GET)
 

@@ -66,7 +66,7 @@ Enable users to subscribe to personalized calendar feeds that automatically sync
 - `UID`: Unique identifier (spotId-timestamp-sport@waterman.app)
 - `DTSTAMP`: When event was created
 - `DTSTART`: Event start time
-- `DTEND`: Event end time (start + 1 hour)
+- `DTEND`: Event end time (start + 1.5 hours)
 - `SUMMARY`: Event title (e.g., "EPIC Wingfoiling at Costa da Caparica - 18kt NW")
 - `DESCRIPTION`: Detailed condition information
 - `LOCATION`: Spot name and country
@@ -80,7 +80,7 @@ BEGIN:VEVENT
 UID:spot123-1706112000000-wingfoil@waterman.app
 DTSTAMP:20240124T120000Z
 DTSTART:20240125T140000Z
-DTEND:20240125T150000Z
+DTEND:20240125T153000Z
 SUMMARY:EPIC Wingfoiling at Costa da Caparica - 18kt NW
 DESCRIPTION:Score: 92/100\n\nConditions:\n• Wind: 18 knots\n• Gusts: 22 knots\n• Direction: 330° (NW)\n• Waves: 0.5m\n\nReasoning: Perfect wind speed and direction with consistent gusts. Excellent conditions for progression.\n\nView forecast: https://waterman.app/wing/best
 LOCATION:Costa da Caparica, Portugal
@@ -94,67 +94,59 @@ END:VEVENT
 
 **Which Slots to Include**:
 
-**Option A - Score-Based (Recommended for V1)**:
-- Include slots with LLM score ≥ 75 ("ideal" threshold)
-- This ensures only high-quality conditions appear in calendar
-- Aligns with existing "best" filter behavior
+**V1 Approach - Best Slot Per Day Per Spot**:
+- Include ONLY the best (highest scoring) slot per day per spot
+- Limit to maximum 2 events per day total (across all spots)
+- This keeps calendars clean and focused on the absolute best times
+- Prevents calendar clutter with too many events
 
-**Option B - Top N Per Day**:
-- Include top 3 slots per day per spot
-- Ensures at least some events even if no "ideal" conditions
+**Selection Logic**:
+1. Filter slots with score ≥ 75 (ideal threshold)
+2. Group by day
+3. For each day: Pick the highest scoring slot per spot
+4. If multiple spots have ideal slots on same day: Take top 2 spots (by score)
+5. Result: Maximum 2 events per day
 
-**Option C - User-Configurable Threshold**:
-- Let users choose minimum score (e.g., 60, 75, 90)
-- Requires UI for configuration (V2)
-
-**Decision for V1**: Use Option A (score ≥ 75) as default
+**V2 Enhancements**:
+- Allow users to configure: "Show top N slots per day" (1-5)
+- Option to see all ideal slots (not just best)
+- Per-spot calendars (subscribe to individual spots)
 
 **Time Range**:
 - Include slots from now to 7 days ahead
 - Don't show past events
 - Update as new scrapes come in
 
-**Deduplication**:
-- One event per slot-sport combination
-- If slot meets criteria for multiple sports, create separate events
-
 ### 2. Calendar Feed URLs
 
 #### 2.1 URL Structure
 
-**User-Specific Feeds** (Recommended):
-
-```
-GET /api/calendar/user/{userId}/feed.ics
-```
-
-**Query Parameters**:
-- `token`: Subscription token (unique per user, used for public access)
-- Optional: `minScore`: Minimum score threshold (default: 75)
-
-**Example**:
-```
-https://waterman.app/api/calendar/user/abc123/feed.ics?token=xyz789
-```
-
-**Sport-Specific Feeds** (Simpler Alternative):
+**Sport-Specific Feeds** (V1 Approach):
 
 ```
 GET /api/calendar/{sport}/feed.ics
 ```
 
 **Query Parameters**:
-- `spots`: Comma-separated spot IDs (optional, defaults to all spots for sport)
-- `minScore`: Minimum score threshold (default: 75)
+- `token`: Optional subscription token (for tracking user-specific subscriptions)
+- `spots`: Comma-separated spot IDs (optional, defaults to user's favorite spots if token provided, otherwise all spots)
 
-**Example**:
+**Examples**:
 ```
-https://waterman.app/api/calendar/wingfoil/feed.ics?spots=spot1,spot2
+# Anonymous user - all spots for wingfoiling
+https://waterman.app/api/calendar/wingfoil/feed.ics
+
+# Authenticated user - their favorite wingfoil spots
+https://waterman.app/api/calendar/wingfoil/feed.ics?token=xyz789
+
+# Anonymous user - specific spots
+https://waterman.app/api/calendar/surfing/feed.ics?spots=spot1,spot2
 ```
 
-**Decision for V1**: Implement **both** approaches:
-- User-specific feeds for authenticated users (personalized to favorite spots)
-- Sport-specific feeds for anonymous users (all spots for a sport)
+**Decision for V1**: One calendar per sport
+- Authenticated users get one feed per sport (filtered to their favorite spots for that sport)
+- Anonymous users get feeds for all spots of a sport
+- Simpler UX: "Subscribe to Wingfoiling" + "Subscribe to Surfing"
 
 #### 2.2 Security Considerations
 
@@ -163,17 +155,18 @@ https://waterman.app/api/calendar/wingfoil/feed.ics?spots=spot1,spot2
 - Users cannot modify feeds (read-only)
 - No sensitive information in feed (only public forecast data)
 
-**Token-Based Access** (for user feeds):
-- Each user gets a unique subscription token
+**Optional Token-Based Access**:
+- Tokens are optional but recommended for authenticated users
+- Purpose: Track which users are using their subscriptions, personalize to favorite spots
 - Token is long, random, unguessable (32 bytes, URL-safe)
 - Token stored in database, associated with user account
 - Token can be regenerated if compromised
-- No API rate limiting needed (calendar apps poll infrequently)
+- Feeds work without tokens (show all spots), but tokens enable personalization
 
 **Rate Limiting**:
 - Apply conservative rate limits to prevent abuse
 - Max 100 requests per hour per IP for anonymous feeds
-- Max 200 requests per hour per token for user feeds
+- Max 200 requests per hour per token for authenticated feeds
 - Calendar apps typically poll every 1-24 hours
 
 ### 3. Database Schema Changes
@@ -185,29 +178,23 @@ https://waterman.app/api/calendar/wingfoil/feed.ics?spots=spot1,spot2
 ```typescript
 calendar_subscriptions: defineTable({
   userId: v.id("users"),
+  sport: v.string(), // "wingfoil" or "surfing"
   token: v.string(), // Unique subscription token (32 bytes, URL-safe)
-  feedType: v.string(), // "user" or "sport"
-  sport: v.optional(v.string()), // For sport-specific feeds
-  minScore: v.optional(v.number()), // User preference (default: 75)
   isActive: v.boolean(), // Enable/disable subscription
   createdAt: v.number(),
   lastAccessedAt: v.optional(v.number()), // Track feed usage
   accessCount: v.optional(v.number()), // Track popularity
 })
   .index("by_user", ["userId"])
+  .index("by_user_sport", ["userId", "sport"])
   .index("by_token", ["token"]);
 ```
 
 **Design Decisions**:
-- One subscription record per user (not per sport)
-- User can have one universal feed with all their favorite sports/spots
-- Token allows public access without session authentication
-- `lastAccessedAt` helps track if subscriptions are actively used
-
-**Alternative Approach** (Multiple Subscriptions per User):
-- Allow users to create multiple subscriptions (one per sport, one per spot group, etc.)
-- More flexible but adds UI complexity
-- Defer to V2 if needed
+- One subscription per user per sport (e.g., one for wingfoil, one for surfing)
+- Simpler UX: "Subscribe to Wingfoiling Calendar" and "Subscribe to Surfing Calendar"
+- Token allows personalization (filters to user's favorite spots)
+- Feeds work without tokens (show all spots for that sport)
 
 #### 3.2 Migration Strategy
 
@@ -220,13 +207,14 @@ calendar_subscriptions: defineTable({
 
 #### 4.1 New Convex Functions
 
-**Query**: `calendar.getUserFeed`
+**Query**: `calendar.getSportFeed` (handles both authenticated and anonymous)
 
 ```typescript
-export const getUserFeed = query({
+export const getSportFeed = query({
   args: {
-    token: v.string(),
-    minScore: v.optional(v.number()),
+    sport: v.string(),
+    token: v.optional(v.string()), // If provided, filter to user's favorite spots
+    spotIds: v.optional(v.array(v.id("spots"))), // Explicit spot filter (overrides token)
   },
   returns: v.object({
     events: v.array(v.object({
@@ -247,50 +235,23 @@ export const getUserFeed = query({
       }),
     })),
     metadata: v.object({
-      userId: v.id("users"),
-      userName: v.optional(v.string()),
-      sports: v.array(v.string()),
-      spotCount: v.number(),
-    }),
-  }),
-  handler: async (ctx, args) => {
-    // 1. Look up subscription by token
-    // 2. Get user's favorite sports and spots
-    // 3. Query condition_scores for slots with score >= minScore (default: 75)
-    // 4. Filter to user's favorite spots/sports
-    // 5. Filter to next 7 days
-    // 6. Join with forecast_slots to get condition data
-    // 7. Sort by timestamp
-    // 8. Return event data
-  },
-});
-```
-
-**Query**: `calendar.getSportFeed`
-
-```typescript
-export const getSportFeed = query({
-  args: {
-    sport: v.string(),
-    spotIds: v.optional(v.array(v.id("spots"))),
-    minScore: v.optional(v.number()),
-  },
-  returns: v.object({
-    events: v.array(v.object({
-      // Same structure as getUserFeed
-    })),
-    metadata: v.object({
       sport: v.string(),
       spotCount: v.number(),
+      isPersonalized: v.boolean(),
     }),
   }),
   handler: async (ctx, args) => {
-    // 1. Query condition_scores for sport with score >= minScore (default: 75)
-    // 2. Filter to specified spots (or all spots for sport)
-    // 3. Filter to next 7 days
-    // 4. Join with forecast_slots to get condition data
-    // 5. Sort by timestamp
-    // 6. Return event data
+    // 1. If token provided: Look up subscription and get user's favorite spots for this sport
+    // 2. If spotIds provided: Use those spots (overrides token)
+    // 3. Otherwise: Use all spots for this sport
+    // 4. Query condition_scores for sport with score >= 75
+    // 5. Filter to next 7 days
+    // 6. Group by day
+    // 7. For each day: Select best slot per spot, limit to top 2 slots per day
+    // 8. Join with forecast_slots to get condition data
+    // 9. Sort by timestamp
+    // 10. Update lastAccessedAt if token was used
+    // 11. Return event data
   },
 });
 ```
@@ -301,8 +262,7 @@ export const getSportFeed = query({
 export const createSubscription = mutation({
   args: {
     sessionToken: v.string(),
-    sport: v.optional(v.string()), // For sport-specific subscriptions
-    minScore: v.optional(v.number()),
+    sport: v.string(), // "wingfoil" or "surfing"
   },
   returns: v.object({
     subscriptionId: v.id("calendar_subscriptions"),
@@ -312,7 +272,7 @@ export const createSubscription = mutation({
   handler: async (ctx, args) => {
     // 1. Verify session token
     // 2. Generate unique subscription token (32 bytes, URL-safe)
-    // 3. Check if user already has subscription
+    // 3. Check if user already has subscription for this sport
     //    - If yes: return existing token
     //    - If no: create new subscription
     // 4. Build feed URL with token
@@ -370,9 +330,7 @@ export const getUserSubscriptions = query({
   },
   returns: v.array(v.object({
     subscriptionId: v.id("calendar_subscriptions"),
-    feedType: v.string(),
-    sport: v.optional(v.string()),
-    minScore: v.number(),
+    sport: v.string(),
     feedUrl: v.string(),
     isActive: v.boolean(),
     createdAt: v.number(),
@@ -383,38 +341,25 @@ export const getUserSubscriptions = query({
     // 2. Get user ID
     // 3. Query calendar_subscriptions by userId
     // 4. Build feed URLs with tokens
-    // 5. Return subscription list
+    // 5. Return subscription list (one per sport)
   },
 });
 ```
 
 #### 4.2 Next.js API Route
 
-**File**: `app/api/calendar/user/[userId]/feed.ics/route.js`
-
-```javascript
-export async function GET(request, { params }) {
-  // 1. Extract token from query params
-  // 2. Extract userId from params
-  // 3. Call calendar.getUserFeed query with token
-  // 4. Generate ICS file from event data
-  // 5. Set appropriate headers:
-  //    - Content-Type: text/calendar; charset=utf-8
-  //    - Content-Disposition: inline; filename="waterman.ics"
-  //    - Cache-Control: max-age=3600 (1 hour cache)
-  // 6. Return ICS text response
-}
-```
-
 **File**: `app/api/calendar/[sport]/feed.ics/route.js`
 
 ```javascript
 export async function GET(request, { params }) {
   // 1. Extract sport from params
-  // 2. Extract spotIds and minScore from query params
-  // 3. Call calendar.getSportFeed query
+  // 2. Extract token and spotIds from query params
+  // 3. Call calendar.getSportFeed query with sport, token, spotIds
   // 4. Generate ICS file from event data
-  // 5. Set appropriate headers (same as above)
+  // 5. Set appropriate headers:
+  //    - Content-Type: text/calendar; charset=utf-8
+  //    - Content-Disposition: inline; filename="waterman-{sport}.ics"
+  //    - Cache-Control: max-age=3600 (1 hour cache)
   // 6. Return ICS text response
 }
 ```
@@ -477,51 +422,43 @@ export function formatLocation(event) {
 
 ### 5. Frontend Implementation
 
-#### 5.1 New Page: Calendar Subscriptions
+#### 5.1 New Page: Subscribe to Calendars
 
-**File**: `app/calendar/page.js`
+**File**: `app/subscribe/page.js`
 
-**Purpose**: Let users manage their calendar subscriptions
+**Purpose**: Let users subscribe to calendar feeds for their sports
 
 **Content**:
 1. **Hero Section**:
-   - Title: "Subscribe to Your Forecast Calendar"
-   - Description: "Get the best conditions automatically synced to your calendar"
-   - Icon: Calendar with waves
+   - Title: "Subscribe to Forecast Calendars"
+   - Description: "Get ideal conditions synced to your calendar app"
 
-2. **How It Works**:
-   - Step 1: "Subscribe to your personalized feed"
-   - Step 2: "We add events for ideal conditions (score ≥ 75)"
-   - Step 3: "Your calendar updates automatically as new forecasts arrive"
-   - Supported apps: Google Calendar, Apple Calendar, Outlook
+2. **Calendar Cards** (one per sport):
+   - **Wingfoiling Calendar**:
+     - Description: "Best wingfoil session each day"
+     - Feed URL (with copy button)
+     - Status: Not subscribed / Subscribed
+     
+   - **Surfing Calendar**:
+     - Description: "Best surf session each day"
+     - Feed URL (with copy button)
+     - Status: Not subscribed / Subscribed
 
 3. **Authenticated Users**:
-   - Show personalized feed URL
-   - Copy button with success feedback
-   - Instructions for each calendar app
-   - Settings: Adjust minimum score threshold
-   - Regenerate token option (if compromised)
-   - Delete subscription option
+   - Show personalized feeds (filtered to their favorite spots)
+   - Feed URLs include token for tracking
+   - Can regenerate token if needed
+   - Can delete subscription
 
 4. **Anonymous Users**:
-   - Prompt to sign in for personalized feed
-   - Show sport-specific feeds as alternative:
-     - "Wingfoiling - All Spots"
-     - "Surfing - All Spots"
-   - Copy URLs for each sport
+   - Show public feeds (all spots for each sport)
+   - Prompt to sign in for personalized feeds
+   - Can still subscribe to public feeds
 
-5. **Instructions Per Platform**:
-   - **Google Calendar**:
-     - "Click + next to 'Other calendars'"
-     - "Select 'From URL'"
-     - "Paste your feed URL"
-   - **Apple Calendar**:
-     - "File → New Calendar Subscription"
-     - "Paste your feed URL"
-     - "Set auto-refresh to 1 hour"
-   - **Outlook**:
-     - "Add calendar → Subscribe from web"
-     - "Paste your feed URL"
+5. **Instructions** (collapsible section):
+   - Google Calendar: Add calendar from URL
+   - Apple Calendar: New calendar subscription
+   - Outlook: Subscribe from web
 
 #### 5.2 Component: `CalendarSubscriptionCard.js`
 
@@ -554,45 +491,41 @@ export function formatLocation(event) {
 #### 5.4 Navigation Updates
 
 **Header**:
-- Add "Calendar" link to main navigation
-- Show badge if user doesn't have subscription yet
+- Add "Subscribe" link to main navigation
+- Icon: Calendar or RSS feed icon
 
 **Profile Menu** (for authenticated users):
-- Add "Calendar Subscriptions" link
+- Add "Calendar Feeds" link
 
 ### 6. User Experience Flows
 
 #### 6.1 Authenticated User - First Time
 
-1. User navigates to `/calendar`
-2. Sees "Subscribe to Your Forecast Calendar" page
-3. Reads how it works
-4. Clicks "Create My Calendar Feed"
+1. User navigates to `/subscribe`
+2. Sees two calendar cards: Wingfoiling and Surfing
+3. Each card shows "Create subscription" button
+4. Clicks on "Subscribe to Wingfoiling"
 5. System generates subscription token
-6. User sees feed URL with copy button
-7. User selects their calendar app (Google/Apple/Outlook)
-8. User follows platform-specific instructions
-9. User subscribes in their calendar app
-10. Events appear automatically
+6. Feed URL appears with copy button
+7. User copies URL and adds to their calendar app
+8. Best wingfoil sessions appear in calendar (personalized to their favorite spots)
+9. Repeat for surfing if desired
 
 #### 6.2 Authenticated User - Existing Subscription
 
-1. User navigates to `/calendar`
-2. Sees existing subscription
-3. Can copy URL again
-4. Can adjust settings (min score)
-5. Can regenerate token if needed
-6. Can delete subscription
+1. User navigates to `/subscribe`
+2. Sees existing subscriptions with feed URLs
+3. Can copy URLs again
+4. Can regenerate token if needed
+5. Can delete subscription
 
 #### 6.3 Anonymous User
 
-1. User navigates to `/calendar`
-2. Sees prompt to sign in for personalized feed
-3. Can use sport-specific feeds without signing in:
-   - Copies wingfoil feed URL
-   - Subscribes in calendar app
-   - Gets all wingfoil spots
-4. Optional: Signs in to get personalized feed
+1. User navigates to `/subscribe`
+2. Sees two calendar cards for wingfoil and surf
+3. Each shows public feed URL (all spots)
+4. Can copy and subscribe without account
+5. Optional prompt: "Sign in for personalized feeds (your favorite spots only)"
 
 ### 7. Event Content Strategy
 
@@ -643,14 +576,14 @@ View full forecast: https://waterman.app/wing/best
 
 #### 7.3 Event Timing
 
-**Duration**: 1 hour per event
-- Most calendar apps work better with fixed durations
-- Users can see multiple 1-hour blocks for extended conditions
-- Easier to spot patterns visually in calendar
+**Duration**: 1.5 hours per event
+- Average watersports session duration
+- Fixed duration for V1
+- Can be made user-configurable in V2
 
 **Start/End Times**:
 - `DTSTART`: Slot timestamp
-- `DTEND`: Slot timestamp + 1 hour
+- `DTEND`: Slot timestamp + 1.5 hours
 
 **All-Day Events**: Not recommended
 - Loses time-specific information
@@ -902,17 +835,19 @@ export async function GET(request, { params }) {
 
 ### 1. Should feeds be user-specific or sport-specific?
 
-**Decision**: Support **both**
-- User-specific for authenticated users (personalized to favorites)
-- Sport-specific for anonymous users (all spots for sport)
-- This provides the best UX for both audiences
+**Decision**: **Sport-specific feeds only**, with optional personalization via token
+- One feed per sport (wingfoil, surfing)
+- Authenticated users get tokens that filter feeds to their favorite spots
+- Anonymous users see all spots for that sport
+- Simpler UX and implementation
 
 ### 2. What score threshold should we use for including events?
 
-**Decision**: Score ≥ 75 (Ideal and above)
-- Aligns with existing "ideal" designation
-- Ensures only quality conditions in calendar
-- Can be made configurable in V2
+**Decision**: Score ≥ 75 (Ideal and above), plus best-per-day selection
+- Filter to slots with score ≥ 75
+- Then pick the best (highest scoring) slot per day per spot
+- Maximum 2 events per day total
+- Keeps calendars clean and focused
 
 ### 3. How far ahead should calendar show?
 
@@ -923,11 +858,11 @@ export async function GET(request, { params }) {
 
 ### 4. Should events be 1-hour blocks or variable duration?
 
-**Decision**: 1-hour fixed blocks
-- Simpler to implement
-- Works better with calendar app UX
-- Users can see multiple blocks for extended conditions
-- Variable duration can be added in V2 if needed
+**Decision**: 1.5-hour fixed blocks
+- Matches average watersports session duration
+- Fixed duration for V1 simplicity
+- Can be made user-configurable in V2
+- Users can see the best window for each day
 
 ### 5. Should we support private/authenticated feeds?
 
