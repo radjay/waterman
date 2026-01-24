@@ -63,11 +63,9 @@ export const getSportFeed = query({
                 .first();
 
             if (subscription && subscription.isActive) {
-                // Update access tracking
-                await ctx.db.patch(subscription._id, {
-                    lastAccessedAt: Date.now(),
-                    accessCount: (subscription.accessCount || 0) + 1,
-                });
+                // Note: We can't update access tracking in a query
+                // This would need to be done via a mutation or action
+                // For now, we'll just use the subscription without tracking
 
                 // Get user's favorite spots
                 const user = await ctx.db.get(subscription.userId);

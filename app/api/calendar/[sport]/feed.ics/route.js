@@ -7,8 +7,11 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export async function GET(request, { params }) {
   try {
+    // Await params (Next.js 15+ requirement)
+    const resolvedParams = await params;
+    
     // Get sport from URL path parameter
-    const sportParam = params?.sport || "wingfoil";
+    const sportParam = resolvedParams?.sport || "wingfoil";
     
     // Validate sport parameter
     const validSports = ["wingfoil", "surfing"];

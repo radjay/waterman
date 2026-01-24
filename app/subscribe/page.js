@@ -96,7 +96,7 @@ export default function SubscribePage() {
   };
 
   const getPublicFeedUrl = (sport) => {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     return `${appUrl}/api/calendar/${sport}/feed.ics`;
   };
 
