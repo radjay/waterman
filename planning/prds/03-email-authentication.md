@@ -4,7 +4,7 @@
 
 **Version:** 1.0  
 **Date:** 2026-01-24  
-**Status:** Draft
+**Status:** ✅ Completed (Phase 1 & 2)
 
 ---
 
@@ -591,15 +591,18 @@ SESSION_EXPIRY_DAYS=30
 2. Better error messages ✅
 3. Profile page (basic) ✅
 
-### Phase 3: Advanced Features (Future)
+### Phase 3: Future Enhancements
 
-1. User preferences expansion (advanced settings, custom thresholds, etc.)
-2. Performance monitoring and analytics
-3. Email notifications for ideal conditions
-4. Custom scoring prompts per user
-5. User-created spots (private/public)
-6. Social features (share conditions)
-7. Account settings (email change, deletion)
+**Moved to**: `planning/prds/04-future-features.md`
+
+Future features and enhancements have been moved to a separate PRD for better organization. See PRD 04 for details on:
+- User preferences expansion
+- Performance monitoring and analytics
+- Email notifications for ideal conditions
+- Custom scoring prompts per user
+- User-created spots (private/public)
+- Social features (share conditions)
+- Account settings (email change, deletion)
 
 ---
 
@@ -1043,4 +1046,5 @@ SESSION_EXPIRY_DAYS=30
 
 **Document Maintained By**: Engineering Team  
 **Last Updated**: 2026-01-24  
-**Next Review**: After Phase 1 completion
+**Status**: ✅ Completed - Phase 1 & 2 deployed to production  
+**Future Features**: See `planning/prds/04-future-features.md` for Phase 3 items
