@@ -17,16 +17,16 @@ export function Header({ className = "" }) {
       {/* Main header row - title centered, auth absolute positioned */}
       <div className="relative pt-6 md:pt-0 mb-3">
         {/* Title - centered on page */}
-        <div className="text-center">
-          <h1 className="font-headline text-[1.2rem] sm:text-[1.5rem] md:text-[2rem] font-black uppercase tracking-[-1px] leading-none text-ink">
+        <div className="flex items-center justify-center min-h-[44px]">
+          <h1 className="font-headline text-[1.44rem] sm:text-[1.8rem] md:text-[2.4rem] font-black uppercase tracking-[-1px] leading-none text-ink">
             <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
               The Waterman Report
             </Link>
           </h1>
         </div>
 
-        {/* Auth UI - absolute positioned top right */}
-        <div className="absolute right-0 top-0">
+        {/* Auth UI - absolute positioned top right, vertically centered */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2">
           {!loading && (
             <>
               {isAuthenticated ? (
@@ -46,7 +46,7 @@ export function Header({ className = "" }) {
       </div>
 
       {/* Date - centered below */}
-      <div className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink py-4">
+      <div className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink/60 py-4">
         <span>{todayStr}</span>
       </div>
     </header>
