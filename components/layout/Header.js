@@ -46,7 +46,7 @@ export function Header({ className = "" }) {
       </div>
 
       {/* Date - centered below */}
-      <div className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink/60 py-4">
+      <div className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink/60 py-2">
         <span>{todayStr}</span>
       </div>
     </header>
