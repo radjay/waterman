@@ -57,6 +57,11 @@ function CamsContent() {
     setFocusedWebcam(null);
   };
 
+  // Handle navigate between webcams
+  const handleNavigateWebcam = (webcam) => {
+    setFocusedWebcam(webcam);
+  };
+
   return (
     <MainLayout>
       <Header />
@@ -98,6 +103,8 @@ function CamsContent() {
         <WebcamFullscreen
           spot={focusedWebcam}
           onClose={handleCloseFullscreen}
+          allWebcams={webcams}
+          onNavigate={handleNavigateWebcam}
         />
       )}
 

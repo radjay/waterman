@@ -27,6 +27,17 @@
 - Sport preferences sync across devices for authenticated users
 - Improved error messages throughout auth flow with helpful guidance
 - Enhanced rate limiting to only count active (unused/unexpired) magic links
+- **Improved mobile layout** - Sign-in button now appears next to tabs on mobile for better accessibility
+- **Tabs and filters no longer take full width** on mobile, creating a more compact layout
+- **User menu expanded** - Calendar feeds and changelog links moved from footer to account dropdown for easier access
+- **Simplified footer** - Now only shows last updated timestamp
+
+### Improved
+- **Webcam modal enhancements**:
+  - Click outside the webcam video to close the modal (in addition to the X button)
+  - Keyboard navigation: use left/right arrow keys to switch between cams
+  - Press F to toggle fullscreen mode
+  - Press Escape to close the modal
 
 ---
 

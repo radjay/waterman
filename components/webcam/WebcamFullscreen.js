@@ -17,8 +17,10 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
  * 
  * @param {Object} spot - Webcam spot object
  * @param {Function} onClose - Callback to close the modal
+ * @param {Array} allWebcams - Array of all available webcams for navigation
+ * @param {Function} onNavigate - Callback to navigate to a different webcam
  */
-export function WebcamFullscreen({ spot, onClose }) {
+export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [currentConditions, setCurrentConditions] = useState(null);
@@ -235,21 +237,53 @@ export function WebcamFullscreen({ spot, onClose }) {
     fetchConditions();
   }, [spot._id, spot.webcamOnly, spot.latitude, spot.longitude]);
 
-  // Handle escape key to close
+  // Handle keyboard navigation
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleKeyDown = (e) => {
+      // Escape key to close
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+      
+      // F key to toggle fullscreen
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        if (videoRef.current) {
+          if (!document.fullscreenElement) {
+            videoRef.current.requestFullscreen?.();
+          } else {
+            document.exitFullscreen?.();
+          }
+        }
+        return;
+      }
+      
+      // Arrow keys to navigate between cams
+      if (allWebcams.length > 1 && onNavigate) {
+        const currentIndex = allWebcams.findIndex(w => w._id === spot._id);
+        if (currentIndex === -1) return;
+        
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          const prevIndex = currentIndex === 0 ? allWebcams.length - 1 : currentIndex - 1;
+          onNavigate(allWebcams[prevIndex]);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          const nextIndex = (currentIndex + 1) % allWebcams.length;
+          onNavigate(allWebcams[nextIndex]);
+        }
       }
     };
-    document.addEventListener("keydown", handleEscape);
+    
+    document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
     
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [onClose]);
+  }, [onClose, allWebcams, onNavigate, spot._id]);
 
   if (!spot) return null;
 

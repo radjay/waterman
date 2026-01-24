@@ -15,10 +15,10 @@ export function ViewToggle({ onChange, className = "" }) {
   const isCams = pathname === "/cams";
 
   return (
-    <div className={`flex items-center gap-1 border border-ink/30 rounded bg-newsprint ${className}`}>
+    <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint ${className}`}>
       <button
         onClick={() => onChange("list")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors ${
+        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
           !isCalendar && !isCams
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
@@ -30,7 +30,7 @@ export function ViewToggle({ onChange, className = "" }) {
       </button>
       <button
         onClick={() => onChange("calendar")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors ${
+        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
           isCalendar
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
@@ -42,7 +42,7 @@ export function ViewToggle({ onChange, className = "" }) {
       </button>
       <button
         onClick={() => onChange("cams")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors ${
+        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
           isCams
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
