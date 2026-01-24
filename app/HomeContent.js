@@ -15,6 +15,7 @@ import { Footer } from "../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../lib/slots";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
+import { useAuth, useUser } from "../components/auth/AuthProvider";
 import { ListFilter } from "lucide-react";
 import { ViewToggle } from "../components/layout/ViewToggle";
 
@@ -23,21 +24,45 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 export default function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { sessionToken } = useAuth();
+  const user = useUser();
 
-  // Use persisted state hook for sport selection
-  const [selectedSport, setSelectedSport] = usePersistedState(
+  // Use persisted state hook for sport selection (fallback for anonymous users)
+  const [localSelectedSport, setLocalSelectedSport] = usePersistedState(
     "waterman_selected_sport",
     "wingfoil",
     (val) => val === "wingfoil" || val === "surfing"
   );
+
+  // Use user's favorite sports if authenticated, otherwise use local state
+  // If user has multiple favorite sports, use the first one
+  const selectedSport = useMemo(() => {
+    if (user && user.favoriteSports && user.favoriteSports.length > 0) {
+      return user.favoriteSports[0];
+    }
+    return localSelectedSport;
+  }, [user, localSelectedSport]);
 
   // Convert single sport to array format (used throughout the app)
   // Memoize to prevent infinite loops in useEffect dependencies
   const selectedSports = useMemo(() => [selectedSport], [selectedSport]);
 
   // Handle sport change from SportSelector
-  const handleSportChange = (sportId) => {
-    setSelectedSport(sportId);
+  const handleSportChange = async (sportId) => {
+    // Always update local state immediately for responsive UI
+    setLocalSelectedSport(sportId);
+    
+    // If user is authenticated, also save to server
+    if (sessionToken && user) {
+      try {
+        await client.mutation(api.auth.updatePreferences, {
+          sessionToken,
+          favoriteSports: [sportId],
+        });
+      } catch (error) {
+        console.error("Failed to save sport preference:", error);
+      }
+    }
   };
 
   // Use persisted state hook for filter
@@ -67,7 +92,17 @@ export default function HomeContent() {
           sports: selectedSports,
         });
 
-        setSpots(fetchedSpots);
+        // Order spots: favorites first for authenticated users
+        let orderedSpots = fetchedSpots;
+        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
+          const favoriteSpotIds = new Set(user.favoriteSpots);
+          orderedSpots = [
+            ...fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id)),
+            ...fetchedSpots.filter((spot) => !favoriteSpotIds.has(spot._id)),
+          ];
+        }
+
+        setSpots(orderedSpots);
 
         // Create a map of spotId to spot data for easy lookup
         const spotsMapObj = {};
@@ -168,7 +203,7 @@ export default function HomeContent() {
     }
 
     fetchData();
-  }, [selectedSports]);
+  }, [selectedSports, user]);
 
   // Filter slots based on showFilter
   // "best" shows slots with scores >= 60 (good conditions per PRD 02)
