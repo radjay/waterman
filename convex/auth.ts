@@ -1,10 +1,7 @@
-"use node";
-
 import { query, mutation, action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import crypto from "crypto";
 
 // =============================================================================
 // CONSTANTS
@@ -20,10 +17,17 @@ const MAX_MAGIC_LINKS_PER_HOUR = 3;
 
 /**
  * Generate a secure random token for magic links or sessions
+ * Uses Web Crypto API available in Convex runtime
  * @returns URL-safe base64 encoded string (32 bytes = 43 characters)
  */
 function generateToken(): string {
-  return crypto.randomBytes(32).toString("base64url");
+  // Generate 32 random bytes using Web Crypto API
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  
+  // Convert to base64url encoding
+  const base64 = btoa(String.fromCharCode(...array));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
