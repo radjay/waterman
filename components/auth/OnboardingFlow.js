@@ -297,11 +297,18 @@ export default function OnboardingFlow({ onComplete }) {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="flex gap-3">
+            <button
+              onClick={handleBack}
+              disabled={loading}
+              className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
             <button
               onClick={handleComplete}
               disabled={loading}
-              className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="flex-1 bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -311,14 +318,6 @@ export default function OnboardingFlow({ onComplete }) {
               ) : (
                 "Get Started"
               )}
-            </button>
-            
-            <button
-              onClick={handleBack}
-              disabled={loading}
-              className="w-full border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
-            >
-              Back
             </button>
           </div>
         </div>
