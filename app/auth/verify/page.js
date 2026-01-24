@@ -17,8 +17,16 @@ function VerifyContent() {
   const [status, setStatus] = useState("verifying"); // verifying, success, onboarding, error
   const [error, setError] = useState("");
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [sessionToken, setSessionToken] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
+    // Detect if running in PWA mode
+    const isPWAMode = window.matchMedia('(display-mode: standalone)').matches ||
+                      window.navigator.standalone === true;
+    setIsPWA(isPWAMode);
+
     const token = searchParams.get("token");
     
     if (!token) {
@@ -40,6 +48,9 @@ function VerifyContent() {
       });
 
       if (result.success && result.sessionToken) {
+        // Store session token for display
+        setSessionToken(result.sessionToken);
+        
         // Login with the session token
         await login(result.sessionToken);
         
@@ -49,10 +60,12 @@ function VerifyContent() {
           setStatus("onboarding");
         } else {
           setStatus("success");
-          // Redirect to home after a brief moment
-          setTimeout(() => {
-            router.push("/");
-          }, 1000);
+          // Don't auto-redirect if in PWA mode - let user copy token
+          if (!isPWA) {
+            setTimeout(() => {
+              router.push("/");
+            }, 3000);
+          }
         }
       } else {
         setStatus("error");
@@ -67,6 +80,16 @@ function VerifyContent() {
 
   const handleOnboardingComplete = () => {
     router.push("/");
+  };
+
+  const copySessionToken = async () => {
+    try {
+      await navigator.clipboard.writeText(sessionToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   return (
@@ -97,7 +120,39 @@ function VerifyContent() {
           <h2 className="text-2xl font-bold text-ink mb-2">
             Successfully signed in!
           </h2>
-          <p className="text-ink/70">Redirecting you to the app...</p>
+          
+          {isPWA ? (
+            <div className="mt-6 space-y-4">
+              <p className="text-ink/70 text-sm">
+                You opened this link in your browser, but need to sign in to your PWA app.
+              </p>
+              <div className="bg-newsprint p-4 rounded-md">
+                <p className="text-xs text-ink/60 mb-2">Your Session Token:</p>
+                <div className="font-mono text-sm text-ink break-all bg-white p-3 rounded border border-ink/20 mb-3">
+                  {sessionToken}
+                </div>
+                <button
+                  onClick={copySessionToken}
+                  className="w-full bg-ink text-newsprint py-2 px-4 rounded-md hover:bg-ink/90 transition-colors font-medium text-sm"
+                >
+                  {copied ? "✓ Copied!" : "Copy Session Token"}
+                </button>
+              </div>
+              <p className="text-xs text-ink/60">
+                1. Copy this token<br/>
+                2. Open Waterman app<br/>
+                3. Go to sign in and choose "Enter Session Token"
+              </p>
+              <button
+                onClick={() => router.push("/")}
+                className="w-full border border-ink/30 text-ink py-2 px-4 rounded-md hover:bg-ink/5 transition-colors font-medium text-sm"
+              >
+                Continue in Browser
+              </button>
+            </div>
+          ) : (
+            <p className="text-ink/70">Redirecting you to the app...</p>
+          )}
         </div>
       )}
 
