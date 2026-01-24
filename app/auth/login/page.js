@@ -38,33 +38,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-newsprint px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ fontFamily: 'Inter, sans-serif' }}>
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-ink mb-2">
-              {showSent ? "Check Your Email" : "Welcome to Waterman"}
-            </h1>
-            {!showSent && (
-              <p className="text-ink/60">
-                Sign in to save your preferences and get personalized forecasts
-              </p>
-            )}
-          </div>
-
-          {/* Form or Success Message */}
-          {showSent ? (
-            <MagicLinkSent email={email} onBack={handleBack} />
-          ) : (
-            <EmailLoginForm onSuccess={handleSuccess} />
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="font-headline text-4xl font-bold text-ink mb-2">
+            Waterman
+          </h1>
+          {!showSent && (
+            <p className="text-ink/60 text-sm">
+              Sign in to personalize your experience
+            </p>
           )}
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-ink/50 mt-6">
-          By signing in, you agree to our Terms of Service and Privacy Policy
-        </p>
+        {/* Form or Success Message */}
+        {showSent ? (
+          <MagicLinkSent email={email} onBack={handleBack} />
+        ) : (
+          <EmailLoginForm onSuccess={handleSuccess} />
+        )}
       </div>
     </div>
   );

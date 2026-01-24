@@ -35,29 +35,23 @@ export default function EmailLoginForm({ onSuccess }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium mb-2 text-ink"
-        >
-          Email Address
-        </label>
         <input
           type="email"
           id="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
+          placeholder="Enter your email"
           required
           autoFocus
           disabled={loading}
-          className="w-full px-4 py-3 border border-ink/30 rounded-md focus:outline-none focus:ring-2 focus:ring-ink/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         />
       </div>
 
       {error && (
-        <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+        <div className="text-red-600 text-sm">
           {error}
         </div>
       )}
@@ -67,12 +61,8 @@ export default function EmailLoginForm({ onSuccess }) {
         disabled={loading}
         className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
       >
-        {loading ? "Sending..." : "Send Magic Link"}
+        {loading ? "Sending..." : "Continue"}
       </button>
-
-      <p className="text-sm text-ink/60 text-center">
-        We'll send you a magic link to sign in instantly — no password needed.
-      </p>
     </form>
   );
 }
