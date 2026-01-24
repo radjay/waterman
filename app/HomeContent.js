@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import { MainLayout } from "../components/layout/MainLayout";
-import { Header, AuthButton } from "../components/layout/Header";
+import { Header } from "../components/layout/Header";
 import { SportSelector } from "../components/layout/SportSelector";
 import { ShowFilter } from "../components/layout/ShowFilter";
 import { EmptyState } from "../components/common/EmptyState";
@@ -271,31 +271,11 @@ export default function HomeContent() {
   return (
     <MainLayout>
       <Header />
-      {/* Portrait mobile: tabs with auth button, then filters on next row */}
-      {/* Landscape mobile & Desktop: tabs and filters on same row, auth in header */}
-      <div className="flex flex-col gap-3 mb-6">
-        {/* Row 1: Tabs + Auth (portrait mobile) OR Tabs + Filters (landscape/desktop) */}
-        <div className="flex items-center justify-between gap-2 md:gap-4">
-          <ViewToggle onChange={handleViewChange} className="flex-shrink-0" />
-          
-          {/* Auth button - shown on portrait mobile only, always hidden on desktop */}
-          <div className="hidden max-md:portrait:block">
-            <AuthButton />
-          </div>
-          
-          {/* Filters - shown on landscape mobile and desktop */}
-          <div className="hidden md:flex max-md:landscape:flex items-center gap-2">
-            <ListFilter size={18} className="text-ink" />
-            <SportSelector
-              value={selectedSport}
-              onSportsChange={handleSportChange}
-            />
-            <ShowFilter value={showFilter} onFilterChange={setShowFilter} />
-          </div>
-        </div>
-        
-        {/* Row 2: Filters (portrait mobile only, always hidden on desktop) */}
-        <div className="hidden max-md:portrait:flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 mb-6">
+        {/* Tabs row */}
+        <ViewToggle onChange={handleViewChange} />
+        {/* Filters row */}
+        <div className="flex items-center gap-2">
           <ListFilter size={18} className="text-ink" />
           <SportSelector
             value={selectedSport}

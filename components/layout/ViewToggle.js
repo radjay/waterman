@@ -15,7 +15,7 @@ export function ViewToggle({ onChange, className = "" }) {
   const isCams = pathname === "/cams";
 
   return (
-    <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint ${className}`}>
+    <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint self-start ${className}`}>
       <button
         onClick={() => onChange("list")}
         className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${

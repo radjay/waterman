@@ -1,6 +1,7 @@
 import './globals.css'
 import { ConvexProvider } from '../components/ConvexProvider'
 import { AuthProvider } from '../components/auth/AuthProvider'
+import { GlobalNavigation } from '../components/layout/GlobalNavigation'
 
 export const metadata = {
     title: 'Waterman',
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
             <body>
                 <ConvexProvider>
                     <AuthProvider>
+                        <GlobalNavigation />
                         {children}
                     </AuthProvider>
                 </ConvexProvider>

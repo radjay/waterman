@@ -784,8 +784,10 @@ Scrapes validated before saving to database.
 - **PRDs**:
   - `/planning/prds/01.md` - Additional Features
   - `/planning/prds/02.md` - LLM-Based Condition Scoring System
+  - `/planning/prds/03-email-authentication.md` - Email-Based Magic Link Authentication
+  - `/planning/prds/05-calendar-subscriptions.md` - Calendar Subscription Feature
 
 ---
 
 **Document Maintained By**: Engineering Team  
-**Last Review**: 2024
+**Last Review**: 2026-01-24
