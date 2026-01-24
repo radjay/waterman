@@ -61,14 +61,14 @@ export default function UserMenu() {
     <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-md border border-ink/30 bg-newsprint hover:bg-newsprint hover:border-ink/50 transition-colors"
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-ink/30 bg-newsprint hover:bg-newsprint hover:border-ink/50 transition-colors"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className="w-8 h-8 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
+        <div className="w-7 h-7 rounded-full bg-ink text-newsprint flex items-center justify-center text-xs font-medium">
           {getInitials()}
         </div>
-        <span className="hidden sm:block text-sm text-ink max-w-[100px] truncate">
+        <span className="hidden sm:block text-xs text-ink max-w-[70px] truncate">
           {getDisplayName()}
         </span>
         <ChevronDown
