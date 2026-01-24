@@ -6,15 +6,21 @@ import { Mail } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "./AuthProvider";
+import OnboardingFlow from "./OnboardingFlow";
 
 export default function MagicLinkSent({ email, onBack }) {
   const [showCodeInput, setShowCodeInput] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [verifying, setVerifying] = useState(false);
   const verifyCode = useMutation(api.auth.verifyCode);
   const { login } = useAuth();
   const router = useRouter();
+
+  const handleOnboardingComplete = () => {
+    router.push("/");
+  };
 
   const handleCodeSubmit = async (e) => {
     e.preventDefault();
@@ -35,7 +41,8 @@ export default function MagicLinkSent({ email, onBack }) {
         
         // Check if needs onboarding
         if (result.needsOnboarding) {
-          router.push("/auth/verify?onboarding=true");
+          setShowOnboarding(true);
+          setShowCodeInput(false);
         } else {
           router.push("/");
         }
@@ -49,6 +56,14 @@ export default function MagicLinkSent({ email, onBack }) {
       setVerifying(false);
     }
   };
+
+  if (showOnboarding) {
+    return (
+      <div className="bg-white rounded-lg border border-ink/10 p-8">
+        <OnboardingFlow onComplete={handleOnboardingComplete} />
+      </div>
+    );
+  }
 
   if (showCodeInput) {
     return (
