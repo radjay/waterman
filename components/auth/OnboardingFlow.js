@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "./AuthProvider";
@@ -27,7 +27,7 @@ export default function OnboardingFlow({ onComplete }) {
   const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
   // Load spots when reaching step 3
-  useState(() => {
+  useEffect(() => {
     if (step === 3 && spots.length === 0) {
       loadSpots();
     }
