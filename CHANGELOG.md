@@ -2,6 +2,9 @@
 
 ## [2026-01-24]
 
+### Fixed
+- **Calendar feeds now show current forecast data** - Fixed issue where calendar events displayed outdated conditions from old scrapes instead of the latest forecast
+
 ### Added
 - **Calendar subscription feature** - Subscribe to forecast calendars in your calendar app
   - One calendar feed per sport (wingfoiling and surfing)
