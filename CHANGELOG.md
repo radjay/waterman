@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-01-24]
+
+### Added
+- Email-based authentication with magic links (passwordless sign-in)
+- User accounts for saving preferences across devices
+- Onboarding flow for new users to select favorite sports and spots
+- User menu in header showing account info and sign out option
+- Favorite sports and spots can be saved to user profile
+- Session management with 30-day expiry
+- Automatic cleanup of expired magic links and sessions
+
+### Changed
+- App now supports both authenticated and anonymous users
+- Anonymous users can still use all features without signing in
+
+---
+
 ## [2026-01-07]
 
 ### Added
