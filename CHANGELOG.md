@@ -3,6 +3,17 @@
 ## [2026-01-24]
 
 ### Added
+- **Calendar subscription feature** - Subscribe to forecast calendars in your calendar app
+  - One calendar feed per sport (wingfoiling and surfing)
+  - Shows best slot per day per spot (max 2 events per day)
+  - Events are 1.5 hours duration (average session length)
+  - Works with Google Calendar, Apple Calendar, Outlook, and other iCal-compatible apps
+  - Automatic updates every 1 hour as new forecasts are scraped
+  - Public feeds for anonymous users (all spots)
+  - Personalized feeds for authenticated users (filtered to favorite spots)
+  - New `/subscribe` page for managing calendar subscriptions
+  - RFC 5545 compliant iCalendar (ICS) format
+  - Events include score, conditions, reasoning, and forecast link
 - **Email-based authentication** with magic links (passwordless sign-in)
 - **User accounts** for saving preferences across devices
 - **Onboarding flow** for new users to select favorite sports and spots
