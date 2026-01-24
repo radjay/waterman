@@ -31,6 +31,11 @@
 - **Tabs and filters no longer take full width** on mobile, creating a more compact layout
 - **User menu expanded** - Calendar feeds and changelog links moved from footer to account dropdown for easier access
 - **Simplified footer** - Now only shows last updated timestamp
+- **Redesigned navigation UI**:
+  - Desktop: Auth button now fixed to top-right corner of the page (outside main container)
+  - Mobile: New compact hamburger menu in top-left corner (aligned with page title)
+  - Mobile: Slide-out panel with user info, profile, calendar links, changelog, and sign out
+  - View toggle buttons no longer stretch to full width on mobile
 
 ### Improved
 - **Webcam modal enhancements**:
