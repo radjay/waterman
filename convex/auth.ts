@@ -491,26 +491,79 @@ export const sendMagicLinkEmail = internalAction({
           to: args.email,
           subject: "Sign in to Waterman",
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <p>Hi there,</p>
-              <p>Click the button below to sign in to Waterman:</p>
-              <div style="margin: 30px 0;">
-                <a href="${magicLinkUrl}" 
-                   style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Sign In to Waterman
-                </a>
-              </div>
-              <p style="color: #666; font-size: 14px;">
-                This link will expire in ${MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.
-              </p>
-              <p style="color: #666; font-size: 14px;">
-                If you didn't request this email, you can safely ignore it.
-              </p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-              <p style="color: #999; font-size: 12px;">
-                The Waterman Team
-              </p>
-            </div>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Sign in to Waterman</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f5f5f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td align="center" style="padding: 40px 0;">
+                    <table role="presentation" style="width: 600px; max-width: 90%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                      <!-- Header -->
+                      <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center; border-bottom: 1px solid #e5e5e0;">
+                          <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.5px;">
+                            Waterman
+                          </h1>
+                        </td>
+                      </tr>
+                      
+                      <!-- Content -->
+                      <tr>
+                        <td style="padding: 40px;">
+                          <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #1a1a1a;">
+                            Click the button below to sign in to your account:
+                          </p>
+                          
+                          <table role="presentation" style="margin: 32px 0;">
+                            <tr>
+                              <td align="center">
+                                <a href="${magicLinkUrl}" 
+                                   style="display: inline-block; background-color: #1a1a1a; color: #f5f5f0; font-size: 16px; font-weight: 500; text-decoration: none; padding: 14px 32px; border-radius: 6px; letter-spacing: 0.3px;">
+                                  Sign In
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                          
+                          <p style="margin: 32px 0 16px; font-size: 14px; line-height: 1.6; color: #666;">
+                            This link will expire in ${MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.
+                          </p>
+                          
+                          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #666;">
+                            If you didn't request this email, you can safely ignore it.
+                          </p>
+                          
+                          <!-- Backup Link -->
+                          <div style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #e5e5e0;">
+                            <p style="margin: 0 0 12px; font-size: 13px; color: #999;">
+                              Having trouble with the button? Copy and paste this link into your browser:
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999; word-break: break-all;">
+                              ${magicLinkUrl}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      <!-- Footer -->
+                      <tr>
+                        <td style="padding: 32px 40px; background-color: #f9f9f7; border-top: 1px solid #e5e5e0; text-align: center;">
+                          <p style="margin: 0; font-size: 13px; color: #999;">
+                            The Waterman Team
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
           `,
         }),
       });
