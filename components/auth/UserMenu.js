@@ -49,7 +49,7 @@ export default function UserMenu() {
   };
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-md border border-ink/30 bg-newsprint hover:bg-ink/5 transition-colors"
@@ -70,7 +70,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-ink/20 rounded-md shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-56 bg-white border border-ink/20 rounded-md shadow-lg z-[9999]">
           <div className="py-2 px-4 border-b border-ink/10">
             <p className="text-sm font-medium text-ink truncate">
               {user.name || "Account"}
