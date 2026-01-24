@@ -435,7 +435,7 @@ export const sendMagicLinkEmail = internalAction({
           "Authorization": `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: "Waterman <noreply@waterman.app>",
+          from: "Waterman <waterman@radx.dev>",
           to: args.email,
           subject: "Sign in to Waterman",
           html: `
