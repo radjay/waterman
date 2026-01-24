@@ -110,57 +110,39 @@ export default function OnboardingFlow({ onComplete }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-md mx-auto">
       {/* Progress indicator */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex gap-2 mb-3">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`flex-1 h-2 rounded-full mx-1 ${
-                s <= step ? "bg-ink" : "bg-ink/10"
+              className={`h-1 flex-1 rounded-full ${
+                s <= step ? "bg-ink" : "bg-ink/20"
               }`}
             />
           ))}
         </div>
         <p className="text-sm text-ink/60 text-center">
-          Step {step} of 4
+          {step} of 4
         </p>
       </div>
 
       {/* Step 1: Welcome */}
       {step === 1 && (
-        <div className="space-y-6 text-center">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-ink">Welcome to Waterman!</h2>
-            <p className="text-ink/70 text-lg">
-              Let's personalize your experience to show you the best conditions
+        <div className="space-y-8 text-center">
+          <div className="space-y-3">
+            <h2 className="text-2xl font-semibold text-ink">Welcome to Waterman</h2>
+            <p className="text-ink/70">
+              Let's personalize your experience
             </p>
-          </div>
-          
-          <div className="bg-ink/5 border border-ink/10 rounded-lg p-6 text-left space-y-3">
-            <h3 className="font-semibold text-ink">You'll be able to:</h3>
-            <ul className="space-y-2 text-ink/70">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Save your favorite sports and spots</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Get personalized forecasts across all your devices</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Customize condition preferences (coming soon)</span>
-              </li>
-            </ul>
           </div>
 
           <button
             onClick={handleNext}
-            className="w-full bg-ink text-newsprint py-3 px-6 rounded-md hover:bg-ink/90 transition-colors font-medium"
+            className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 transition-colors font-medium"
           >
-            Get Started
+            Continue
           </button>
         </div>
       )}
@@ -168,22 +150,22 @@ export default function OnboardingFlow({ onComplete }) {
       {/* Step 2: Select Favorite Sports */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-ink">What sports do you love?</h2>
-            <p className="text-ink/70">
-              Select at least one sport (you can change this later)
+          <div className="space-y-2 text-center">
+            <h2 className="text-2xl font-semibold text-ink">What sports do you love?</h2>
+            <p className="text-ink/60">
+              Select at least one
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sports.map((sport) => (
               <button
                 key={sport}
                 onClick={() => toggleSport(sport)}
-                className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                className={`w-full p-4 rounded-md border-2 transition-all text-left ${
                   favoriteSports.includes(sport)
                     ? "border-ink bg-ink/5"
-                    : "border-ink/20 hover:border-ink/40"
+                    : "border-ink/20 hover:border-ink/30"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -199,7 +181,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -207,13 +189,13 @@ export default function OnboardingFlow({ onComplete }) {
           <div className="flex gap-3">
             <button
               onClick={handleBack}
-              className="flex-1 border border-ink/30 text-ink py-3 px-6 rounded-md hover:bg-ink/5 transition-colors font-medium"
+              className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors"
             >
               Back
             </button>
             <button
               onClick={handleNext}
-              className="flex-1 bg-ink text-newsprint py-3 px-6 rounded-md hover:bg-ink/90 transition-colors font-medium"
+              className="flex-1 bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 transition-colors font-medium"
             >
               Continue
             </button>
@@ -224,27 +206,27 @@ export default function OnboardingFlow({ onComplete }) {
       {/* Step 3: Select Favorite Spots */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-ink">Select your favorite spots</h2>
-            <p className="text-ink/70">
-              These will appear first in your feed (optional)
+          <div className="space-y-2 text-center">
+            <h2 className="text-2xl font-semibold text-ink">Favorite spots?</h2>
+            <p className="text-ink/60">
+              Optional
             </p>
           </div>
 
           {spotsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 text-ink animate-spin" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-ink/60 animate-spin" />
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto space-y-2 border border-ink/20 rounded-lg p-4">
+            <div className="max-h-80 overflow-y-auto space-y-2 border-2 border-ink/20 rounded-md p-3">
               {spots.map((spot) => (
                 <button
                   key={spot._id}
                   onClick={() => toggleSpot(spot._id)}
-                  className={`w-full p-3 rounded-md border transition-all text-left ${
+                  className={`w-full p-3 rounded-md border-2 transition-all text-left ${
                     favoriteSpots.includes(spot._id)
                       ? "border-ink bg-ink/5"
-                      : "border-ink/10 hover:border-ink/30"
+                      : "border-ink/20 hover:border-ink/30"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -266,19 +248,20 @@ export default function OnboardingFlow({ onComplete }) {
           <div className="flex gap-3">
             <button
               onClick={handleBack}
-              className="flex-1 border border-ink/30 text-ink py-3 px-6 rounded-md hover:bg-ink/5 transition-colors font-medium"
+              className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors"
             >
               Back
             </button>
             <button
               onClick={handleSkip}
-              className="flex-1 border border-ink/30 text-ink py-3 px-6 rounded-md hover:bg-ink/5 transition-colors font-medium"
+              className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors"
             >
               Skip
             </button>
             <button
               onClick={handleNext}
-              className="flex-1 bg-ink text-newsprint py-3 px-6 rounded-md hover:bg-ink/90 transition-colors font-medium"
+              disabled={spotsLoading}
+              className="flex-1 bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 transition-colors font-medium disabled:opacity-50"
             >
               Continue
             </button>
@@ -289,10 +272,10 @@ export default function OnboardingFlow({ onComplete }) {
       {/* Step 4: Name (Optional) */}
       {step === 4 && (
         <div className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-ink">What should we call you?</h2>
-            <p className="text-ink/70">
-              This is optional — you can add it later
+          <div className="space-y-2 text-center">
+            <h2 className="text-2xl font-semibold text-ink">What's your name?</h2>
+            <p className="text-ink/60">
+              Optional
             </p>
           </div>
 
@@ -302,12 +285,14 @@ export default function OnboardingFlow({ onComplete }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 border border-ink/30 rounded-md focus:outline-none focus:ring-2 focus:ring-ink/50"
+              autoFocus
+              disabled={loading}
+              className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -316,15 +301,15 @@ export default function OnboardingFlow({ onComplete }) {
             <button
               onClick={handleComplete}
               disabled={loading}
-              className="w-full bg-ink text-newsprint py-3 px-6 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Setting up...
+                  Finishing up...
                 </span>
               ) : (
-                "Complete Setup"
+                "Get Started"
               )}
             </button>
             
@@ -332,14 +317,14 @@ export default function OnboardingFlow({ onComplete }) {
               <button
                 onClick={handleBack}
                 disabled={loading}
-                className="flex-1 border border-ink/30 text-ink py-2 px-4 rounded-md hover:bg-ink/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
               >
                 Back
               </button>
               <button
                 onClick={handleComplete}
                 disabled={loading}
-                className="flex-1 border border-ink/30 text-ink py-2 px-4 rounded-md hover:bg-ink/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
               >
                 Skip
               </button>
