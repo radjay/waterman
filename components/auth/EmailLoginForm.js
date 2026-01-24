@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ConvexHttpClient } from "convex/browser";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 export default function EmailLoginForm({ onSuccess }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+  const requestMagicLink = useMutation(api.auth.requestMagicLink);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +16,7 @@ export default function EmailLoginForm({ onSuccess }) {
     setLoading(true);
 
     try {
-      const result = await client.mutation(api.auth.requestMagicLink, {
+      const result = await requestMagicLink({
         email: email.toLowerCase().trim(),
       });
 

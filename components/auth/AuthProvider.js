@@ -11,9 +11,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState(null);
 
-  // Initialize Convex client
-  const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-
   // Load session token and user data on mount
   useEffect(() => {
     const loadSession = async () => {
@@ -27,6 +24,9 @@ export function AuthProvider({ children }) {
         }
 
         setSessionToken(token);
+
+        // Initialize Convex client
+        const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
         // Verify session and get user data
         const userData = await client.query(api.auth.getCurrentUser, {
@@ -58,6 +58,9 @@ export function AuthProvider({ children }) {
       localStorage.setItem("waterman_session_token", token);
       setSessionToken(token);
 
+      // Initialize Convex client
+      const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
       // Load user data
       const userData = await client.query(api.auth.getCurrentUser, {
         sessionToken: token,
@@ -82,6 +85,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       if (sessionToken) {
+        // Initialize Convex client
+        const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+        
         // Call logout mutation
         await client.mutation(api.auth.logout, {
           sessionToken,
@@ -102,6 +108,9 @@ export function AuthProvider({ children }) {
     if (!sessionToken) return;
 
     try {
+      // Initialize Convex client
+      const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      
       const userData = await client.query(api.auth.getCurrentUser, {
         sessionToken,
       });

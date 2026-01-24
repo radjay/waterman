@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ConvexHttpClient } from "convex/browser";
+import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useAuth } from "../../../components/auth/AuthProvider";
 import VerifyingMagicLink from "../../../components/auth/VerifyingMagicLink";
@@ -13,6 +13,7 @@ function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const verifyMagicLink = useMutation(api.auth.verifyMagicLink);
   
   const [status, setStatus] = useState("verifying"); // verifying, success, onboarding, error
   const [error, setError] = useState("");
@@ -32,10 +33,8 @@ function VerifyContent() {
 
   const verifyToken = async (token) => {
     try {
-      const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
-      
       // Verify the magic link
-      const result = await client.mutation(api.auth.verifyMagicLink, {
+      const result = await verifyMagicLink({
         token,
       });
 
