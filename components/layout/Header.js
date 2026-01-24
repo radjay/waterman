@@ -7,7 +7,7 @@ export function Header({ className = "" }) {
   const todayStr = formatFullDate(new Date());
 
   return (
-    <header className={`relative z-[100] border-b border-ink/20 pb-4 mb-6 ${className}`}>
+    <header className={`relative z-50 border-b border-ink/20 pb-4 mb-6 ${className}`}>
       {/* Main header row - title centered */}
       <div className="mb-3">
         {/* Title - centered on page */}

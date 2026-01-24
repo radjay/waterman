@@ -110,7 +110,7 @@ export default function UserMenu() {
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
             >
               <Calendar className="w-4 h-4" />
-              Subscribe to Calendars
+              Add to Calendar
             </button>
 
             <Link
