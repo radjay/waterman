@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "../../components/auth/AuthProvider";
-import { Calendar, Copy, Check, RefreshCw, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { MainLayout } from "../../components/layout/MainLayout";
+import { Header } from "../../components/layout/Header";
+import { Footer } from "../../components/layout/Footer";
+import { Calendar, Copy, Check, RefreshCw, Trash2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function SubscribePage() {
+  const router = useRouter();
   const { user, sessionToken } = useAuth();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,8 +125,18 @@ export default function SubscribePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-newsprint">
+    <MainLayout>
+      <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Back to home button */}
+        <button
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2 text-ink/60 hover:text-ink transition-colors mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to home
+        </button>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-ink mb-2">
@@ -326,6 +341,7 @@ export default function SubscribePage() {
           )}
         </div>
       </div>
-    </div>
+      <Footer />
+    </MainLayout>
   );
 }
