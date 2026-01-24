@@ -11,11 +11,12 @@
 - **Server-side preference sync** - sport selection automatically saves for authenticated users
 - **Favorite spots ordering** - user's favorite spots now appear first in the feed
 - **Professional HTML email template** with Waterman branding
-- **Session token transfer** for cross-browser PWA authentication
-  - Detects when user is in PWA mode vs browser
-  - Shows copyable session token after magic link verification
-  - New "Session Token" sign-in option on login page
-  - Solves the issue where magic links open in default browser instead of PWA app
+- **6-digit verification codes** for easy PWA authentication
+  - Magic link emails include both clickable link and 6-digit code
+  - "Enter code instead" option on the magic link sent screen
+  - Simple code input for signing in to PWA apps
+  - Solves cross-browser PWA authentication without complex token copying
+  - Codes are valid for 15 minutes (same as magic links)
 - Session management with 30-day expiry
 - Automatic cleanup of expired magic links and sessions
 - Rate limiting for magic link requests to prevent abuse
