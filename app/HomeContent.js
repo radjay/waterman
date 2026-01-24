@@ -278,13 +278,13 @@ export default function HomeContent() {
         <div className="flex items-center justify-between gap-2 md:gap-4">
           <ViewToggle onChange={handleViewChange} className="flex-shrink-0" />
           
-          {/* Auth button - shown on portrait mobile only */}
-          <div className="portrait:block landscape:hidden md:hidden">
+          {/* Auth button - shown on portrait mobile only, always hidden on desktop */}
+          <div className="hidden max-md:portrait:block">
             <AuthButton />
           </div>
           
-          {/* Filters - shown on landscape and desktop */}
-          <div className="hidden landscape:flex md:flex items-center gap-2">
+          {/* Filters - shown on landscape mobile and desktop */}
+          <div className="hidden md:flex max-md:landscape:flex items-center gap-2">
             <ListFilter size={18} className="text-ink" />
             <SportSelector
               value={selectedSport}
@@ -294,8 +294,8 @@ export default function HomeContent() {
           </div>
         </div>
         
-        {/* Row 2: Filters (portrait mobile only) */}
-        <div className="portrait:flex landscape:hidden md:hidden items-center gap-2">
+        {/* Row 2: Filters (portrait mobile only, always hidden on desktop) */}
+        <div className="hidden max-md:portrait:flex items-center gap-2">
           <ListFilter size={18} className="text-ink" />
           <SportSelector
             value={selectedSport}

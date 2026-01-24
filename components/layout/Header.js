@@ -15,7 +15,7 @@ export function Header({ className = "" }) {
   return (
     <header className={`relative z-[100] border-b border-ink/20 pb-4 mb-6 ${className}`}>
       {/* Main header row - title centered, auth absolute positioned */}
-      <div className="relative portrait:pt-6 landscape:pt-0 md:pt-0 mb-3 overflow-visible">
+      <div className="relative md:pt-0 max-md:portrait:pt-6 mb-3 overflow-visible">
         {/* Title - centered on page */}
         <div className="flex items-center justify-center min-h-[44px]">
           <h1 className="font-headline text-[1.44rem] sm:text-[1.8rem] md:text-[2.4rem] font-black uppercase tracking-[-1px] leading-none text-ink">
@@ -25,8 +25,8 @@ export function Header({ className = "" }) {
           </h1>
         </div>
 
-        {/* Auth UI - shown on landscape and desktop, hidden on portrait */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 overflow-visible hidden landscape:block md:block">
+        {/* Auth UI - shown on landscape mobile and desktop, hidden on portrait mobile */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 overflow-visible hidden md:block max-md:landscape:block">
           {!loading && (
             <>
               {isAuthenticated ? (
