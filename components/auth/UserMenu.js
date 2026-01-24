@@ -79,7 +79,6 @@ export default function UserMenu() {
           </div>
 
           <div className="py-1">
-            {/* Future: Profile link
             <button
               onClick={() => {
                 router.push("/profile");
@@ -90,7 +89,6 @@ export default function UserMenu() {
               <User className="w-4 h-4" />
               Profile
             </button>
-            */}
 
             <button
               onClick={handleLogout}

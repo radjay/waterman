@@ -291,6 +291,47 @@ export const completeOnboarding = mutation({
 });
 
 /**
+ * Update user profile (name)
+ */
+export const updateUser = mutation({
+  args: {
+    sessionToken: v.string(),
+    name: v.optional(v.string()),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    // Verify session
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.sessionToken))
+      .first();
+    
+    if (!session || Date.now() > session.expiresAt) {
+      throw new Error("Invalid or expired session");
+    }
+    
+    // Update user name
+    const updates: any = {};
+    if (args.name !== undefined) {
+      updates.name = args.name;
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(session.userId, updates);
+    }
+    
+    // Update session activity
+    await ctx.db.patch(session._id, {
+      lastActivityAt: Date.now(),
+    });
+    
+    return { success: true };
+  },
+});
+
+/**
  * Update user preferences (sports and spots)
  */
 export const updatePreferences = mutation({
