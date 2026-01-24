@@ -48,19 +48,28 @@ export default function UserMenu() {
     return user.email[0].toUpperCase();
   };
 
+  // Get first name only (or email if no name)
+  const getDisplayName = () => {
+    if (user.name) {
+      // Split on space and take the first part (first name)
+      return user.name.split(" ")[0];
+    }
+    return user.email;
+  };
+
   return (
     <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-md border border-ink/30 bg-newsprint hover:bg-ink/5 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-md border border-ink/30 bg-newsprint hover:bg-newsprint hover:border-ink/50 transition-colors"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
         <div className="w-8 h-8 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
           {getInitials()}
         </div>
-        <span className="hidden sm:block text-sm text-ink max-w-[150px] truncate">
-          {user.name || user.email}
+        <span className="hidden sm:block text-sm text-ink max-w-[100px] truncate">
+          {getDisplayName()}
         </span>
         <ChevronDown
           className={`hidden sm:block w-4 h-4 text-ink transition-transform ${
