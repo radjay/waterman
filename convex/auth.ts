@@ -334,15 +334,12 @@ export const verifySession = query({
     
     // Check expiry
     if (Date.now() > session.expiresAt) {
-      // Clean up expired session
-      await ctx.db.delete(session._id);
+      // Note: Can't delete in query (read-only), but cleanup cron will handle this
       return { valid: false };
     }
     
-    // Update last activity (don't await - fire and forget)
-    ctx.db.patch(session._id, {
-      lastActivityAt: Date.now(),
-    });
+    // Note: Session activity tracking removed since queries are read-only
+    // Sessions expire after 30 days regardless
     
     return {
       valid: true,
@@ -389,10 +386,8 @@ export const getCurrentUser = query({
       return null;
     }
     
-    // Update session activity
-    await ctx.db.patch(session._id, {
-      lastActivityAt: Date.now(),
-    });
+    // Note: Session activity tracking removed since queries are read-only
+    // This is acceptable - sessions will still expire after 30 days
     
     return user;
   },
