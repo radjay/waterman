@@ -31,6 +31,19 @@ function generateToken(): string {
 }
 
 /**
+ * Generate a 6-digit verification code
+ * @returns 6-digit string (e.g., "123456")
+ */
+function generate6DigitCode(): string {
+  const array = new Uint8Array(3);
+  crypto.getRandomValues(array);
+  // Convert to number between 0 and 999999
+  const num = (array[0] << 16 | array[1] << 8 | array[2]) % 1000000;
+  // Pad with zeros to ensure 6 digits
+  return num.toString().padStart(6, '0');
+}
+
+/**
  * Validate email format
  */
 function isValidEmail(email: string): boolean {
@@ -130,8 +143,9 @@ export const requestMagicLink = mutation({
       };
     }
     
-    // Generate secure token
+    // Generate secure token and 6-digit code
     const token = generateToken();
+    const code = generate6DigitCode();
     const expiresAt = Date.now() + MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000;
     
     // Create magic link record
@@ -139,6 +153,7 @@ export const requestMagicLink = mutation({
       userId: user._id,
       email,
       token,
+      code,
       expiresAt,
       used: false,
       createdAt: Date.now(),
@@ -148,6 +163,7 @@ export const requestMagicLink = mutation({
     await ctx.scheduler.runAfter(0, internal.auth.sendMagicLinkEmail, {
       email,
       token,
+      code,
       userId: user._id,
     });
     
@@ -199,6 +215,105 @@ export const verifyMagicLink = mutation({
       return {
         success: false,
         error: "This link has expired. Magic links are valid for 15 minutes. Please request a new one.",
+      };
+    }
+    
+    // Mark magic link as used
+    await ctx.db.patch(magicLink._id, {
+      used: true,
+      usedAt: Date.now(),
+    });
+    
+    // Get user
+    const user = await ctx.db.get(magicLink.userId);
+    if (!user) {
+      return {
+        success: false,
+        error: "User not found",
+      };
+    }
+    
+    // Update user - mark email as verified and update last login
+    await ctx.db.patch(user._id, {
+      emailVerified: true,
+      lastLoginAt: Date.now(),
+    });
+    
+    // Create session
+    const sessionToken = generateToken();
+    const expiresAt = Date.now() + SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    
+    await ctx.db.insert("sessions", {
+      userId: user._id,
+      token: sessionToken,
+      expiresAt,
+      lastActivityAt: Date.now(),
+      createdAt: Date.now(),
+    });
+    
+    return {
+      success: true,
+      sessionToken,
+      userId: user._id,
+      needsOnboarding: !user.onboardingCompleted,
+    };
+  },
+});
+
+/**
+ * Verify 6-digit code and create session
+ */
+export const verifyCode = mutation({
+  args: {
+    email: v.string(),
+    code: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    sessionToken: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    needsOnboarding: v.optional(v.boolean()),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const email = args.email.toLowerCase().trim();
+    const code = args.code.trim();
+    
+    // Validate code format (6 digits)
+    if (!/^\d{6}$/.test(code)) {
+      return {
+        success: false,
+        error: "Please enter a valid 6-digit code",
+      };
+    }
+    
+    // Find magic link by code and email (codes are only unique per email)
+    const magicLink = await ctx.db
+      .query("magic_links")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .filter((q) => q.eq(q.field("code"), code))
+      .first();
+    
+    if (!magicLink) {
+      return {
+        success: false,
+        error: "Invalid code. Please check your email and try again.",
+      };
+    }
+    
+    // Check if already used
+    if (magicLink.used) {
+      return {
+        success: false,
+        error: "This code has already been used. Please request a new one to sign in again.",
+      };
+    }
+    
+    // Check if expired
+    if (Date.now() > magicLink.expiresAt) {
+      return {
+        success: false,
+        error: "This code has expired. Codes are valid for 15 minutes. Please request a new one.",
       };
     }
     
@@ -503,6 +618,7 @@ export const sendMagicLinkEmail = internalAction({
   args: {
     email: v.string(),
     token: v.string(),
+    code: v.string(),
     userId: v.id("users"),
   },
   returns: v.object({
@@ -571,8 +687,18 @@ export const sendMagicLinkEmail = internalAction({
                             </tr>
                           </table>
                           
+                          <!-- 6-Digit Code Section -->
+                          <div style="margin: 32px 0; padding: 24px; background-color: #f9f9f7; border-radius: 6px; border: 1px solid #e5e5e0;">
+                            <p style="margin: 0 0 12px; font-size: 14px; color: #666; text-align: center;">
+                              Or enter this code in the app:
+                            </p>
+                            <p style="margin: 0; font-size: 32px; font-weight: 600; color: #1a1a1a; text-align: center; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">
+                              ${args.code}
+                            </p>
+                          </div>
+                          
                           <p style="margin: 32px 0 16px; font-size: 14px; line-height: 1.6; color: #666;">
-                            This link will expire in ${MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.
+                            This code and link will expire in ${MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.
                           </p>
                           
                           <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #666;">
