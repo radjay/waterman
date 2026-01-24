@@ -109,15 +109,35 @@ export const getSportFeed = query({
         const now = Date.now();
         const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
 
+        // First, get the most recent scrape timestamp for each spot
+        const spotLatestScrapes = new Map<Id<"spots">, number>();
+        for (const spotId of targetSpotIds) {
+            const scrapes = await ctx.db
+                .query("scrapes")
+                .filter((q) => q.eq(q.field("spotId"), spotId))
+                .collect();
+            
+            if (scrapes.length > 0) {
+                const latestScrape = scrapes.reduce((latest, current) => 
+                    current.scrapeTimestamp > latest.scrapeTimestamp ? current : latest
+                );
+                spotLatestScrapes.set(spotId, latestScrape.scrapeTimestamp);
+            }
+        }
+
+        // Get all scores and filter to only those from the latest scrape for each spot
         const allScores = await ctx.db.query("condition_scores").collect();
-        const relevantScores = allScores.filter(score =>
-            score.sport === args.sport &&
-            targetSpotIds!.includes(score.spotId) &&
-            score.userId === null && // System scores only
-            score.score >= 75 &&
-            score.timestamp >= now &&
-            score.timestamp <= sevenDaysFromNow
-        );
+        const relevantScores = allScores.filter(score => {
+            const latestScrapeTimestamp = spotLatestScrapes.get(score.spotId);
+            return score.sport === args.sport &&
+                targetSpotIds!.includes(score.spotId) &&
+                score.userId === null && // System scores only
+                score.score >= 75 &&
+                score.timestamp >= now &&
+                score.timestamp <= sevenDaysFromNow &&
+                // CRITICAL: Only include scores from the most recent scrape
+                (score.scrapeTimestamp === latestScrapeTimestamp);
+        });
 
         // 4. Group by day and select best slot per day per spot (max 2 per day)
         interface DaySlots {
