@@ -9,6 +9,9 @@ import VerifyingMagicLink from "../../../components/auth/VerifyingMagicLink";
 import OnboardingFlow from "../../../components/auth/OnboardingFlow";
 import { XCircle } from "lucide-react";
 
+// Force dynamic rendering since this page requires URL parameters
+export const dynamic = 'force-dynamic';
+
 export default function VerifyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
