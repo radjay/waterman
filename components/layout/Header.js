@@ -13,7 +13,7 @@ export function Header({ className = "" }) {
   const router = useRouter();
 
   return (
-    <header className={`border-b-2 border-ink/20 pb-4 mb-6 ${className}`}>
+    <header className={`border-b border-ink/20 pb-4 mb-6 ${className}`}>
       {/* Main header row - title centered, auth absolute positioned */}
       <div className="relative pt-6 md:pt-0 mb-3">
         {/* Title - centered on page */}
