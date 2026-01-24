@@ -281,4 +281,21 @@ export default defineSchema({
     })
         .index("by_sport", ["sport"])
         .index("by_replaced_by", ["replacedByPromptId"]),
+    /**
+     * Calendar subscriptions for users.
+     * Each user can create one subscription per sport (wingfoil, surfing).
+     * Tokens allow personalized feeds (filtered to user's favorite spots).
+     */
+    calendar_subscriptions: defineTable({
+        userId: v.id("users"),
+        sport: v.string(), // "wingfoil" or "surfing"
+        token: v.string(), // Unique subscription token (32 bytes, URL-safe)
+        isActive: v.boolean(), // Enable/disable subscription
+        createdAt: v.number(),
+        lastAccessedAt: v.optional(v.number()), // Track feed usage
+        accessCount: v.optional(v.number()), // Track popularity
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_sport", ["userId", "sport"])
+        .index("by_token", ["token"]),
 });

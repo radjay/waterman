@@ -129,23 +129,13 @@ export function MobileMenu() {
 
           {/* Navigation links */}
           <div className="flex-1 space-y-1">
-            <a
-              href="/api/calendar/wingfoil"
+            <button
+              onClick={() => handleNavigation("/subscribe")}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
-              title="Subscribe to wingfoil calendar feed"
             >
               <Calendar className="w-4 h-4" />
-              Wing Calendar
-            </a>
-
-            <a
-              href="/api/calendar/surfing"
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
-              title="Subscribe to surfing calendar feed"
-            >
-              <Calendar className="w-4 h-4" />
-              Surf Calendar
-            </a>
+              Subscribe to Calendars
+            </button>
 
             <button
               onClick={() => handleNavigation("/changelog")}

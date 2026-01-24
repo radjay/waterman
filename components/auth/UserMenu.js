@@ -102,23 +102,16 @@ export default function UserMenu() {
 
             <div className="border-t border-ink/10 my-1" />
 
-            <a
-              href="/api/calendar/wingfoil"
+            <button
+              onClick={() => {
+                router.push("/subscribe");
+                setIsOpen(false);
+              }}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
-              title="Subscribe to wingfoil calendar feed"
             >
               <Calendar className="w-4 h-4" />
-              Wing Calendar
-            </a>
-
-            <a
-              href="/api/calendar/surfing"
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
-              title="Subscribe to surfing calendar feed"
-            >
-              <Calendar className="w-4 h-4" />
-              Surf Calendar
-            </a>
+              Subscribe to Calendars
+            </button>
 
             <Link
               href="/changelog"
