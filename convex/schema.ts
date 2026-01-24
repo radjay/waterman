@@ -37,14 +37,13 @@ export default defineSchema({
         userId: v.id("users"),
         email: v.string(),
         token: v.string(), // Secure random token (32 bytes, URL-safe)
-        code: v.string(), // 6-digit verification code for easy manual entry
+        code: v.optional(v.string()), // 6-digit verification code for easy manual entry (optional for backwards compatibility)
         expiresAt: v.number(), // Timestamp (epoch ms)
         used: v.boolean(),
         usedAt: v.optional(v.number()),
         createdAt: v.number(),
     })
         .index("by_token", ["token"])
-        .index("by_code", ["code"])
         .index("by_email", ["email"])
         .index("by_user", ["userId"]),
     /**
