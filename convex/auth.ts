@@ -9,7 +9,7 @@ import { Id } from "./_generated/dataModel";
 
 const MAGIC_LINK_EXPIRY_MINUTES = 15;
 const SESSION_EXPIRY_DAYS = 30;
-const MAX_MAGIC_LINKS_PER_HOUR = 3;
+const MAX_MAGIC_LINKS_PER_HOUR = 10; // Increased for better UX during testing and legitimate use
 
 // =============================================================================
 // HELPER FUNCTIONS
