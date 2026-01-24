@@ -64,7 +64,7 @@ async function checkRateLimit(
   if (activeLinks.length >= MAX_MAGIC_LINKS_PER_HOUR) {
     return {
       allowed: false,
-      message: `Too many requests. Please wait before requesting another magic link.`,
+      message: `Too many sign-in attempts. Please check your email for existing magic links or wait a few minutes before trying again.`,
     };
   }
   
@@ -182,7 +182,7 @@ export const verifyMagicLink = mutation({
     if (!magicLink) {
       return {
         success: false,
-        error: "Invalid magic link",
+        error: "This link is invalid. Please request a new sign-in link from the login page.",
       };
     }
     
@@ -190,7 +190,7 @@ export const verifyMagicLink = mutation({
     if (magicLink.used) {
       return {
         success: false,
-        error: "This magic link has already been used",
+        error: "This link has already been used. Please request a new one to sign in again.",
       };
     }
     
@@ -198,7 +198,7 @@ export const verifyMagicLink = mutation({
     if (Date.now() > magicLink.expiresAt) {
       return {
         success: false,
-        error: "This magic link has expired",
+        error: "This link has expired. Magic links are valid for 15 minutes. Please request a new one.",
       };
     }
     
