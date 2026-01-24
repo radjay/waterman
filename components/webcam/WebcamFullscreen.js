@@ -310,11 +310,13 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           paddingLeft: 'env(safe-area-inset-left, 0px)',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="absolute top-4 right-4 z-20 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
           aria-label="Close webcam"
         >
@@ -329,11 +331,15 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
             playsInline
             muted
             autoPlay
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
 
         {/* Metadata overlay at bottom - responsive layout */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 landscape:hidden">
+        <div 
+          className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 landscape:hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="max-w-6xl mx-auto">
             {/* Large screens: single row with spot name and metadata side by side */}
             <div className="hidden md:flex items-center w-full gap-8">
