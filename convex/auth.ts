@@ -40,20 +40,28 @@ function isValidEmail(email: string): boolean {
 
 /**
  * Check rate limiting for magic link requests
+ * Only counts unused and unexpired links
  */
 async function checkRateLimit(
   ctx: any,
   email: string
 ): Promise<{ allowed: boolean; message?: string }> {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const now = Date.now();
   
+  // Get recent magic links for this email
   const recentLinks = await ctx.db
     .query("magic_links")
     .withIndex("by_email", (q) => q.eq("email", email))
     .filter((q: any) => q.gte(q.field("createdAt"), oneHourAgo))
     .collect();
   
-  if (recentLinks.length >= MAX_MAGIC_LINKS_PER_HOUR) {
+  // Only count unused and unexpired links
+  const activeLinks = recentLinks.filter(
+    (link) => !link.used && link.expiresAt > now
+  );
+  
+  if (activeLinks.length >= MAX_MAGIC_LINKS_PER_HOUR) {
     return {
       allowed: false,
       message: `Too many requests. Please wait before requesting another magic link.`,
