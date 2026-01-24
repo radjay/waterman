@@ -3,17 +3,24 @@
 ## [2026-01-24]
 
 ### Added
-- Email-based authentication with magic links (passwordless sign-in)
-- User accounts for saving preferences across devices
-- Onboarding flow for new users to select favorite sports and spots
-- User menu in header showing account info and sign out option
-- Favorite sports and spots can be saved to user profile
+- **Email-based authentication** with magic links (passwordless sign-in)
+- **User accounts** for saving preferences across devices
+- **Onboarding flow** for new users to select favorite sports and spots
+- **User menu** in header showing account info and sign out option
+- **Profile page** where users can edit name, favorite sports, and favorite spots
+- **Server-side preference sync** - sport selection automatically saves for authenticated users
+- **Favorite spots ordering** - user's favorite spots now appear first in the feed
+- **Professional HTML email template** with Waterman branding
 - Session management with 30-day expiry
 - Automatic cleanup of expired magic links and sessions
+- Rate limiting for magic link requests to prevent abuse
 
 ### Changed
 - App now supports both authenticated and anonymous users
 - Anonymous users can still use all features without signing in
+- Sport preferences sync across devices for authenticated users
+- Improved error messages throughout auth flow with helpful guidance
+- Enhanced rate limiting to only count active (unused/unexpired) magic links
 
 ---
 
@@ -112,7 +119,11 @@
 
 ## Future Features
 
-- User accounts
-- Personalized preferences
-- Favorite spots
+- ~~User accounts~~ ✅ Implemented 2026-01-24
+- ~~Personalized preferences~~ ✅ Implemented 2026-01-24
+- ~~Favorite spots~~ ✅ Implemented 2026-01-24
 - Email notifications for ideal conditions
+- Custom scoring prompts per user
+- User-created spots (private/public)
+- Social features (share conditions)
+- Account settings (email change, deletion)
