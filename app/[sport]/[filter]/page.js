@@ -38,8 +38,9 @@ function SportFilterPageContent() {
   const searchParams = useSearchParams();
   const user = useUser();
   
-  // Get highlighted day from URL params
+  // Get highlighted day and slot from URL params
   const highlightedDay = searchParams?.get("day") || null;
+  const highlightedSlot = searchParams?.get("slot") || null;
   
   // Extract sport and filter from URL params
   const urlSport = params.sport?.toLowerCase();
@@ -244,17 +245,36 @@ function SportFilterPageContent() {
   // Only mark as ideal if the slot matches criteria
   markIdealSlots(grouped, selectedSports);
 
-  // Scroll to highlighted day when it changes
+  // Scroll to highlighted day and slot when they change
   useEffect(() => {
     if (highlightedDay && !loading) {
       // Wait for DOM to be ready, with retries if element isn't found immediately
       const scrollToDay = () => {
-        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
-        if (element) {
+        const dayElement = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
+        if (dayElement) {
           // Use a small additional delay to ensure layout is stable
           setTimeout(() => {
-            element.scrollIntoView({ behavior: "smooth", block: "start" });
-            // Remove the day param from URL after scrolling
+            dayElement.scrollIntoView({ behavior: "smooth", block: "start" });
+            
+            // If there's a specific slot to scroll to, scroll to it after scrolling to the day
+            if (highlightedSlot) {
+              setTimeout(() => {
+                const slotElement = document.getElementById(highlightedSlot) || 
+                                  document.querySelector(`[id*="${highlightedSlot}"]`);
+                if (slotElement) {
+                  slotElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                  // Highlight the slot briefly
+                  slotElement.style.transition = "background-color 0.3s";
+                  const originalBg = slotElement.style.backgroundColor;
+                  slotElement.style.backgroundColor = "rgba(59, 130, 246, 0.3)";
+                  setTimeout(() => {
+                    slotElement.style.backgroundColor = originalBg;
+                  }, 2000);
+                }
+              }, 500);
+            }
+            
+            // Remove the day and slot params from URL after scrolling
             setTimeout(() => {
               const urlSportValue = reverseSportMap[selectedSport] || "wing";
               router.push(`/${urlSportValue}/${showFilter}`, { scroll: false });
@@ -269,7 +289,7 @@ function SportFilterPageContent() {
       // Initial delay to ensure content is rendered
       setTimeout(scrollToDay, 300);
     }
-  }, [highlightedDay, loading, router, selectedSport, showFilter]);
+  }, [highlightedDay, highlightedSlot, loading, router, selectedSport, showFilter]);
 
   // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {

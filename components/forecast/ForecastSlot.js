@@ -29,10 +29,14 @@ export function ForecastSlot({
 }) {
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
 
+  // Generate ID for this slot (for deep linking)
+  const slotId = slot._id || `slot-${slot.timestamp}`;
+
   return (
     <>
       {/* Desktop: Row layout */}
       <div
+        id={slotId}
         className={`hidden md:grid ${
           isSurfing
             ? "grid-cols-[80px_0.7fr_1.1fr_150px_120px] gap-2"
@@ -93,6 +97,7 @@ export function ForecastSlot({
 
       {/* Mobile: Card layout */}
       <div
+        id={slotId}
         className={`md:hidden border-b border-ink/20 p-4 ${
           showFilter === "all" &&
           slot.score &&
