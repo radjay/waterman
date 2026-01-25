@@ -109,34 +109,71 @@ export const getSportFeed = query({
         const now = Date.now();
         const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
 
-        // First, get the most recent scrape timestamp for each spot
-        const spotLatestScrapes = new Map<Id<"spots">, number>();
+        // Get latest forecast slots for each spot (matching app behavior)
+        const latestSlotIds = new Set<Id<"forecast_slots">>();
         for (const spotId of targetSpotIds) {
-            const scrapes = await ctx.db
+            // Use the same logic as getForecastSlots to get latest slots
+            const allSlots = await ctx.db
+                .query("forecast_slots")
+                .withIndex("by_spot", q => q.eq("spotId", spotId))
+                .collect();
+            
+            if (allSlots.length === 0) continue;
+
+            // Find all unique scrape timestamps from slots
+            const slotScrapeTimestamps = [...new Set(
+                allSlots.map(s => s.scrapeTimestamp).filter(ts => ts !== undefined && ts !== null)
+            )];
+
+            if (slotScrapeTimestamps.length === 0) {
+                // Legacy data - use all slots
+                allSlots.forEach(slot => latestSlotIds.add(slot._id));
+                continue;
+            }
+
+            // Find all successful scrapes for this spot
+            const successfulScrapes = await ctx.db
                 .query("scrapes")
                 .filter((q) => q.eq(q.field("spotId"), spotId))
                 .collect();
-            
-            if (scrapes.length > 0) {
-                const latestScrape = scrapes.reduce((latest, current) => 
-                    current.scrapeTimestamp > latest.scrapeTimestamp ? current : latest
+
+            let targetScrapeTimestamp = null;
+
+            if (successfulScrapes.length > 0) {
+                // Find the most recent successful scrape timestamp
+                const lastSuccessfulTimestamp = Math.max(
+                    ...successfulScrapes.map(s => s.scrapeTimestamp)
                 );
-                spotLatestScrapes.set(spotId, latestScrape.scrapeTimestamp);
+                
+                // Use the most recent timestamp from either successful scrapes OR slots
+                targetScrapeTimestamp = Math.max(
+                    lastSuccessfulTimestamp,
+                    ...slotScrapeTimestamps
+                );
+            } else {
+                // No successful scrapes - use the most recent slot timestamp
+                targetScrapeTimestamp = Math.max(...slotScrapeTimestamps);
+            }
+
+            // Get all slots from the target scrape and add their IDs
+            if (targetScrapeTimestamp !== null) {
+                allSlots
+                    .filter(s => s.scrapeTimestamp === targetScrapeTimestamp)
+                    .forEach(slot => latestSlotIds.add(slot._id));
             }
         }
 
-        // Get all scores and filter to only those from the latest scrape for each spot
+        // Get all scores and filter to only those matching latest slots
         const allScores = await ctx.db.query("condition_scores").collect();
         const relevantScores = allScores.filter(score => {
-            const latestScrapeTimestamp = spotLatestScrapes.get(score.spotId);
             return score.sport === args.sport &&
                 targetSpotIds!.includes(score.spotId) &&
                 score.userId === null && // System scores only
                 score.score >= 75 &&
                 score.timestamp >= now &&
                 score.timestamp <= sevenDaysFromNow &&
-                // CRITICAL: Only include scores from the most recent scrape
-                (score.scrapeTimestamp === latestScrapeTimestamp);
+                // CRITICAL: Only include scores for slots from the latest scrape
+                latestSlotIds.has(score.slotId);
         });
 
         // 4. Group by day and select best slot per day per spot (max 2 per day)

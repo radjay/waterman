@@ -213,7 +213,14 @@ export default function SubscribePage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Link
+                    href={`/subscribe/preview?sport=${sport.id}${subscription ? `&token=${subscription.feedUrl.split('token=')[1]?.split('&')[0]}` : ''}`}
+                    className="px-4 py-2 border border-ink/30 bg-newsprint hover:bg-ink/5 rounded transition-colors flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Preview Calendar
+                  </Link>
                   {!subscription && user && (
                     <button
                       onClick={() => createSubscription(sport.id)}
