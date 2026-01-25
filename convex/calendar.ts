@@ -163,18 +163,33 @@ export const getSportFeed = query({
             }
         }
 
-        // Get all scores and filter to only those matching latest slots
-        const allScores = await ctx.db.query("condition_scores").collect();
-        const relevantScores = allScores.filter(score => {
-            return score.sport === args.sport &&
-                targetSpotIds!.includes(score.spotId) &&
-                score.userId === null && // System scores only
-                score.score >= 75 &&
-                score.timestamp >= now &&
-                score.timestamp <= sevenDaysFromNow &&
-                // CRITICAL: Only include scores for slots from the latest scrape
-                latestSlotIds.has(score.slotId);
-        });
+        // Get scores for each spot using indexed queries (much more efficient)
+        // Note: Index is ["spotId", "timestamp", "sport"], so we query by spotId with timestamp range,
+        // then filter by sport in memory
+        const relevantScores: Doc<"condition_scores">[] = [];
+        for (const spotId of targetSpotIds) {
+            // Use indexed query to get scores for this spot in the time range
+            // We can't filter by sport in the index query since it comes after timestamp,
+            // so we'll filter in memory
+            const spotScores = await ctx.db
+                .query("condition_scores")
+                .withIndex("by_spot_timestamp_sport", (q) =>
+                    q.eq("spotId", spotId)
+                     .gte("timestamp", now)
+                     .lte("timestamp", sevenDaysFromNow)
+                )
+                .collect();
+            
+            // Filter to system scores (userId === null), sport match, score >= 75, and matching latest slots
+            const filtered = spotScores.filter(score => {
+                return score.sport === args.sport &&
+                    score.userId === null && // System scores only
+                    score.score >= 75 &&
+                    latestSlotIds.has(score.slotId); // Only scores for latest scrape slots
+            });
+            
+            relevantScores.push(...filtered);
+        }
 
         // 4. Group by day and select best slot per day per spot (max 2 per day)
         interface DaySlots {
