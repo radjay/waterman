@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
@@ -13,7 +13,7 @@ import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-export default function CalendarPreviewPage() {
+function CalendarPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [events, setEvents] = useState([]);
@@ -195,5 +195,21 @@ export default function CalendarPreviewPage() {
       </div>
       <Footer />
     </MainLayout>
+  );
+}
+
+export default function CalendarPreviewPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <Header />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-ink/60">Loading...</div>
+        </div>
+        <Footer />
+      </MainLayout>
+    }>
+      <CalendarPreviewContent />
+    </Suspense>
   );
 }
