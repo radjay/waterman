@@ -794,8 +794,9 @@ Scrapes validated before saving to database.
   - `/planning/prds/02.md` - LLM-Based Condition Scoring System
   - `/planning/prds/03-email-authentication.md` - Email-Based Magic Link Authentication
   - `/planning/prds/05-calendar-subscriptions.md` - Calendar Subscription Feature
+  - `/planning/prds/07-personalized-scoring.md` - Personalized Scoring & User Context
 
 ---
 
 **Document Maintained By**: Engineering Team  
-**Last Review**: 2026-01-24
+**Last Review**: 2026-01-29
