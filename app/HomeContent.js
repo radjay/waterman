@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
@@ -14,7 +14,7 @@ import { DaySection } from "../components/forecast/DaySection";
 import { Footer } from "../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../lib/slots";
-import { isDaylightSlot, isContextualSlot, isAfterSunset } from "../lib/daylight";
+import { isDaylightSlot, isContextualSlot, isAfterSunset, isNighttimeSlot } from "../lib/daylight";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { useAuth, useUser } from "../components/auth/AuthProvider";
 import { ListFilter, SlidersHorizontal } from "lucide-react";
@@ -35,14 +35,26 @@ export default function HomeContent() {
     (val) => val === "wingfoil" || val === "surfing"
   );
 
-  // Use user's favorite sports if authenticated, otherwise use local state
-  // If user has multiple favorite sports, use the first one
-  const selectedSport = useMemo(() => {
-    if (user && user.favoriteSports && user.favoriteSports.length > 0) {
-      return user.favoriteSports[0];
+  // Track if we've synced with user's favorite sports (only sync once on initial load)
+  const hasSyncedWithUser = useRef(false);
+
+  // Sync localSelectedSport with user's favorite sports on initial load only
+  // Don't reset if user explicitly selects a different sport
+  useEffect(() => {
+    if (!hasSyncedWithUser.current && user && user.favoriteSports && user.favoriteSports.length > 0) {
+      const userSport = user.favoriteSports[0];
+      // Only sync if different from current selection
+      if (userSport !== localSelectedSport) {
+        setLocalSelectedSport(userSport);
+      }
+      hasSyncedWithUser.current = true;
     }
-    return localSelectedSport;
-  }, [user, localSelectedSport]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]); // Only run when user ID changes (initial load or user change)
+
+  // Always use localSelectedSport as the source of truth for immediate UI updates
+  // This ensures the UI updates immediately when the user changes the sport
+  const selectedSport = localSelectedSport;
 
   // Convert single sport to array format (used throughout the app)
   // Memoize to prevent infinite loops in useEffect dependencies
@@ -209,7 +221,8 @@ export default function HomeContent() {
 
   // Filter slots based on showFilter
   // "best" shows slots with scores >= 60 (good conditions per PRD 02)
-  // "all" shows all slots regardless of score
+  // "all" shows all slots regardless of score (but still filtered by daylight later)
+  // Note: Daylight filtering always applies regardless of showFilter setting
   const filteredSlots =
     showFilter === "best"
       ? allSlots.filter((slot) => {
@@ -219,7 +232,7 @@ export default function HomeContent() {
           if (slot.isTideOnly) return true;
           return false;
         })
-      : allSlots; // "all" shows all slots
+      : allSlots; // "all" shows all slots (daylight filtering happens later)
 
   // Group by Date, then by Spot
   // Separate tide-only entries to include in tide section
@@ -259,11 +272,15 @@ export default function HomeContent() {
       }
 
       // Filter to daylight slots + contextual slots
+      // Always exclude nighttime slots regardless of showFilter setting
       filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
         // Always show tide-only slots
         if (slot.isTideOnly) return true;
         
-        // Show contextual slots first (these are special cases)
+        // Always exclude clearly nighttime slots (10 PM - 6 AM) as a safety check
+        if (isNighttimeSlot(new Date(slot.timestamp))) return false;
+        
+        // Show contextual slots (these are special cases)
         if (slot.isContextual) return true;
         
         // Show daylight slots (but not if they're after sunset)

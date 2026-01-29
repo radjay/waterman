@@ -12,7 +12,7 @@ import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { formatDate } from "../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../lib/slots";
-import { isDaylightSlot, isAfterSunset } from "../../lib/daylight";
+import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -160,11 +160,15 @@ export default function CalendarPage() {
       }
 
       // Filter to daylight slots + contextual slots
+      // Always exclude nighttime slots regardless of showFilter setting
       filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
         // Always show tide-only slots
         if (slot.isTideOnly) return true;
         
-        // Show contextual slots first (these are special cases)
+        // Always exclude clearly nighttime slots (10 PM - 6 AM) as a safety check
+        if (isNighttimeSlot(new Date(slot.timestamp))) return false;
+        
+        // Show contextual slots (these are special cases)
         if (slot.isContextual) return true;
         
         // Show daylight slots (but not if they're after sunset)
