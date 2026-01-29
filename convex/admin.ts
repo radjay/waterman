@@ -597,25 +597,69 @@ export const getKPIs = query({
       }
     }
     
-    // Get scrape stats for today
-    const allScrapes = await ctx.db.query("scrapes").collect();
-    const todayScrapes = allScrapes.filter(s => s.scrapeTimestamp >= todayStart);
+    // Get scrape stats for today - query per spot with limits to avoid reading too many documents
+    const todayScrapes: any[] = [];
+    for (const spot of spots) {
+      // Get recent scrapes for this spot (limit to last 50 to avoid reading too many)
+      const spotScrapes = await ctx.db
+        .query("scrapes")
+        .withIndex("by_spot_and_timestamp", q => q.eq("spotId", spot._id))
+        .order("desc")
+        .take(50);
+      
+      // Filter for today's scrapes
+      const spotTodayScrapes = spotScrapes.filter(s => s.scrapeTimestamp >= todayStart);
+      todayScrapes.push(...spotTodayScrapes);
+    }
     const successfulScrapes = todayScrapes.filter(s => s.isSuccessful);
     const failedScrapes = todayScrapes.filter(s => !s.isSuccessful);
     
-    // Get scoring stats for today
-    const allScores = await ctx.db.query("condition_scores").collect();
-    const todayScores = allScores.filter(s => s.scoredAt >= todayStart);
+    // Get scoring stats for today - query per spot with limits
+    const todayScores: any[] = [];
+    for (const spot of spots) {
+      // Get recent scores for this spot (limit to last 100 to avoid reading too many)
+      const spotScores = await ctx.db
+        .query("condition_scores")
+        .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", spot._id))
+        .order("desc")
+        .take(100);
+      
+      // Filter for today's scores
+      const spotTodayScores = spotScores.filter(s => s.scoredAt >= todayStart);
+      todayScores.push(...spotTodayScores);
+    }
     
-    // Get data volume (last 7 days)
-    const recentSlots = await ctx.db
-      .query("forecast_slots")
-      .collect();
-    const recentSlotsCount = recentSlots.filter(s => 
-      s.scrapeTimestamp && s.scrapeTimestamp >= sevenDaysAgo
-    ).length;
+    // Get data volume (last 7 days) - query per spot with limits
+    let recentSlotsCount = 0;
+    for (const spot of spots) {
+      // Get recent slots for this spot (limit to last 200 to avoid reading too many)
+      const spotSlots = await ctx.db
+        .query("forecast_slots")
+        .withIndex("by_spot", q => q.eq("spotId", spot._id))
+        .order("desc")
+        .take(200);
+      
+      // Filter for last 7 days
+      const spotRecentSlots = spotSlots.filter(s => 
+        s.scrapeTimestamp && s.scrapeTimestamp >= sevenDaysAgo
+      );
+      recentSlotsCount += spotRecentSlots.length;
+    }
     
-    const recentScoresCount = allScores.filter(s => s.scoredAt >= sevenDaysAgo).length;
+    // Get scores from last 7 days - query per spot with limits
+    let recentScoresCount = 0;
+    for (const spot of spots) {
+      // Get recent scores for this spot (limit to last 200 to avoid reading too many)
+      const spotScores = await ctx.db
+        .query("condition_scores")
+        .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", spot._id))
+        .order("desc")
+        .take(200);
+      
+      // Filter for last 7 days
+      const spotRecentScores = spotScores.filter(s => s.scoredAt >= sevenDaysAgo);
+      recentScoresCount += spotRecentScores.length;
+    }
     
     // Count stale spots (no scrape in last 24 hours)
     const staleThreshold = now - (24 * 60 * 60 * 1000);

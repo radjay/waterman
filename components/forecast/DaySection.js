@@ -123,7 +123,7 @@ export function DaySection({
       className={`mb-4 ${isHighlighted ? "bg-yellow-50" : ""} ${className}`}
       style={isHighlighted ? { scrollMarginTop: "80px" } : {}}
     >
-      <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-0 bg-newsprint z-10 text-ink pl-2">
+      <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-[48px] md:top-[113px] pt-[13px] md:pt-[23px] bg-newsprint z-[9] text-ink pl-2">
         {getFormattedDay()}
       </div>
 
@@ -180,11 +180,11 @@ export function DaySection({
                         href={liveReportUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border border-ink/30 rounded-full p-1.5 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
+                        className="border border-ink/30 rounded p-1 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
                         aria-label="View live wind report"
                         title="Live wind report"
                       >
-                        <CircleGauge size={18} className="text-black" />
+                        <CircleGauge size={14} className="text-black" />
                       </a>
                     )}
                     {forecastUrl && (
@@ -192,11 +192,11 @@ export function DaySection({
                         href={forecastUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border border-ink/30 rounded-full p-1.5 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
+                        className="border border-ink/30 rounded p-1 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
                         aria-label="View forecast"
                         title="Forecast"
                       >
-                        <ChartNoAxesCombined size={18} className="text-black" />
+                        <ChartNoAxesCombined size={14} className="text-black" />
                       </a>
                     )}
                     {webcamUrl && (
@@ -208,10 +208,10 @@ export function DaySection({
                             streamSource: webcamStreamSource,
                           })
                         }
-                        className="border border-ink/30 rounded-full p-1.5 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
+                        className="border border-ink/30 rounded p-1 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
                         aria-label="View webcam"
                       >
-                        <Video size={18} className="text-black" />
+                        <Video size={14} className="text-black" />
                       </button>
                     )}
                   </div>

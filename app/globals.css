@@ -11,9 +11,10 @@
 
   body {
     @apply bg-newsprint text-ink font-body min-h-screen;
-    /* Subtle wave texture */
+    /* Subtle wave texture - fixed so it doesn't scroll */
     background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q10 5 20 10 T40 10' stroke='%23d3cfc6' stroke-width='0.5' fill='none'/%3E%3C/svg%3E");
     background-size: 40px 20px;
+    background-attachment: fixed;
   }
 }
 

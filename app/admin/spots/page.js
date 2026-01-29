@@ -37,20 +37,36 @@ export default function SpotsList() {
   }, [router]);
 
   const handleDelete = async (spotId, spotName) => {
-    if (!confirm(`Are you sure you want to delete "${spotName}"? This will also delete all associated data (configs, forecast slots, tides, scrapes, prompts, and scores).`)) {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${spotName}"? This will also delete all associated data (configs, forecast slots, tides, scrapes, prompts, and scores).`
+    );
+    
+    if (!confirmed) {
       return;
     }
 
     try {
       const sessionToken = localStorage.getItem("admin_session_token");
+      if (!sessionToken) {
+        showToast("Error: Not authenticated", "error");
+        router.push("/admin/login");
+        return;
+      }
+
       const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+      
+      showToast("Deleting spot...", "success");
+      
       await client.mutation(api.admin.deleteSpot, { sessionToken, spotId });
-      showToast("Spot deleted successfully!");
+      
+      showToast("Spot deleted successfully!", "success");
+      
       // Refresh the list
       const data = await client.query(api.admin.listSpots, { sessionToken });
       setSpots(data);
     } catch (err) {
-      showToast(`Error deleting spot: ${err.message}`, "error");
+      console.error("Error deleting spot:", err);
+      showToast(`Error deleting spot: ${err.message || "Unknown error"}`, "error");
     }
   };
 
@@ -64,6 +80,7 @@ export default function SpotsList() {
 
   return (
     <div>
+      <ToastContainer />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Spots</h1>
         <Link

@@ -4,7 +4,6 @@ import { useAuth } from "../auth/AuthProvider";
 import UserMenu from "../auth/UserMenu";
 import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { MobileMenu } from "./MobileMenu";
 
 export function GlobalNavigation() {
   const { isAuthenticated, loading } = useAuth();
@@ -12,9 +11,6 @@ export function GlobalNavigation() {
 
   return (
     <>
-      {/* Mobile menu - visible on portrait mobile only */}
-      <MobileMenu />
-
       {/* Desktop auth button - fixed to top right of page */}
       <div className="fixed top-4 right-4 z-[100] hidden md:block">
         {!loading && (

@@ -15,7 +15,7 @@ import { Footer } from "../../../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots } from "../../../lib/slots";
 import { useUser } from "../../../components/auth/AuthProvider";
-import { ListFilter } from "lucide-react";
+import { ListFilter, SlidersHorizontal } from "lucide-react";
 import { ViewToggle } from "../../../components/layout/ViewToggle";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -37,6 +37,7 @@ function SportFilterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useUser();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   
   // Get highlighted day and slot from URL params
   const highlightedDay = searchParams?.get("day") || null;
@@ -306,19 +307,37 @@ function SportFilterPageContent() {
   return (
     <MainLayout>
       <Header />
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 mb-6">
-        {/* Tabs row */}
-        <ViewToggle onChange={handleViewChange} />
-        {/* Filters row */}
-        <div className="flex items-center gap-2">
-          <ListFilter size={18} className="text-ink" />
-          <SportSelector
-            value={selectedSport}
-            onSportsChange={handleSportChange}
-          />
-          <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
+      {/* Tabs + filters bar - sticky on desktop */}
+      <div className="md:sticky md:top-[57px] md:z-40 bg-newsprint md:border-b md:border-ink/20 py-3 md:py-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2">
+          {/* Tabs row with filter toggle on mobile */}
+          <div className="flex items-center justify-between md:justify-start">
+            <ViewToggle onChange={handleViewChange} />
+            {/* Mobile filter toggle button */}
+            <button
+              onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+              className={`md:hidden px-2 py-1 rounded border border-ink/30 transition-colors ${
+                mobileFiltersOpen ? "bg-ink text-newsprint" : "bg-newsprint text-ink hover:bg-ink/5"
+              }`}
+              aria-label="Toggle filters"
+              aria-expanded={mobileFiltersOpen}
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          </div>
+          
+          {/* Filters row - hidden on mobile by default, shown when expanded */}
+          <div className={`${mobileFiltersOpen ? "flex" : "hidden"} md:flex items-center gap-2`}>
+            <ListFilter size={18} className="text-ink" />
+            <SportSelector
+              value={selectedSport}
+              onSportsChange={handleSportChange}
+            />
+            <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
+          </div>
         </div>
       </div>
+      <div className="h-4" /> {/* Spacer below tabs */}
 
       {loading ? (
         <Loader />

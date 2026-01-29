@@ -52,7 +52,7 @@ export function ForecastSlot({
               : "bg-transparent"
         } ${slot.isEpic ? "is-epic" : ""} ${className}`}
       >
-        <div className="font-bold text-ink pl-3 flex items-center h-full">
+        <div className="font-bold text-ink pl-2 flex items-center h-full">
           {slot.hour}
         </div>
 
@@ -98,7 +98,7 @@ export function ForecastSlot({
       {/* Mobile: Card layout */}
       <div
         id={slotId}
-        className={`md:hidden border-b border-ink/20 p-4 ${
+        className={`md:hidden border-b border-ink/20 px-2 py-4 ${
           showFilter === "all" &&
           slot.score &&
           slot.score.value >= 60 &&
