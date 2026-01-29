@@ -81,6 +81,8 @@ export function formatSlotData(slot: any): string {
  * @param currentSlot - The slot being scored
  * @param timeSeriesContext - Array of slots from 72h before to 12h after
  * @param spotName - Name of the spot
+ * @param sunTimes - Optional sunrise/sunset times for contextual slots
+ * @param isContextual - Whether this is a contextual slot (before sunrise or after sunset)
  * @returns Object with system and user prompt strings
  */
 export function buildPrompt(
@@ -89,10 +91,26 @@ export function buildPrompt(
     temporalPrompt: string,
     currentSlot: any,
     timeSeriesContext: any[],
-    spotName: string
+    spotName: string,
+    sunTimes?: { sunrise: Date; sunset: Date },
+    isContextual?: boolean
 ): { system: string; user: string } {
+    // Add sunrise/sunset info to prompt for contextual slots
+    let contextualNote = "";
+    if (isContextual && sunTimes) {
+        const slotTime = new Date(currentSlot.timestamp);
+        const sunriseStr = sunTimes.sunrise.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const sunsetStr = sunTimes.sunset.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        if (slotTime < sunTimes.sunrise) {
+            contextualNote = `\n\nIMPORTANT: This time slot is BEFORE sunrise (${sunriseStr}). Conditions are in darkness and not suitable for watersports. Lower the score accordingly. This is shown for temporal context only.`;
+        } else if (slotTime > sunTimes.sunset) {
+            contextualNote = `\n\nIMPORTANT: This time slot is AFTER sunset (${sunsetStr}). Conditions are in darkness and not suitable for watersports. Lower the score accordingly. This is shown for temporal context only.`;
+        }
+    }
+    
     // Combine all prompts into system prompt
-    const fullSystemPrompt = `${systemPrompt}\n\nSpot: ${spotName}\n${spotPrompt}\n\n${temporalPrompt}`;
+    const fullSystemPrompt = `${systemPrompt}\n\nSpot: ${spotName}\n${spotPrompt}\n\n${temporalPrompt}${contextualNote}`;
 
     // Build user prompt with current slot and time series
     let userPrompt = `Evaluate these conditions:\n\nCurrent: ${formatSlotData(currentSlot)}\n\n`;

@@ -11,7 +11,8 @@ import { Loader } from "../../components/common/Loader";
 import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { formatDate } from "../../lib/utils";
-import { enrichSlots, filterAndSortDays, markIdealSlots } from "../../lib/slots";
+import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../lib/slots";
+import { isDaylightSlot, isAfterSunset } from "../../lib/daylight";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -144,11 +145,48 @@ export default function CalendarPage() {
     return acc;
   }, {});
 
+  // Mark contextual slots (needs all slots for the day)
+  markContextualSlots(grouped, spotsMap, selectedSports);
+
+  // Filter grouped slots to only show daylight + contextual slots
+  const filteredGrouped = {};
+  Object.keys(grouped).forEach(day => {
+    filteredGrouped[day] = {};
+    Object.keys(grouped[day]).forEach(spotId => {
+      const spot = spotsMap[spotId];
+      if (!spot) {
+        filteredGrouped[day][spotId] = grouped[day][spotId];
+        return;
+      }
+
+      // Filter to daylight slots + contextual slots
+      filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
+        // Always show tide-only slots
+        if (slot.isTideOnly) return true;
+        
+        // Show contextual slots first (these are special cases)
+        if (slot.isContextual) return true;
+        
+        // Show daylight slots (but not if they're after sunset)
+        const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
+        const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
+        
+        // Only show if it's daylight AND not after sunset
+        // (isDaylight should already exclude after-sunset, but double-check for safety)
+        if (isDaylight && !afterSunset) return true;
+        
+        // Filter out everything else (including slots after sunset that aren't contextual)
+        return false;
+      });
+    });
+  });
+
   // Filter out past dates and sort days chronologically
-  const sortedDays = filterAndSortDays(grouped);
+  const sortedDays = filterAndSortDays(filteredGrouped);
 
   // Sort slots within each spot group and identify ideal slot
-  markIdealSlots(grouped, selectedSports);
+  // Only mark as ideal if the slot matches criteria (excludes contextual slots and slots after sunset)
+  markIdealSlots(filteredGrouped, selectedSports, spotsMap);
 
   // Handle spot click from calendar view - navigate to sport-specific route
   const handleSpotClick = (sport, dayStr) => {
@@ -186,7 +224,7 @@ export default function CalendarPage() {
 
       {!loading ? (
         <CalendarView
-          grouped={grouped}
+          grouped={filteredGrouped}
           sortedDays={sortedDays}
           spotsMap={spotsMap}
           selectedSports={selectedSports}

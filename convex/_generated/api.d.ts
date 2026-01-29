@@ -9,6 +9,7 @@
  */
 
 import type * as _archive_addLiveReports from "../_archive/addLiveReports.js";
+import type * as _archive_addSpotCoordinates from "../_archive/addSpotCoordinates.js";
 import type * as _archive_addWebcams from "../_archive/addWebcams.js";
 import type * as _archive_fixConfig from "../_archive/fixConfig.js";
 import type * as _archive_migrate from "../_archive/migrate.js";
@@ -31,6 +32,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "_archive/addLiveReports": typeof _archive_addLiveReports;
+  "_archive/addSpotCoordinates": typeof _archive_addSpotCoordinates;
   "_archive/addWebcams": typeof _archive_addWebcams;
   "_archive/fixConfig": typeof _archive_fixConfig;
   "_archive/migrate": typeof _archive_migrate;

@@ -50,7 +50,7 @@ export function ForecastSlot({
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"
               : "bg-transparent"
-        } ${slot.isEpic ? "is-epic" : ""} ${className}`}
+        } ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
       >
         <div className="font-bold text-ink pl-2 flex items-center h-full">
           {slot.hour}
@@ -107,7 +107,7 @@ export function ForecastSlot({
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"
               : "bg-newsprint"
-        } ${slot.isEpic ? "is-epic" : ""} ${className}`}
+        } ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
       >
         <div className="flex justify-between items-start mb-3">
           <div>

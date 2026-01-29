@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import Groq from "groq-sdk";
 import { buildPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
+import SunCalc from "suncalc";
 
 /**
  * Validates that a scrape contains sufficient forecast data.
@@ -399,6 +400,27 @@ export const updateWindySpotId = mutation({
     handler: async (ctx, args) => {
         await ctx.db.patch(args.spotId, {
             windySpotId: args.windySpotId,
+        });
+    },
+});
+
+/**
+ * Mutation to update spot coordinates.
+ * 
+ * @param {Id<"spots">} spotId - The spot ID
+ * @param {number} latitude - Latitude coordinate
+ * @param {number} longitude - Longitude coordinate
+ */
+export const updateSpotCoordinates = mutation({
+    args: {
+        spotId: v.id("spots"),
+        latitude: v.number(),
+        longitude: v.number(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.spotId, {
+            latitude: args.latitude,
+            longitude: args.longitude,
         });
     },
 });
@@ -803,6 +825,7 @@ export const scoreSingleSlot = action({
         sport: v.string(),
         spotId: v.id("spots"),
         userId: v.optional(v.string()),
+        isContextual: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const groq = new Groq({
@@ -858,6 +881,16 @@ export const scoreSingleSlot = action({
             return null;
         }
 
+        // Get sun times for contextual slots
+        let sunTimes: { sunrise: Date; sunset: Date } | undefined;
+        if (args.isContextual && spot.latitude && spot.longitude) {
+            const times = SunCalc.getTimes(new Date(slot.timestamp), spot.latitude, spot.longitude);
+            sunTimes = {
+                sunrise: times.sunrise,
+                sunset: times.sunset,
+            };
+        }
+
         // Build full prompt
         const { system, user } = buildPrompt(
             systemPrompt,
@@ -865,7 +898,9 @@ export const scoreSingleSlot = action({
             temporalPrompt,
             slot,
             timeSeriesContext,
-            spot.name
+            spot.name,
+            sunTimes,
+            args.isContextual
         );
 
         // Retry configuration
@@ -970,7 +1005,63 @@ export const scoreSingleSlot = action({
 });
 
 /**
+ * Helper: Check if a slot is within daylight hours
+ */
+function isDaylightSlot(timestamp: number, spot: { latitude?: number; longitude?: number }): boolean {
+    if (!spot.latitude || !spot.longitude) {
+        // Fallback: hardcoded 9 AM - 6 PM if no coordinates
+        const date = new Date(timestamp);
+        const hour = date.getHours();
+        return hour >= 9 && hour <= 18;
+    }
+    
+    const times = SunCalc.getTimes(new Date(timestamp), spot.latitude, spot.longitude);
+    const slotDate = new Date(timestamp);
+    return slotDate >= times.sunrise && slotDate <= times.sunset;
+}
+
+/**
+ * Helper: Check if a slot is a contextual slot (one before sunrise for surfing, one after sunset for windsports)
+ */
+function isContextualSlotForScoring(
+    slotTimestamp: number,
+    spot: { latitude?: number; longitude?: number },
+    sport: string,
+    allSlots: Array<{ timestamp: number }>
+): boolean {
+    if (!spot.latitude || !spot.longitude) {
+        return false; // No contextual slots if no coordinates
+    }
+    
+    const times = SunCalc.getTimes(new Date(slotTimestamp), spot.latitude, spot.longitude);
+    const isSurfing = sport === "surfing";
+    
+    if (isSurfing) {
+        // For surfing: show the closest slot before sunrise
+        const slotsBeforeSunrise = allSlots.filter(s => s.timestamp < times.sunrise.getTime());
+        if (slotsBeforeSunrise.length === 0) return false;
+        
+        const closestBeforeSunrise = slotsBeforeSunrise.reduce((closest, current) => {
+            return current.timestamp > closest.timestamp ? current : closest;
+        });
+        
+        return closestBeforeSunrise.timestamp === slotTimestamp;
+    } else {
+        // For windsports: show the closest slot after sunset
+        const slotsAfterSunset = allSlots.filter(s => s.timestamp > times.sunset.getTime());
+        if (slotsAfterSunset.length === 0) return false;
+        
+        const closestAfterSunset = slotsAfterSunset.reduce((closest, current) => {
+            return current.timestamp < closest.timestamp ? current : closest;
+        });
+        
+        return closestAfterSunset.timestamp === slotTimestamp;
+    }
+}
+
+/**
  * Action to score all slots from a scrape.
+ * Only scores daylight slots and contextual slots.
  * 
  * @param {Id<"spots">} spotId - The spot ID
  * @param {number} scrapeTimestamp - The scrape timestamp
@@ -984,42 +1075,73 @@ export const scoreForecastSlots = action({
         slotIds: v.array(v.id("forecast_slots")),
     },
     handler: async (ctx, args) => {
-        // Get spot to determine which sports it supports
+        // Get spot to determine which sports it supports and check coordinates
         const spot = await ctx.runQuery(api.spots.getSpotById, { spotId: args.spotId });
         if (!spot) {
             console.error(`Spot ${args.spotId} not found`);
             return { successCount: 0, failureCount: 0, total: 0 };
         }
 
+        // Get all slots for this scrape to determine contextual slots
+        const allSlots = await Promise.all(
+            args.slotIds.map(slotId => ctx.runQuery(api.spots.getSlotById, { slotId }))
+        );
+        
+        // Filter slots to only daylight and contextual slots
         const sports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-        let successCount = 0;
-        let failureCount = 0;
-
-        // Score each slot for each sport
-        // Add a small delay between requests to avoid rate limit bursts
-        for (const slotId of args.slotIds) {
+        const slotsToScore: Array<{ slotId: any; sport: string; isContextual: boolean }> = [];
+        
+        for (const slot of allSlots) {
+            if (!slot) continue;
+            
+            const isDaylight = isDaylightSlot(slot.timestamp, spot);
+            
+            // Check if it's a contextual slot for any sport
             for (const sport of sports) {
-                const result = await ctx.runAction(api.spots.scoreSingleSlot, {
-                    slotId,
+                const isContextual = isContextualSlotForScoring(
+                    slot.timestamp,
+                    spot,
                     sport,
-                    spotId: args.spotId,
-                    userId: undefined, // System score for V1
-                });
-
-                if (result) {
-                    successCount++;
-                } else {
-                    failureCount++;
-                }
+                    allSlots.filter(s => s !== null).map(s => ({ timestamp: s!.timestamp }))
+                );
                 
-                // Small delay between requests to avoid rate limit bursts (100ms)
-                // This helps spread out requests when scoring many slots
-                await new Promise(resolve => setTimeout(resolve, 100));
+                if (isDaylight || isContextual) {
+                    slotsToScore.push({
+                        slotId: slot._id,
+                        sport,
+                        isContextual,
+                    });
+                }
             }
         }
 
-        const total = args.slotIds.length * sports.length;
-        console.log(`Scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed`);
+        let successCount = 0;
+        let failureCount = 0;
+
+        // Score each filtered slot
+        // Add a small delay between requests to avoid rate limit bursts
+        for (const { slotId, sport, isContextual } of slotsToScore) {
+            const result = await ctx.runAction(api.spots.scoreSingleSlot, {
+                slotId,
+                sport,
+                spotId: args.spotId,
+                userId: undefined, // System score for V1
+                isContextual, // Pass flag to include sunrise/sunset in prompt
+            });
+
+            if (result) {
+                successCount++;
+            } else {
+                failureCount++;
+            }
+            
+            // Small delay between requests to avoid rate limit bursts (100ms)
+            // This helps spread out requests when scoring many slots
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        const total = slotsToScore.length;
+        console.log(`Scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed (filtered from ${args.slotIds.length} total slots)`);
 
         return {
             successCount,
@@ -1375,5 +1497,45 @@ export const removeTideFieldsFromSlots = mutation({
                 updated,
             };
         }
+    },
+});
+
+/**
+ * One-off mutation to add coordinates to the 4 forecast spots missing them.
+ * 
+ * Coordinates from PRD 06:
+ * - Marina de Cascais: 38.6919, -9.4203
+ * - Lagoa da Albufeira: 38.5058, -9.1728
+ * - Carcavelos: 38.6775, -9.3383
+ * - Praia do Guincho: 38.7333, -9.4733
+ */
+export const addSpotCoordinates = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const spots = await ctx.db.query("spots").collect();
+        
+        const updates = [
+            { name: "Marina de Cascais", latitude: 38.6919, longitude: -9.4203 },
+            { name: "Lagoa da Albufeira", latitude: 38.5058, longitude: -9.1728 },
+            { name: "Carcavelos", latitude: 38.6775, longitude: -9.3383 },
+            { name: "Praia do Guincho", latitude: 38.7333, longitude: -9.4733 },
+        ];
+
+        let updated = 0;
+        for (const update of updates) {
+            const spot = spots.find(s => s.name === update.name);
+            if (spot) {
+                await ctx.db.patch(spot._id, {
+                    latitude: update.latitude,
+                    longitude: update.longitude,
+                });
+                updated++;
+                console.log(`Updated ${update.name} with coordinates: ${update.latitude}, ${update.longitude}`);
+            } else {
+                console.log(`Spot ${update.name} not found`);
+            }
+        }
+
+        return `Updated ${updated} spots with coordinates`;
     },
 });

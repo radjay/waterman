@@ -13,7 +13,8 @@ import { Loader } from "../components/common/Loader";
 import { DaySection } from "../components/forecast/DaySection";
 import { Footer } from "../components/layout/Footer";
 import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
-import { enrichSlots, filterAndSortDays, markIdealSlots } from "../lib/slots";
+import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../lib/slots";
+import { isDaylightSlot, isContextualSlot, isAfterSunset } from "../lib/daylight";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { useAuth, useUser } from "../components/auth/AuthProvider";
 import { ListFilter, SlidersHorizontal } from "lucide-react";
@@ -236,12 +237,55 @@ export default function HomeContent() {
     return acc;
   }, {});
 
+  // Mark contextual slots (needs all slots for the day)
+  // Use existing spotsMap state variable
+  markContextualSlots(grouped, spotsMap, selectedSports);
+
+  // Filter grouped slots to only show daylight + contextual slots
+  const filteredGrouped = {};
+  Object.keys(grouped).forEach(day => {
+    filteredGrouped[day] = {};
+    Object.keys(grouped[day]).forEach(spotId => {
+      if (spotId === '_tides') {
+        // Keep tide entries as-is
+        filteredGrouped[day][spotId] = grouped[day][spotId];
+        return;
+      }
+      
+      const spot = spotsMap[spotId];
+      if (!spot) {
+        filteredGrouped[day][spotId] = grouped[day][spotId];
+        return;
+      }
+
+      // Filter to daylight slots + contextual slots
+      filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
+        // Always show tide-only slots
+        if (slot.isTideOnly) return true;
+        
+        // Show contextual slots first (these are special cases)
+        if (slot.isContextual) return true;
+        
+        // Show daylight slots (but not if they're after sunset)
+        const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
+        const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
+        
+        // Only show if it's daylight AND not after sunset
+        // (isDaylight should already exclude after-sunset, but double-check for safety)
+        if (isDaylight && !afterSunset) return true;
+        
+        // Filter out everything else (including slots after sunset that aren't contextual)
+        return false;
+      });
+    });
+  });
+
   // Filter out past dates and sort days chronologically
-  const sortedDays = filterAndSortDays(grouped);
+  const sortedDays = filterAndSortDays(filteredGrouped);
 
   // Sort slots within each spot group and identify ideal slot
-  // Only mark as ideal if the slot matches criteria
-  markIdealSlots(grouped, selectedSports);
+  // Only mark as ideal if the slot matches criteria (excludes contextual slots and slots after sunset)
+  markIdealSlots(filteredGrouped, selectedSports, spotsMap);
 
   // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
@@ -311,7 +355,7 @@ export default function HomeContent() {
           ) : (
             <div className="flex flex-col gap-8">
               {sortedDays.map((day) => {
-            const dayData = grouped[day];
+            const dayData = filteredGrouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
             const hasForecastSlots = Object.keys(dayData).some((spotId) => {
               if (spotId === "_tides") return false;
