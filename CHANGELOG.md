@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-01-29]
+
+### Improved
+- **Sticky header with smooth animations** - Header now sticks to top when scrolling with smooth logo scaling and date hiding
+- **Sticky tabs and filters bar** - On desktop, the tabs and filters bar now sticks below the header for easy access
+- **Sticky section date headers** - Date headers for each forecast section stick below the tabs bar on desktop
+- **Mobile menu improvements** - Hamburger menu now uses smooth animations, smaller icon, and better positioning
+- **Fixed background pattern** - Background wave pattern now stays fixed while content scrolls
+- **Better button sizing** - Reduced button sizes in forecast sections for cleaner look
+- **Improved spacing and alignment** - Better padding and spacing throughout for consistent layout
+
 ## [2026-01-24]
 
 ### Fixed
