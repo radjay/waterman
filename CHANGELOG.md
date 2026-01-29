@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-01-30]
+
+### Added
+- **Sunrise/sunset filtering** - Forecast slots now use accurate sunrise/sunset times based on each spot's location
+  - All timeslots are stored in the database (no longer filtered at scrape time)
+  - Slots are filtered at display time using actual sunrise/sunset calculations
+  - Contextual slots shown for temporal context (one before sunrise for surfing, one after sunset for windsports)
+  - Slots where sunset occurs in the first half are marked as contextual (not ideal for sessions)
+
+### Improved
+- **Ideal slot selection** - Slots are only marked as ideal if they're fully in daylight hours
+  - Slots that start after sunset are excluded from ideal calculations
+  - Slots where sunset occurs during the slot period are excluded from ideal calculations
+  - Contextual slots are never marked as ideal (shown with 50% opacity for reference only)
+
 ## [2026-01-29]
 
 ### Added
