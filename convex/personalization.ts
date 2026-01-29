@@ -633,6 +633,60 @@ export const getPersonalizationSettings = query({
 });
 
 // =============================================================================
+// FAVORITE SPOTS QUERIES
+// =============================================================================
+
+/**
+ * Get user's favorite spots with names and sports (for spot context editor)
+ */
+export const getFavoriteSpotsWithDetails = query({
+  args: {
+    sessionToken: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("spots"),
+      name: v.string(),
+      country: v.optional(v.string()),
+      sports: v.array(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.sessionToken))
+      .first();
+
+    if (!session || Date.now() > session.expiresAt) {
+      return [];
+    }
+
+    const user = await ctx.db.get(session.userId);
+    if (!user || !user.favoriteSpots || user.favoriteSpots.length === 0) {
+      return [];
+    }
+
+    // Get spot details for each favorite
+    const spotsWithDetails = await Promise.all(
+      user.favoriteSpots.map(async (spotId) => {
+        const spot = await ctx.db.get(spotId);
+        if (!spot) return null;
+        return {
+          _id: spot._id,
+          name: spot.name,
+          country: spot.country,
+          sports: spot.sports || ["wingfoil"],
+        };
+      })
+    );
+
+    return spotsWithDetails.filter(
+      (spot): spot is NonNullable<typeof spot> => spot !== null
+    );
+  },
+});
+
+// =============================================================================
 // INTERNAL QUERIES (for action use)
 // =============================================================================
 

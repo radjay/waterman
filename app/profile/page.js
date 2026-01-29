@@ -8,7 +8,7 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, CheckCircle, ArrowLeft, User, ChevronRight, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [sportProfiles, setSportProfiles] = useState([]);
+  const [spotContextCount, setSpotContextCount] = useState(0);
   const [showPersonalizedScores, setShowPersonalizedScores] = useState(true);
 
   const sports = [
@@ -77,12 +78,14 @@ export default function ProfilePage() {
 
     async function fetchPersonalizationData() {
       try {
-        const [profiles, settings] = await Promise.all([
+        const [profiles, settings, spotContexts] = await Promise.all([
           client.query(api.personalization.getAllSportProfiles, { sessionToken }),
           client.query(api.personalization.getPersonalizationSettings, { sessionToken }),
+          client.query(api.personalization.getAllSpotContexts, { sessionToken }),
         ]);
         setSportProfiles(profiles);
         setShowPersonalizedScores(settings.showPersonalizedScores);
+        setSpotContextCount(spotContexts.length);
       } catch (err) {
         console.error("Error loading personalization data:", err);
       }
@@ -330,6 +333,33 @@ export default function ProfilePage() {
                   </button>
                 );
               })}
+
+              {/* Spot Notes */}
+              <button
+                onClick={() => router.push("/profile/spots")}
+                className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      spotContextCount > 0 ? "bg-ink/10" : "bg-ink/5"
+                    }`}>
+                      <MapPin className={`w-5 h-5 ${spotContextCount > 0 ? "text-ink" : "text-ink/40"}`} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-ink">Spot Notes</p>
+                      {spotContextCount > 0 ? (
+                        <p className="text-sm text-ink/60">
+                          {spotContextCount} spot{spotContextCount !== 1 ? "s" : ""} with notes
+                        </p>
+                      ) : (
+                        <p className="text-sm text-ink/40">Add notes about your favorite spots</p>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-ink/40 group-hover:text-ink/60 transition-colors" />
+                </div>
+              </button>
             </div>
 
             {/* Show Personalized Scores Toggle */}
