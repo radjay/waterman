@@ -589,6 +589,120 @@ export const getExpertInputsForSpot = query({
 });
 
 /**
+ * Get all expert inputs across all spots (admin use)
+ */
+export const getAllExpertInputs = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("user_spot_context"),
+      userId: v.id("users"),
+      userEmail: v.string(),
+      spotId: v.id("spots"),
+      spotName: v.string(),
+      spotCountry: v.optional(v.string()),
+      sport: v.string(),
+      context: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+  ),
+  handler: async (ctx) => {
+    // Get all contexts marked as expert input
+    const allContexts = await ctx.db.query("user_spot_context").collect();
+    const expertContexts = allContexts.filter((c) => c.isExpertInput === true);
+
+    // Enrich with user and spot info
+    const enrichedContexts = await Promise.all(
+      expertContexts.map(async (context) => {
+        const [user, spot] = await Promise.all([
+          ctx.db.get(context.userId),
+          ctx.db.get(context.spotId),
+        ]);
+
+        return {
+          _id: context._id,
+          userId: context.userId,
+          userEmail: user?.email || "Unknown",
+          spotId: context.spotId,
+          spotName: spot?.name || "Unknown Spot",
+          spotCountry: spot?.country,
+          sport: context.sport,
+          context: context.context,
+          createdAt: context.createdAt,
+          updatedAt: context.updatedAt,
+        };
+      })
+    );
+
+    // Sort by most recent first
+    return enrichedContexts.sort((a, b) => b.updatedAt - a.updatedAt);
+  },
+});
+
+/**
+ * Get personalization logs for a user (admin use)
+ */
+export const getPersonalizationLogs = query({
+  args: {
+    userId: v.optional(v.id("users")),
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("personalization_logs"),
+      userId: v.id("users"),
+      userEmail: v.string(),
+      eventType: v.string(),
+      sport: v.optional(v.string()),
+      spotId: v.optional(v.id("spots")),
+      spotName: v.optional(v.string()),
+      slotsScored: v.optional(v.number()),
+      timestamp: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const limit = args.limit || 100;
+
+    let logsQuery = ctx.db.query("personalization_logs");
+
+    if (args.userId) {
+      logsQuery = logsQuery.withIndex("by_user", (q) =>
+        q.eq("userId", args.userId)
+      );
+    }
+
+    const logs = await logsQuery.order("desc").take(limit);
+
+    // Enrich with user and spot info
+    const enrichedLogs = await Promise.all(
+      logs.map(async (log) => {
+        const user = await ctx.db.get(log.userId);
+        let spotName: string | undefined;
+        if (log.spotId) {
+          const spot = await ctx.db.get(log.spotId);
+          spotName = spot?.name;
+        }
+
+        return {
+          _id: log._id,
+          userId: log.userId,
+          userEmail: user?.email || "Unknown",
+          eventType: log.eventType,
+          sport: log.sport,
+          spotId: log.spotId,
+          spotName,
+          slotsScored: log.slotsScored,
+          timestamp: log.timestamp,
+        };
+      })
+    );
+
+    return enrichedLogs;
+  },
+});
+
+/**
  * Get user's personalization settings
  */
 export const getPersonalizationSettings = query({

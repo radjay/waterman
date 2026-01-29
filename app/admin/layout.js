@@ -146,6 +146,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/spots", label: "Spots" },
     { href: "/admin/prompts", label: "Prompts" },
+    { href: "/admin/expert-inputs", label: "Expert Inputs" },
     { href: "/admin/logs", label: "Logs" },
     { href: "/admin/operations", label: "Operations" },
   ];
