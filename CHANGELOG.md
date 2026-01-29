@@ -2,6 +2,9 @@
 
 ## [2026-01-29]
 
+### Added
+- **Favorite spots on webcam cards** - Heart button appears on hover to quickly favorite/unfavorite spots from the cams page
+
 ### Improved
 - **Sticky header with smooth animations** - Header now sticks to top when scrolling with smooth logo scaling and date hiding
 - **Sticky tabs and filters bar** - On desktop, the tabs and filters bar now sticks below the header for easy access
@@ -10,6 +13,9 @@
 - **Fixed background pattern** - Background wave pattern now stays fixed while content scrolls
 - **Better button sizing** - Reduced button sizes in forecast sections for cleaner look
 - **Improved spacing and alignment** - Better padding and spacing throughout for consistent layout
+- **Tab bar styling** - Bold text with better vertical alignment
+- **Webcam cards** - Hover shows action buttons (favorite, live report, forecast) with animated border; tighter card spacing
+- **Mobile filter button** - Now a square button matching the tab bar height
 
 ## [2026-01-24]
 
