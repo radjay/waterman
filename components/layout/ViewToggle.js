@@ -18,7 +18,7 @@ export function ViewToggle({ onChange, className = "" }) {
     <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint self-start ${className}`}>
       <button
         onClick={() => onChange("list")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
+        className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
           !isCalendar && !isCams
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
@@ -26,11 +26,11 @@ export function ViewToggle({ onChange, className = "" }) {
         aria-label="Report view"
       >
         <List size={16} />
-        <span className="text-xs font-medium uppercase">Report</span>
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Report</span>
       </button>
       <button
         onClick={() => onChange("calendar")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
+        className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
           isCalendar
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
@@ -38,11 +38,11 @@ export function ViewToggle({ onChange, className = "" }) {
         aria-label="Calendar view"
       >
         <Calendar size={16} />
-        <span className="text-xs font-medium uppercase">Calendar</span>
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Calendar</span>
       </button>
       <button
         onClick={() => onChange("cams")}
-        className={`px-3 py-1 flex items-center gap-1.5 transition-colors whitespace-nowrap ${
+        className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
           isCams
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
@@ -50,7 +50,7 @@ export function ViewToggle({ onChange, className = "" }) {
         aria-label="Cams view"
       >
         <Video size={16} />
-        <span className="text-xs font-medium uppercase">Cams</span>
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Cams</span>
       </button>
     </div>
   );

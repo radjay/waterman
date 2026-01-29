@@ -12,14 +12,25 @@ import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
+import { useAuth, useUser } from "../../components/auth/AuthProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 function CamsContent() {
   const router = useRouter();
+  const { sessionToken } = useAuth();
+  const user = useUser();
   const [webcams, setWebcams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
+  const [favoriteSpots, setFavoriteSpots] = useState([]);
+
+  // Sync favorite spots from user
+  useEffect(() => {
+    if (user && user.favoriteSpots) {
+      setFavoriteSpots(user.favoriteSpots);
+    }
+  }, [user]);
 
   // Fetch all webcam spots
   useEffect(() => {
@@ -37,6 +48,34 @@ function CamsContent() {
 
     fetchWebcams();
   }, []);
+
+  // Toggle favorite spot
+  const handleToggleFavorite = async (spotId, e) => {
+    e.stopPropagation(); // Prevent card click
+
+    if (!sessionToken) {
+      // Redirect to login if not authenticated
+      router.push("/auth/login");
+      return;
+    }
+
+    // Optimistic update
+    const newFavorites = favoriteSpots.includes(spotId)
+      ? favoriteSpots.filter((id) => id !== spotId)
+      : [...favoriteSpots, spotId];
+    setFavoriteSpots(newFavorites);
+
+    try {
+      await client.mutation(api.auth.updatePreferences, {
+        sessionToken,
+        favoriteSpots: newFavorites,
+      });
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+      // Revert on error
+      setFavoriteSpots(favoriteSpots);
+    }
+  };
 
   // Handle view toggle
   const handleViewChange = (view) => {
@@ -88,14 +127,19 @@ function CamsContent() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {webcams.map((webcam) => (
               <div
                 key={webcam._id}
                 onClick={() => handleWebcamClick(webcam)}
-                className="cursor-pointer transition-transform hover:scale-[1.02]"
+                className="cursor-pointer group"
               >
-                <WebcamCard spot={webcam} />
+                <WebcamCard
+                  spot={webcam}
+                  showHoverButtons
+                  isFavorite={favoriteSpots.includes(webcam._id)}
+                  onToggleFavorite={(e) => handleToggleFavorite(webcam._id, e)}
+                />
               </div>
             ))}
           </div>

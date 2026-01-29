@@ -281,13 +281,13 @@ export default function HomeContent() {
             {/* Mobile filter toggle button */}
             <button
               onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className={`md:hidden px-2 py-1 rounded border border-ink/30 transition-colors ${
+              className={`md:hidden h-7 w-7 flex items-center justify-center rounded border border-ink/30 transition-colors ${
                 mobileFiltersOpen ? "bg-ink text-newsprint" : "bg-newsprint text-ink hover:bg-ink/5"
               }`}
               aria-label="Toggle filters"
               aria-expanded={mobileFiltersOpen}
             >
-              <SlidersHorizontal size={16} />
+              <SlidersHorizontal size={14} />
             </button>
           </div>
           
