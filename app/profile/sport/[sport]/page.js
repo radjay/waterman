@@ -57,8 +57,10 @@ export default function SportProfilePage({ params }) {
   const [context, setContext] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [scoring, setScoring] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [scoringResult, setScoringResult] = useState(null);
 
   // Validate sport
   const isValidSport = sport === "wingfoil" || sport === "surfing";
@@ -105,8 +107,10 @@ export default function SportProfilePage({ params }) {
     setSaving(true);
     setError("");
     setSuccess(false);
+    setScoringResult(null);
 
     try {
+      // Save the profile
       await client.mutation(api.personalization.upsertSportProfile, {
         sessionToken,
         sport,
@@ -115,15 +119,31 @@ export default function SportProfilePage({ params }) {
       });
 
       setSuccess(true);
+      setSaving(false);
       
-      // Redirect back to profile after a moment
+      // Trigger personalized scoring
+      setScoring(true);
+      try {
+        const result = await client.action(api.personalization.scorePersonalizedSlots, {
+          sessionToken,
+          sport,
+        });
+        setScoringResult(result);
+      } catch (scoringErr) {
+        console.error("Scoring error:", scoringErr);
+        // Don't show error, scoring is optional enhancement
+        setScoringResult({ slotsScored: 0, message: "Scores will generate in background" });
+      } finally {
+        setScoring(false);
+      }
+      
+      // Redirect back to profile after showing results
       setTimeout(() => {
         router.push("/profile");
-      }, 1500);
+      }, 3000);
     } catch (err) {
       console.error("Error saving profile:", err);
       setError(err.message || "Failed to save profile");
-    } finally {
       setSaving(false);
     }
   };
@@ -242,9 +262,24 @@ export default function SportProfilePage({ params }) {
           {/* Error/Success Messages */}
           {error && <div className="text-red-600 text-sm">{error}</div>}
           {success && (
-            <div className="text-green-600 text-sm flex items-center gap-2">
-              <Check className="w-4 h-4" />
-              Profile saved! Redirecting...
+            <div className="bg-green-50 border border-green-200 rounded-md p-4 space-y-2">
+              <div className="text-green-700 text-sm flex items-center gap-2 font-medium">
+                <Check className="w-4 h-4" />
+                Profile saved!
+              </div>
+              {scoring && (
+                <div className="text-green-600 text-sm flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating personalized scores for your favorite spots...
+                </div>
+              )}
+              {scoringResult && (
+                <div className="text-green-600 text-sm">
+                  {scoringResult.slotsScored > 0
+                    ? `✓ Scored ${scoringResult.slotsScored} time slots across ${scoringResult.spotsProcessed} spot${scoringResult.spotsProcessed > 1 ? "s" : ""}. Redirecting...`
+                    : scoringResult.message || "Redirecting..."}
+                </div>
+              )}
             </div>
           )}
 
@@ -252,13 +287,23 @@ export default function SportProfilePage({ params }) {
           <div className="pt-4">
             <button
               onClick={handleSave}
-              disabled={saving || !skillLevel}
+              disabled={saving || scoring || success || !skillLevel}
               className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
+                </span>
+              ) : scoring ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating scores...
+                </span>
+              ) : success ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Saved!
                 </span>
               ) : (
                 "Save Profile"

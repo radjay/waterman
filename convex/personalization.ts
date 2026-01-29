@@ -1,6 +1,9 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { api, internal } from "./_generated/api";
+import Groq from "groq-sdk";
+import { buildPrompt } from "./prompts";
 
 // =============================================================================
 // CONSTANTS
@@ -625,6 +628,413 @@ export const getPersonalizationSettings = query({
       showPersonalizedScores: user?.showPersonalizedScores !== false, // Default true
       hasSportProfiles: sportProfiles.length > 0,
       hasSpotContexts: spotContexts.length > 0,
+    };
+  },
+});
+
+// =============================================================================
+// INTERNAL QUERIES (for action use)
+// =============================================================================
+
+/**
+ * Internal query to get user data for personalized scoring
+ */
+export const getUserDataForScoring = internalQuery({
+  args: {
+    sessionToken: v.string(),
+    sport: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get session
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.sessionToken))
+      .first();
+
+    if (!session || Date.now() > session.expiresAt) {
+      return null;
+    }
+
+    // Get user
+    const user = await ctx.db.get(session.userId);
+    if (!user) {
+      return null;
+    }
+
+    // Get sport profile
+    const sportProfile = await ctx.db
+      .query("user_sport_profiles")
+      .withIndex("by_user_sport", (q) =>
+        q.eq("userId", session.userId).eq("sport", args.sport)
+      )
+      .first();
+
+    // Get all spot contexts for this sport
+    const spotContexts = await ctx.db
+      .query("user_spot_context")
+      .withIndex("by_user", (q) => q.eq("userId", session.userId))
+      .filter((q) => q.eq(q.field("sport"), args.sport))
+      .collect();
+
+    return {
+      userId: session.userId,
+      userIdString: session.userId as string, // For condition_scores.userId field
+      favoriteSpots: user.favoriteSpots || [],
+      sportProfile: sportProfile
+        ? {
+            skillLevel: sportProfile.skillLevel,
+            context: sportProfile.context,
+          }
+        : null,
+      spotContexts: spotContexts.map((c) => ({
+        spotId: c.spotId,
+        context: c.context,
+      })),
+    };
+  },
+});
+
+/**
+ * Internal query to get future slots for a spot
+ */
+export const getFutureSlotsForSpot = internalQuery({
+  args: {
+    spotId: v.id("spots"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1000;
+
+    // Get all slots for this spot
+    const allSlots = await ctx.db
+      .query("forecast_slots")
+      .withIndex("by_spot", (q) => q.eq("spotId", args.spotId))
+      .collect();
+
+    // Find the most recent scrape timestamp
+    const scrapeTimestamps = [
+      ...new Set(
+        allSlots
+          .map((s) => s.scrapeTimestamp)
+          .filter((ts) => ts !== undefined && ts !== null)
+      ),
+    ];
+    const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
+
+    // Filter to future slots from latest scrape (next 2 days for faster scoring)
+    const futureSlots = allSlots.filter(
+      (slot) =>
+        slot.timestamp >= now &&
+        slot.timestamp <= twoDaysFromNow &&
+        slot.scrapeTimestamp === latestScrapeTimestamp
+    );
+
+    return futureSlots.sort((a, b) => a.timestamp - b.timestamp);
+  },
+});
+
+/**
+ * Internal mutation to log personalization event
+ */
+export const logScoringEvent = mutation({
+  args: {
+    userId: v.id("users"),
+    sport: v.string(),
+    slotsScored: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("personalization_logs", {
+      userId: args.userId,
+      eventType: "manual_rescore",
+      sport: args.sport,
+      slotsScored: args.slotsScored,
+      timestamp: Date.now(),
+    });
+  },
+});
+
+// =============================================================================
+// PERSONALIZED SCORING ACTION
+// =============================================================================
+
+/**
+ * Build personalized prompt by adding user context to system + spot prompts
+ */
+function buildPersonalizedPrompt(
+  systemPrompt: string,
+  spotPrompt: string,
+  userSkillLevel: string,
+  userSportContext: string | undefined,
+  userSpotContext: string | undefined
+): string {
+  // Create user context section
+  let userContextSection = `\n\n=== USER PERSONALIZATION ===\n`;
+  userContextSection += `User Skill Level: ${userSkillLevel.toUpperCase()}\n`;
+
+  if (userSportContext) {
+    userContextSection += `\nUser's Personal Context for this Sport:\n${userSportContext}\n`;
+  }
+
+  if (userSpotContext) {
+    userContextSection += `\nUser's Notes for this Spot:\n${userSpotContext}\n`;
+  }
+
+  userContextSection += `\nIMPORTANT: Evaluate conditions FROM THIS USER'S PERSPECTIVE based on their skill level and personal context above. A "${userSkillLevel}" rider will have different ideal conditions than others. Score what would be ideal for THIS specific user, not the general population.\n`;
+
+  // Combine: system prompt + spot prompt + user context
+  return `${systemPrompt}\n\nSpot-Specific Information:\n${spotPrompt}${userContextSection}`;
+}
+
+/**
+ * Score a single slot for a specific user with their personalized context.
+ */
+export const scorePersonalizedSlot = action({
+  args: {
+    slotId: v.id("forecast_slots"),
+    spotId: v.id("spots"),
+    sport: v.string(),
+    userId: v.string(), // User ID as string for condition_scores table
+    userSkillLevel: v.string(),
+    userSportContext: v.optional(v.string()),
+    userSpotContext: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+
+    if (!groq.apiKey) {
+      console.error("GROQ_API_KEY not set");
+      return null;
+    }
+
+    // Get slot data
+    const slot = await ctx.runQuery(api.spots.getSlotById, {
+      slotId: args.slotId,
+    });
+    if (!slot) {
+      console.error(`Slot ${args.slotId} not found`);
+      return null;
+    }
+
+    // Get spot data
+    const spot = await ctx.runQuery(api.spots.getSpotById, {
+      spotId: args.spotId,
+    });
+    if (!spot) {
+      console.error(`Spot ${args.spotId} not found`);
+      return null;
+    }
+
+    // Get time series context
+    const timeSeriesContext = await ctx.runQuery(api.spots.getTimeSeriesContext, {
+      spotId: args.spotId,
+      timestamp: slot.timestamp,
+      scrapeTimestamp: slot.scrapeTimestamp,
+    });
+
+    // Get system sport prompt
+    const systemPromptData = await ctx.runQuery(api.spots.getSystemSportPrompt, {
+      sport: args.sport,
+    });
+
+    // Get spot-specific prompt
+    const spotPromptData = await ctx.runQuery(api.spots.getScoringPrompt, {
+      spotId: args.spotId,
+      sport: args.sport,
+    });
+
+    // Build personalized system prompt
+    const baseSystemPrompt = systemPromptData?.prompt || "";
+    const baseSpotPrompt = spotPromptData?.spotPrompt || "";
+    const temporalPrompt = spotPromptData?.temporalPrompt || "";
+
+    const personalizedSystemPrompt = buildPersonalizedPrompt(
+      baseSystemPrompt,
+      baseSpotPrompt,
+      args.userSkillLevel,
+      args.userSportContext,
+      args.userSpotContext
+    );
+
+    // Build the full prompt using existing utility
+    const { system, user } = buildPrompt(
+      personalizedSystemPrompt,
+      "", // spot prompt is already included in personalized system prompt
+      temporalPrompt,
+      slot,
+      timeSeriesContext,
+      spot.name
+    );
+
+    // Call Groq API with retry logic
+    const retryDelays = [30000, 60000, 300000]; // 30s, 1min, 5min
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model: "openai/gpt-oss-120b",
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          temperature: 0.3,
+          max_tokens: 800,
+          response_format: {
+            type: "json_object",
+          },
+        });
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error("No content in response");
+        }
+
+        const response = JSON.parse(content);
+
+        // Validate response
+        if (
+          typeof response.score !== "number" ||
+          response.score < 0 ||
+          response.score > 100
+        ) {
+          throw new Error(`Invalid score: ${response.score}`);
+        }
+        if (
+          typeof response.reasoning !== "string" ||
+          response.reasoning.trim().length === 0
+        ) {
+          throw new Error("Missing or empty reasoning");
+        }
+
+        const score = Math.round(response.score);
+
+        // Save personalized score
+        await ctx.runMutation(api.spots.saveConditionScore, {
+          slotId: args.slotId,
+          spotId: args.spotId,
+          timestamp: slot.timestamp,
+          sport: args.sport,
+          userId: args.userId,
+          score,
+          reasoning: response.reasoning.substring(0, 200),
+          factors: response.factors,
+          model: "openai/gpt-oss-120b",
+          scrapeTimestamp: slot.scrapeTimestamp,
+        });
+
+        return { score, reasoning: response.reasoning };
+      } catch (error: any) {
+        lastError = error;
+        console.error(
+          `Personalized scoring attempt ${attempt + 1} failed:`,
+          error.message
+        );
+
+        if (attempt < retryDelays.length) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelays[attempt])
+          );
+        }
+      }
+    }
+
+    console.error("All personalized scoring retries failed:", lastError);
+    return null;
+  },
+});
+
+/**
+ * Score all future slots for a user's favorite spots with personalized context.
+ * Called after user updates their sport profile.
+ */
+export const scorePersonalizedSlots = action({
+  args: {
+    sessionToken: v.string(),
+    sport: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get user data
+    const userData = await ctx.runQuery(
+      internal.personalization.getUserDataForScoring,
+      {
+        sessionToken: args.sessionToken,
+        sport: args.sport,
+      }
+    );
+
+    if (!userData) {
+      throw new Error("Invalid session or user not found");
+    }
+
+    if (!userData.sportProfile) {
+      throw new Error("Sport profile not found. Please set up your profile first.");
+    }
+
+    if (userData.favoriteSpots.length === 0) {
+      return {
+        success: true,
+        message: "No favorite spots to score. Add some favorite spots first!",
+        slotsScored: 0,
+      };
+    }
+
+    // Create a map of spotId -> user's spot context
+    const spotContextMap = new Map<string, string>();
+    for (const sc of userData.spotContexts) {
+      spotContextMap.set(sc.spotId.toString(), sc.context);
+    }
+
+    let totalSlotsScored = 0;
+    let totalSlotsFailed = 0;
+
+    // Score each favorite spot
+    for (const spotId of userData.favoriteSpots) {
+      // Get future slots for this spot
+      const futureSlots = await ctx.runQuery(
+        internal.personalization.getFutureSlotsForSpot,
+        { spotId }
+      );
+
+      // Score each slot
+      for (const slot of futureSlots) {
+        const result = await ctx.runAction(
+          api.personalization.scorePersonalizedSlot,
+          {
+            slotId: slot._id,
+            spotId,
+            sport: args.sport,
+            userId: userData.userIdString,
+            userSkillLevel: userData.sportProfile.skillLevel,
+            userSportContext: userData.sportProfile.context,
+            userSpotContext: spotContextMap.get(spotId.toString()),
+          }
+        );
+
+        if (result) {
+          totalSlotsScored++;
+        } else {
+          totalSlotsFailed++;
+        }
+
+        // Small delay between requests
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    // Log the scoring event
+    await ctx.runMutation(api.personalization.logScoringEvent, {
+      userId: userData.userId,
+      sport: args.sport,
+      slotsScored: totalSlotsScored,
+    });
+
+    return {
+      success: true,
+      slotsScored: totalSlotsScored,
+      slotsFailed: totalSlotsFailed,
+      spotsProcessed: userData.favoriteSpots.length,
     };
   },
 });
