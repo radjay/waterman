@@ -133,10 +133,13 @@ function SportFilterPageContent() {
           );
 
           // Fetch scores for each relevant sport
+          // Use personalized scores if user is logged in and has showPersonalizedScores enabled
+          const usePersonalizedScores = user && user.showPersonalizedScores !== false;
           const scoresPromises = relevantSports.map((sport) =>
             client.query(api.spots.getConditionScores, {
               spotId: spot._id,
               sport: sport,
+              userId: usePersonalizedScores && user?._id ? user._id : undefined,
             })
           );
 
