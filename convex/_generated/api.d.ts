@@ -19,6 +19,7 @@ import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as calendar from "../calendar.js";
 import type * as crons from "../crons.js";
+import type * as personalization from "../personalization.js";
 import type * as prompts from "../prompts.js";
 import type * as seed from "../seed.js";
 import type * as seedScoringPrompts from "../seedScoringPrompts.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   calendar: typeof calendar;
   crons: typeof crons;
+  personalization: typeof personalization;
   prompts: typeof prompts;
   seed: typeof seed;
   seedScoringPrompts: typeof seedScoringPrompts;

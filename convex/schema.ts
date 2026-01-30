@@ -12,6 +12,9 @@ import { v } from "convex/values";
  * - spotConfigs: Sport-specific condition criteria for each spot
  * - forecast_slots: Time-series forecast data for each spot
  * - scrapes: Tracking metadata for forecast data collection runs
+ * - user_sport_profiles: User skill level and context per sport for personalized scoring
+ * - user_spot_context: User notes about specific spots for personalized scoring
+ * - personalization_logs: Abuse monitoring for personalization features
  */
 export default defineSchema({
     /**
@@ -25,6 +28,7 @@ export default defineSchema({
         onboardingCompleted: v.boolean(), // True after completing onboarding flow
         favoriteSpots: v.optional(v.array(v.id("spots"))),
         favoriteSports: v.optional(v.array(v.string())), // e.g., ["wingfoil", "surfing"]
+        showPersonalizedScores: v.optional(v.boolean()), // Default: true. When false, show system scores.
         createdAt: v.number(),
         lastLoginAt: v.optional(v.number()),
     })
@@ -298,4 +302,51 @@ export default defineSchema({
         .index("by_user", ["userId"])
         .index("by_user_sport", ["userId", "sport"])
         .index("by_token", ["token"]),
+    /**
+     * User sport profiles for personalized scoring.
+     * Stores skill level and free-form context for each sport.
+     * One profile per user per sport.
+     */
+    user_sport_profiles: defineTable({
+        userId: v.id("users"),
+        sport: v.string(), // "wingfoil" or "surfing"
+        skillLevel: v.string(), // "beginner" | "intermediate" | "advanced" | "expert"
+        context: v.optional(v.string()), // Free-form text about their level, preferences, equipment, etc.
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_sport", ["userId", "sport"]),
+    /**
+     * User spot context for personalized scoring.
+     * Free-form notes about what works/doesn't work for the user at a specific spot.
+     * One context per user per spot per sport.
+     */
+    user_spot_context: defineTable({
+        userId: v.id("users"),
+        spotId: v.id("spots"),
+        sport: v.string(), // "wingfoil" or "surfing"
+        context: v.string(), // Free-form text about their experience with this spot
+        isExpertInput: v.optional(v.boolean()), // If true, can be used to improve default prompts
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_spot", ["userId", "spotId"])
+        .index("by_user_spot_sport", ["userId", "spotId", "sport"])
+        .index("by_spot_sport_expert", ["spotId", "sport", "isExpertInput"]),
+    /**
+     * Personalization event logs for abuse monitoring.
+     * Tracks context updates and scoring runs per user.
+     */
+    personalization_logs: defineTable({
+        userId: v.id("users"),
+        eventType: v.string(), // "sport_profile_update" | "spot_context_update" | "manual_rescore"
+        sport: v.optional(v.string()),
+        spotId: v.optional(v.id("spots")),
+        slotsScored: v.optional(v.number()), // How many slots were scored
+        timestamp: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_timestamp", ["userId", "timestamp"]),
 });

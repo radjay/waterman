@@ -8,7 +8,7 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -25,11 +25,21 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [sportProfiles, setSportProfiles] = useState([]);
+  const [spotContextCount, setSpotContextCount] = useState(0);
+  const [showPersonalizedScores, setShowPersonalizedScores] = useState(true);
 
   const sports = [
-    { id: "wingfoil", label: "Wing" },
-    { id: "surfing", label: "Surf" },
+    { id: "wingfoil", label: "Wing", fullLabel: "Wingfoiling" },
+    { id: "surfing", label: "Surf", fullLabel: "Surfing" },
   ];
+
+  const SKILL_LEVEL_LABELS = {
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    expert: "Expert",
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -61,6 +71,27 @@ export default function ProfilePage() {
     }
     fetchSpots();
   }, []);
+
+  // Load sport profiles and personalization settings
+  useEffect(() => {
+    if (!sessionToken) return;
+
+    async function fetchPersonalizationData() {
+      try {
+        const [profiles, settings, spotContexts] = await Promise.all([
+          client.query(api.personalization.getAllSportProfiles, { sessionToken }),
+          client.query(api.personalization.getPersonalizationSettings, { sessionToken }),
+          client.query(api.personalization.getAllSpotContexts, { sessionToken }),
+        ]);
+        setSportProfiles(profiles);
+        setShowPersonalizedScores(settings.showPersonalizedScores);
+        setSpotContextCount(spotContexts.length);
+      } catch (err) {
+        console.error("Error loading personalization data:", err);
+      }
+    }
+    fetchPersonalizationData();
+  }, [sessionToken]);
 
   const toggleSport = (sportId) => {
     setFavoriteSports((prev) =>
@@ -119,6 +150,25 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await authLogout();
     router.push("/");
+  };
+
+  const handleTogglePersonalizedScores = async () => {
+    const newValue = !showPersonalizedScores;
+    setShowPersonalizedScores(newValue);
+    try {
+      await client.mutation(api.personalization.updatePersonalizationSettings, {
+        sessionToken,
+        showPersonalizedScores: newValue,
+      });
+    } catch (err) {
+      console.error("Error updating setting:", err);
+      // Revert on error
+      setShowPersonalizedScores(!newValue);
+    }
+  };
+
+  const getSportProfile = (sportId) => {
+    return sportProfiles.find((p) => p.sport === sportId);
   };
 
   if (!user) {
@@ -235,6 +285,104 @@ export default function ProfilePage() {
                     </div>
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Personalization Section */}
+          <div className="border-t-2 border-ink/10 pt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-ink" />
+              <h2 className="text-lg font-semibold text-ink">Personalization</h2>
+            </div>
+            <p className="text-sm text-ink/60 mb-6">
+              Set up sport profiles to get condition scores personalized for your skill level and preferences.
+            </p>
+
+            {/* Sport Profiles */}
+            <div className="space-y-3 mb-6">
+              {sports.map((sport) => {
+                const profile = getSportProfile(sport.id);
+                return (
+                  <button
+                    key={sport.id}
+                    onClick={() => router.push(`/profile/sport/${sport.id}`)}
+                    className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          profile ? "bg-ink/10" : "bg-ink/5"
+                        }`}>
+                          <User className={`w-5 h-5 ${profile ? "text-ink" : "text-ink/40"}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-ink">{sport.fullLabel} Profile</p>
+                          {profile ? (
+                            <p className="text-sm text-ink/60">
+                              {SKILL_LEVEL_LABELS[profile.skillLevel]}
+                              {profile.context && " • Has context"}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-ink/40">Not set up yet</p>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-ink/40 group-hover:text-ink/60 transition-colors" />
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Spot Notes */}
+              <button
+                onClick={() => router.push("/profile/spots")}
+                className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      spotContextCount > 0 ? "bg-ink/10" : "bg-ink/5"
+                    }`}>
+                      <MapPin className={`w-5 h-5 ${spotContextCount > 0 ? "text-ink" : "text-ink/40"}`} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-ink">Spot Notes</p>
+                      {spotContextCount > 0 ? (
+                        <p className="text-sm text-ink/60">
+                          {spotContextCount} spot{spotContextCount !== 1 ? "s" : ""} with notes
+                        </p>
+                      ) : (
+                        <p className="text-sm text-ink/40">Add notes about your favorite spots</p>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-ink/40 group-hover:text-ink/60 transition-colors" />
+                </div>
+              </button>
+            </div>
+
+            {/* Show Personalized Scores Toggle */}
+            {sportProfiles.length > 0 && (
+              <div className="flex items-center justify-between p-4 rounded-md border-2 border-ink/20">
+                <div>
+                  <p className="font-medium text-ink">Show personalized scores</p>
+                  <p className="text-sm text-ink/60">
+                    When off, you'll see the default system scores instead
+                  </p>
+                </div>
+                <button
+                  onClick={handleTogglePersonalizedScores}
+                  className={`relative w-12 h-7 rounded-full transition-colors ${
+                    showPersonalizedScores ? "bg-ink" : "bg-ink/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      showPersonalizedScores ? "left-6" : "left-1"
+                    }`}
+                  />
+                </button>
               </div>
             )}
           </div>

@@ -13,11 +13,13 @@ import { Footer } from "../../components/layout/Footer";
 import { formatDate } from "../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
+import { useUser } from "../../components/auth/AuthProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function CalendarPage() {
   const router = useRouter();
+  const user = useUser();
 
   // Calendar shows all sports, so we always fetch data for both
   const selectedSports = useMemo(() => ["wingfoil", "surfing"], []);
@@ -66,10 +68,13 @@ export default function CalendarPage() {
           );
 
           // Fetch scores for each relevant sport
+          // Use personalized scores if user is logged in and has showPersonalizedScores enabled
+          const usePersonalizedScores = user && user.showPersonalizedScores !== false;
           const scoresPromises = relevantSports.map((sport) =>
             client.query(api.spots.getConditionScores, {
               spotId: spot._id,
               sport: sport,
+              userId: usePersonalizedScores && user?._id ? user._id : undefined,
             })
           );
 
@@ -119,7 +124,7 @@ export default function CalendarPage() {
     }
 
     fetchData();
-  }, [selectedSports]);
+  }, [selectedSports, user]);
 
   // Filter slots based on showFilter
   const filteredSlots =

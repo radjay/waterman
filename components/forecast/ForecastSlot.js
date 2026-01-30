@@ -2,9 +2,10 @@ import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { Badge } from "../ui/Badge";
 import { TideDisplay } from "../tide/TideDisplay";
-import { Flame, ChevronRight } from "lucide-react";
+import { Flame, ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
+import { Tooltip } from "../ui/Tooltip";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -73,14 +74,18 @@ export function ForecastSlot({
         {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
         <div className="flex items-center justify-end mr-2 gap-2 min-w-[120px]">
-          {/* Score button - only show on hover if score exists */}
-          {/* Always reserve space for the button to prevent layout shift */}
+          {/* Personalized indicator + Score button */}
           {slot.score ? (
             <button
               onClick={() => setIsScoreModalOpen(true)}
-              className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-ink hover:text-ink/60 pointer-events-none group-hover:pointer-events-auto w-[18px]"
+              className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink hover:text-ink/60 pointer-events-none group-hover:pointer-events-auto"
               aria-label="View score report"
             >
+              {slot.score.isPersonalized && (
+                <Tooltip content="Personalized for you" position="left">
+                  <User size={12} className="text-ink/40" />
+                </Tooltip>
+              )}
               <ChevronRight size={18} />
             </button>
           ) : (
@@ -114,13 +119,18 @@ export function ForecastSlot({
             <div className="font-bold text-ink text-lg">{slot.hour}</div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Score button for mobile */}
+            {/* Personalized indicator + Score button for mobile */}
             {slot.score && (
               <button
                 onClick={() => setIsScoreModalOpen(true)}
-                className="flex items-center justify-center text-ink hover:text-ink/60 transition-colors"
+                className="flex items-center justify-center gap-1 text-ink hover:text-ink/60 transition-colors"
                 aria-label="View score report"
               >
+                {slot.score.isPersonalized && (
+                  <Tooltip content="Personalized for you" position="left">
+                    <User size={12} className="text-ink/40" />
+                  </Tooltip>
+                )}
                 <ChevronRight size={18} />
               </button>
             )}

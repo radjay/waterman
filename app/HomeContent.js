@@ -142,10 +142,13 @@ export default function HomeContent() {
           );
 
           // Fetch scores for each relevant sport
+          // Use personalized scores if user is logged in and has showPersonalizedScores enabled
+          const usePersonalizedScores = user && user.showPersonalizedScores !== false;
           const scoresPromises = relevantSports.map((sport) =>
             client.query(api.spots.getConditionScores, {
               spotId: spot._id,
               sport: sport,
+              userId: usePersonalizedScores && user?._id ? user._id : undefined,
             })
           );
 
@@ -159,13 +162,15 @@ export default function HomeContent() {
           // Fetch scores separately (after slots are fetched)
           const scoresArrays = await Promise.all(scoresPromises);
           
-          // Create a map of slotId -> score for quick lookup
+          // Create a map of timestamp -> score for quick lookup
+          // Using timestamp instead of slotId because slot IDs change with each scrape
+          // but timestamps remain consistent for the same time period
           const scoresMap = {};
           scoresArrays.forEach((scores, index) => {
             const sport = relevantSports[index];
             scores.forEach((score) => {
-              // Map by slotId and sport (since multiple sports can have scores for same slot)
-              const key = `${score.slotId}_${sport}`;
+              // Map by timestamp and sport (slot IDs change between scrapes)
+              const key = `${score.timestamp}_${sport}`;
               scoresMap[key] = score;
             });
           });
@@ -461,6 +466,7 @@ export default function HomeContent() {
                     showFilter={showFilter}
                     tidesBySpot={tidesBySpot}
                     isHighlighted={highlightedDay === day}
+                    isAuthenticated={!!sessionToken}
                   />
                 );
               })}

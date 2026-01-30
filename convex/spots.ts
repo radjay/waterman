@@ -187,13 +187,26 @@ export const saveForecastSlots = mutation({
             }
         }
 
-        // Trigger scoring action (fire-and-forget, non-blocking)
+        // Trigger scoring actions (fire-and-forget, non-blocking)
         if (isSuccessful && slotIds.length > 0) {
-            // Schedule scoring to run immediately (non-blocking)
+            // Get the spot to know which sports it supports
+            const spot = await ctx.db.get(args.spotId);
+            const spotSports = spot?.sports || ["wingfoil"]; // Default to wingfoil if no sports defined
+
+            // Schedule system scoring to run immediately (non-blocking)
             ctx.scheduler.runAfter(0, api.spots.scoreForecastSlots, {
                 spotId: args.spotId,
                 scrapeTimestamp: args.scrapeTimestamp,
                 slotIds: slotIds as any[],
+            });
+
+            // Schedule personalized scoring to run after a short delay
+            // (gives system scoring a head start, but runs in parallel)
+            ctx.scheduler.runAfter(1000, api.personalization.scorePersonalizedSlotsAfterScrape, {
+                spotId: args.spotId,
+                scrapeTimestamp: args.scrapeTimestamp,
+                slotIds: slotIds as any[],
+                spotSports,
             });
         }
 
@@ -1193,12 +1206,45 @@ export const getConditionScores = query({
             filtered = filtered.filter(s => s.sport === args.sport);
         }
 
-        // Filter by userId if provided
+        // When userId is provided, return personalized scores with system fallback
         if (args.userId !== undefined) {
-            filtered = filtered.filter(s => s.userId === args.userId);
+            // Get personalized scores for this user
+            const personalizedScores = filtered.filter(s => s.userId === args.userId);
+            // Get system scores (userId: null)
+            const systemScores = filtered.filter(s => s.userId === null);
+            
+            // Create a map of timestamp -> score, preferring personalized
+            // Using timestamp as key because slot IDs change with each scrape
+            // but we want to match scores to slots by their time
+            const scoresByTimestamp = new Map<number, typeof filtered[0]>();
+            
+            // First add system scores (take the most recent one per timestamp)
+            for (const score of systemScores) {
+                const existing = scoresByTimestamp.get(score.timestamp);
+                // Keep the score with the latest _creationTime (most recent scrape)
+                if (!existing || (score._creationTime > existing._creationTime)) {
+                    scoresByTimestamp.set(score.timestamp, score);
+                }
+            }
+            
+            // Then override with personalized scores (they always take priority)
+            for (const score of personalizedScores) {
+                scoresByTimestamp.set(score.timestamp, score);
+            }
+            
+            // Convert back to array and sort
+            return Array.from(scoresByTimestamp.values()).sort((a, b) => a.timestamp - b.timestamp);
         } else {
-            // Default to system scores (userId: null)
-            filtered = filtered.filter(s => s.userId === null);
+            // Default to system scores (userId: null), deduplicated by timestamp
+            const systemScores = filtered.filter(s => s.userId === null);
+            const scoresByTimestamp = new Map<number, typeof filtered[0]>();
+            for (const score of systemScores) {
+                const existing = scoresByTimestamp.get(score.timestamp);
+                if (!existing || (score._creationTime > existing._creationTime)) {
+                    scoresByTimestamp.set(score.timestamp, score);
+                }
+            }
+            return Array.from(scoresByTimestamp.values()).sort((a, b) => a.timestamp - b.timestamp);
         }
 
         // Sort by timestamp

@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, User } from "lucide-react";
 import { useEffect } from "react";
 
 export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
@@ -45,6 +45,12 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
           <div className="text-sm text-ink/60">
             {spotName} • {slot.hour}
           </div>
+          {score.isPersonalized && (
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-ink/50">
+              <User size={12} />
+              <span>Personalized for you</span>
+            </div>
+          )}
         </div>
 
         {/* Score */}

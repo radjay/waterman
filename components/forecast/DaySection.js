@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ForecastSlot } from "./ForecastSlot";
 import { WebcamModal } from "../common/WebcamModal";
 import {
@@ -8,9 +9,11 @@ import {
   ChartSpline,
   CircleGauge,
   ChartNoAxesCombined,
+  StickyNote,
 } from "lucide-react";
 import { findTideForSlot } from "../../lib/tides";
 import { formatFullDay } from "../../lib/utils";
+import { Tooltip } from "../ui/Tooltip";
 
 /**
  * DaySection component displays forecast slots grouped by day and spot.
@@ -25,6 +28,7 @@ import { formatFullDay } from "../../lib/utils";
  * @param {Array<string>} selectedSports - Currently selected sports
  * @param {Object} spotsMap - Map of spotId to spot metadata
  * @param {string} showFilter - Filter mode: "best" or "all"
+ * @param {boolean} isAuthenticated - Whether the user is authenticated
  * @param {string} className - Additional CSS classes
  */
 export function DaySection({
@@ -38,7 +42,9 @@ export function DaySection({
   className = "",
   id = null,
   isHighlighted = false,
+  isAuthenticated = false,
 }) {
+  const router = useRouter();
   const [selectedWebcam, setSelectedWebcam] = useState(null);
   // Support both old format (slots array) and new format (spotsData object)
   const spots = spotsData || {};
@@ -175,6 +181,17 @@ export function DaySection({
                 <div className="flex items-center justify-between font-headline text-[1.15rem] font-bold text-ink mb-2 px-2">
                   <span>{spotName}</span>
                   <div className="flex items-center gap-2">
+                    {isAuthenticated && (
+                      <Tooltip content="Add your notes for this spot" position="bottom">
+                        <button
+                          onClick={() => router.push("/profile/spots")}
+                          className="border border-ink/30 rounded p-1 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
+                          aria-label="Add notes for this spot"
+                        >
+                          <StickyNote size={14} className="text-black" />
+                        </button>
+                      </Tooltip>
+                    )}
                     {liveReportUrl && isWindSport && isTodayOrTomorrow() && (
                       <a
                         href={liveReportUrl}
