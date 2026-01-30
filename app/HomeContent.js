@@ -464,6 +464,7 @@ export default function HomeContent() {
                     showFilter={showFilter}
                     tidesBySpot={tidesBySpot}
                     isHighlighted={highlightedDay === day}
+                    isAuthenticated={!!sessionToken}
                   />
                 );
               })}

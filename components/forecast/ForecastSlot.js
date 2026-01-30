@@ -5,6 +5,7 @@ import { TideDisplay } from "../tide/TideDisplay";
 import { Flame, ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
+import { Tooltip } from "../ui/Tooltip";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -81,7 +82,9 @@ export function ForecastSlot({
               aria-label="View score report"
             >
               {slot.score.isPersonalized && (
-                <User size={12} className="text-ink/40" />
+                <Tooltip content="Personalized for you" position="left">
+                  <User size={12} className="text-ink/40" />
+                </Tooltip>
               )}
               <ChevronRight size={18} />
             </button>
@@ -124,7 +127,9 @@ export function ForecastSlot({
                 aria-label="View score report"
               >
                 {slot.score.isPersonalized && (
-                  <User size={12} className="text-ink/40" />
+                  <Tooltip content="Personalized for you" position="left">
+                    <User size={12} className="text-ink/40" />
+                  </Tooltip>
                 )}
                 <ChevronRight size={18} />
               </button>
