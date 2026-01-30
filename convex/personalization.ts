@@ -875,7 +875,6 @@ export const getFutureSlotsForSpot = internalQuery({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const twoDaysFromNow = now + 2 * 24 * 60 * 60 * 1000;
 
     // Get all slots for this spot
     const allSlots = await ctx.db
@@ -893,11 +892,10 @@ export const getFutureSlotsForSpot = internalQuery({
     ];
     const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
 
-    // Filter to future slots from latest scrape (next 2 days for faster scoring)
+    // Filter to all future slots from latest scrape (same as system scoring)
     const futureSlots = allSlots.filter(
       (slot) =>
         slot.timestamp >= now &&
-        slot.timestamp <= twoDaysFromNow &&
         slot.scrapeTimestamp === latestScrapeTimestamp
     );
 
