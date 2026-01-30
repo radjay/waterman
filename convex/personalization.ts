@@ -366,6 +366,7 @@ export const getAllSportProfiles = query({
   returns: v.array(
     v.object({
       _id: v.id("user_sport_profiles"),
+      _creationTime: v.number(),
       userId: v.id("users"),
       sport: v.string(),
       skillLevel: v.string(),
@@ -453,6 +454,7 @@ export const getAllSpotContexts = query({
   returns: v.array(
     v.object({
       _id: v.id("user_spot_context"),
+      _creationTime: v.number(),
       userId: v.id("users"),
       spotId: v.id("spots"),
       spotName: v.string(),
@@ -1035,8 +1037,8 @@ export const scorePersonalizedSlot = action({
       spot.name
     );
 
-    // Call Groq API with retry logic
-    const retryDelays = [30000, 60000, 300000]; // 30s, 1min, 5min
+    // Call Groq API with retry logic (shorter delays for interactive use)
+    const retryDelays = [2000, 5000]; // 2s, 5s - faster retries for better UX
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
@@ -1048,7 +1050,7 @@ export const scorePersonalizedSlot = action({
             { role: "user", content: user },
           ],
           temperature: 0.3,
-          max_tokens: 800,
+          max_tokens: 1500,
           response_format: {
             type: "json_object",
           },
