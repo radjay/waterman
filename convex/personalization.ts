@@ -1208,3 +1208,223 @@ export const scorePersonalizedSlots = action({
     };
   },
 });
+
+// =============================================================================
+// POST-SCRAPE PERSONALIZED SCORING
+// =============================================================================
+
+/**
+ * Internal query to find users who need personalized scores for a specific spot.
+ *
+ * Returns users who:
+ * - Have showPersonalizedScores enabled (or not explicitly false)
+ * - Have this spot in their favoriteSpots
+ * - Have a sport profile for at least one sport that both:
+ *   a) The spot supports
+ *   b) Is in the user's favoriteSports
+ */
+export const getUsersNeedingPersonalizedScores = internalQuery({
+  args: {
+    spotId: v.id("spots"),
+    spotSports: v.array(v.string()), // Sports this spot supports
+  },
+  returns: v.array(
+    v.object({
+      userId: v.id("users"),
+      sports: v.array(v.string()), // Sports to score for this user/spot
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Get all users who have this spot as a favorite
+    const allUsers = await ctx.db.query("users").collect();
+    const usersWithSpotFavorite = allUsers.filter(
+      (user) =>
+        user.favoriteSpots &&
+        user.favoriteSpots.includes(args.spotId) &&
+        user.showPersonalizedScores !== false // Include users where it's true or undefined
+    );
+
+    const result: { userId: Id<"users">; sports: string[] }[] = [];
+
+    for (const user of usersWithSpotFavorite) {
+      // Get user's sport profiles
+      const sportProfiles = await ctx.db
+        .query("user_sport_profiles")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+
+      // Find sports where:
+      // - The spot supports the sport
+      // - The user has a sport profile for it
+      // - The sport is in the user's favoriteSports
+      const userFavoriteSports = user.favoriteSports || [];
+      const sportsToScore = sportProfiles
+        .map((profile) => profile.sport)
+        .filter(
+          (sport) =>
+            args.spotSports.includes(sport) && userFavoriteSports.includes(sport)
+        );
+
+      if (sportsToScore.length > 0) {
+        result.push({
+          userId: user._id,
+          sports: sportsToScore,
+        });
+      }
+    }
+
+    return result;
+  },
+});
+
+/**
+ * Internal action to score personalized slots for users after a scrape.
+ *
+ * Called by saveForecastSlots after system scoring is scheduled.
+ * Scores all slots from the scrape for each user who has personalization enabled
+ * for this spot.
+ */
+export const scorePersonalizedSlotsAfterScrape = action({
+  args: {
+    spotId: v.id("spots"),
+    scrapeTimestamp: v.number(),
+    slotIds: v.array(v.id("forecast_slots")),
+    spotSports: v.array(v.string()), // Sports this spot supports
+  },
+  returns: v.object({
+    usersProcessed: v.number(),
+    totalSlotsScored: v.number(),
+    totalSlotsFailed: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Find users who need personalized scores for this spot
+    const usersToScore = await ctx.runQuery(
+      internal.personalization.getUsersNeedingPersonalizedScores,
+      {
+        spotId: args.spotId,
+        spotSports: args.spotSports,
+      }
+    );
+
+    if (usersToScore.length === 0) {
+      return {
+        usersProcessed: 0,
+        totalSlotsScored: 0,
+        totalSlotsFailed: 0,
+      };
+    }
+
+    let totalSlotsScored = 0;
+    let totalSlotsFailed = 0;
+
+    // Process each user
+    for (const { userId, sports } of usersToScore) {
+      // Get user's sport profiles and spot contexts
+      const sportProfiles = await ctx.runQuery(
+        internal.personalization.getUserSportProfilesInternal,
+        { userId }
+      );
+      const spotContexts = await ctx.runQuery(
+        internal.personalization.getUserSpotContextsInternal,
+        { userId, spotId: args.spotId }
+      );
+
+      // Score each slot for each sport
+      for (const sport of sports) {
+        const sportProfile = sportProfiles.find((p) => p.sport === sport);
+        const spotContext = spotContexts.find((c) => c.sport === sport);
+
+        if (!sportProfile) continue; // Skip if no profile for this sport
+
+        for (const slotId of args.slotIds) {
+          try {
+            await ctx.runAction(api.personalization.scorePersonalizedSlot, {
+              slotId,
+              spotId: args.spotId,
+              sport,
+              userId: userId as string,
+              userSkillLevel: sportProfile.skillLevel,
+              userSportContext: sportProfile.context,
+              userSpotContext: spotContext?.context,
+            });
+            totalSlotsScored++;
+          } catch (error) {
+            console.error(
+              `Failed to score personalized slot ${slotId} for user ${userId}:`,
+              error
+            );
+            totalSlotsFailed++;
+          }
+        }
+      }
+    }
+
+    console.log(
+      `Post-scrape personalized scoring for spot ${args.spotId}: ` +
+        `${usersToScore.length} users, ${totalSlotsScored} scored, ${totalSlotsFailed} failed`
+    );
+
+    return {
+      usersProcessed: usersToScore.length,
+      totalSlotsScored,
+      totalSlotsFailed,
+    };
+  },
+});
+
+/**
+ * Internal query to get a user's sport profiles (without session validation)
+ */
+export const getUserSportProfilesInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.array(
+    v.object({
+      sport: v.string(),
+      skillLevel: v.string(),
+      context: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const profiles = await ctx.db
+      .query("user_sport_profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    return profiles.map((p) => ({
+      sport: p.sport,
+      skillLevel: p.skillLevel,
+      context: p.context,
+    }));
+  },
+});
+
+/**
+ * Internal query to get a user's spot contexts for a specific spot (without session validation)
+ */
+export const getUserSpotContextsInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    spotId: v.id("spots"),
+  },
+  returns: v.array(
+    v.object({
+      sport: v.string(),
+      context: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const contexts = await ctx.db
+      .query("user_spot_context")
+      .withIndex("by_user_spot", (q) =>
+        q.eq("userId", args.userId).eq("spotId", args.spotId)
+      )
+      .collect();
+
+    return contexts.map((c) => ({
+      sport: c.sport,
+      context: c.context,
+    }));
+  },
+});
