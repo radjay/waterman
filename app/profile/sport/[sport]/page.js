@@ -262,24 +262,11 @@ export default function SportProfilePage({ params }) {
           {/* Error/Success Messages */}
           {error && <div className="text-red-600 text-sm">{error}</div>}
           {success && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-4 space-y-2">
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
               <div className="text-green-700 text-sm flex items-center gap-2 font-medium">
                 <Check className="w-4 h-4" />
-                Profile saved!
+                Profile saved! Redirecting...
               </div>
-              {scoring && (
-                <div className="text-green-600 text-sm flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating personalized scores for your favorite spots...
-                </div>
-              )}
-              {scoringResult && (
-                <div className="text-green-600 text-sm">
-                  {scoringResult.slotsScored > 0
-                    ? `✓ Scored ${scoringResult.slotsScored} time slots across ${scoringResult.spotsProcessed} spot${scoringResult.spotsProcessed > 1 ? "s" : ""}. Redirecting...`
-                    : scoringResult.message || "Redirecting..."}
-                </div>
-              )}
             </div>
           )}
 
@@ -287,18 +274,13 @@ export default function SportProfilePage({ params }) {
           <div className="pt-4">
             <button
               onClick={handleSave}
-              disabled={saving || scoring || success || !skillLevel}
+              disabled={saving || success || !skillLevel}
               className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
-                </span>
-              ) : scoring ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating scores...
                 </span>
               ) : success ? (
                 <span className="flex items-center justify-center gap-2">
