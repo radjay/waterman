@@ -6,12 +6,13 @@
 - **Personalized scoring** - Registered users can now provide personal context to get scores tailored to their skill level and preferences
   - Sport profiles: Set your skill level (Beginner, Intermediate, Advanced, Expert) and describe your preferences, equipment, and constraints
   - Spot notes: Add personal notes about what works (or doesn't) for you at each spot
-  - Personalized scores are generated automatically when you save your context
+  - Personalized scores are generated automatically when you save your context and after each forecast scrape
   - Scores show a "Personalized for you" indicator when viewing personalized results
   - Toggle between personalized and system scores in your profile settings
   - Quick access to add spot notes from the forecast page (sticky note icon)
   - Expert users can mark their input to help improve default scoring prompts
   - Admin page for reviewing expert inputs
+  - Calendar subscriptions now use your personalized scores when enabled
 - **Sunrise/sunset filtering** - Forecast slots now use accurate sunrise/sunset times based on each spot's location
   - All timeslots are stored in the database (no longer filtered at scrape time)
   - Slots are filtered at display time using actual sunrise/sunset calculations
