@@ -1193,9 +1193,28 @@ export const getConditionScores = query({
             filtered = filtered.filter(s => s.sport === args.sport);
         }
 
-        // Filter by userId if provided
+        // When userId is provided, return personalized scores with system fallback
         if (args.userId !== undefined) {
-            filtered = filtered.filter(s => s.userId === args.userId);
+            // Get personalized scores for this user
+            const personalizedScores = filtered.filter(s => s.userId === args.userId);
+            // Get system scores (userId: null)
+            const systemScores = filtered.filter(s => s.userId === null);
+            
+            // Create a map of slotId -> score, preferring personalized
+            const scoresBySlot = new Map();
+            
+            // First add all system scores
+            for (const score of systemScores) {
+                scoresBySlot.set(score.slotId.toString(), score);
+            }
+            
+            // Then override with personalized scores (they take priority)
+            for (const score of personalizedScores) {
+                scoresBySlot.set(score.slotId.toString(), score);
+            }
+            
+            // Convert back to array and sort
+            return Array.from(scoresBySlot.values()).sort((a, b) => a.timestamp - b.timestamp);
         } else {
             // Default to system scores (userId: null)
             filtered = filtered.filter(s => s.userId === null);
