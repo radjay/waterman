@@ -49,6 +49,8 @@ export const getSportFeed = query({
     handler: async (ctx, args) => {
         let targetSpotIds: Id<"spots">[] | null = null;
         let isPersonalized = false;
+        let userId: Id<"users"> | null = null;
+        let usePersonalizedScores = false;
 
         // 1. Determine which spots to include
         if (args.spotIds && args.spotIds.length > 0) {
@@ -82,6 +84,10 @@ export const getSportFeed = query({
                         )
                         .map(spot => spot._id);
                     isPersonalized = true;
+                    
+                    // Check if user wants personalized scores
+                    userId = user._id;
+                    usePersonalizedScores = user.showPersonalizedScores === true;
                 }
             }
         }
@@ -180,13 +186,39 @@ export const getSportFeed = query({
                 )
                 .collect();
             
-            // Filter to system scores (userId === null), sport match, score >= 75, and matching latest slots
-            const filtered = spotScores.filter(score => {
-                return score.sport === args.sport &&
-                    score.userId === null && // System scores only
+            // Filter by sport first
+            const sportScores = spotScores.filter(score => score.sport === args.sport);
+            
+            // Use personalized scores if enabled, otherwise system scores only
+            let filtered: Doc<"condition_scores">[];
+            if (usePersonalizedScores && userId) {
+                // Deduplicate by timestamp, preferring personalized scores
+                const scoresByTimestamp = new Map<number, Doc<"condition_scores">>();
+                
+                // First add system scores
+                const systemScores = sportScores.filter(s => s.userId === null);
+                for (const score of systemScores) {
+                    scoresByTimestamp.set(score.timestamp, score);
+                }
+                
+                // Then override with personalized scores (they take priority)
+                const personalizedScores = sportScores.filter(s => s.userId === userId);
+                for (const score of personalizedScores) {
+                    scoresByTimestamp.set(score.timestamp, score);
+                }
+                
+                // Filter to score >= 75 and matching latest slots
+                filtered = Array.from(scoresByTimestamp.values()).filter(score =>
+                    score.score >= 75 && latestSlotIds.has(score.slotId)
+                );
+            } else {
+                // System scores only
+                filtered = sportScores.filter(score =>
+                    score.userId === null &&
                     score.score >= 75 &&
-                    latestSlotIds.has(score.slotId); // Only scores for latest scrape slots
-            });
+                    latestSlotIds.has(score.slotId)
+                );
+            }
             
             relevantScores.push(...filtered);
         }
