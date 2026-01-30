@@ -325,6 +325,7 @@ export const getSportProfile = query({
   returns: v.union(
     v.object({
       _id: v.id("user_sport_profiles"),
+      _creationTime: v.number(),
       userId: v.id("users"),
       sport: v.string(),
       skillLevel: v.string(),
@@ -410,6 +411,7 @@ export const getSpotContext = query({
   returns: v.union(
     v.object({
       _id: v.id("user_spot_context"),
+      _creationTime: v.number(),
       userId: v.id("users"),
       spotId: v.id("spots"),
       sport: v.string(),
