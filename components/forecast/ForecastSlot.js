@@ -1,11 +1,32 @@
 import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
-import { Badge } from "../ui/Badge";
 import { TideDisplay } from "../tide/TideDisplay";
 import { Flame, ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
 import { Tooltip } from "../ui/Tooltip";
+
+/**
+ * FlameRating - shows 1-3 flames based on score quality
+ * 3 flames + "EPIC!" = score >= 90
+ * 2 flames = score >= 75
+ * 1 flame = score >= 60
+ */
+function FlameRating({ score }) {
+  if (!score || score < 60) return null;
+  
+  const flameCount = score >= 90 ? 3 : score >= 75 ? 2 : 1;
+  const isEpic = score >= 90;
+  
+  return (
+    <div className="flex items-center gap-0.5 text-green-700">
+      {isEpic && <span className="mr-1 font-headline font-bold text-[0.65rem] uppercase tracking-wide">EPIC!</span>}
+      {Array.from({ length: flameCount }).map((_, i) => (
+        <Flame key={i} size={14} fill="currentColor" />
+      ))}
+    </div>
+  );
+}
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -74,6 +95,7 @@ export function ForecastSlot({
         {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
         <div className="flex items-center justify-end mr-2 gap-2 min-w-[120px]">
+          {slot.score && <FlameRating score={slot.score.value} />}
           {/* Personalized indicator + Score button */}
           {slot.score ? (
             <button
@@ -90,12 +112,6 @@ export function ForecastSlot({
             </button>
           ) : (
             <div className="w-[18px]"></div>
-          )}
-          {slot.isEpic && (
-            <Badge variant="epic" className="flex items-center gap-1">
-              <Flame size={12} className="text-red-accent" />
-              EPIC
-            </Badge>
           )}
         </div>
       </div>
@@ -119,6 +135,7 @@ export function ForecastSlot({
             <div className="font-bold text-ink text-lg">{slot.hour}</div>
           </div>
           <div className="flex items-center gap-2">
+            {slot.score && <FlameRating score={slot.score.value} />}
             {/* Personalized indicator + Score button for mobile */}
             {slot.score && (
               <button
@@ -133,12 +150,6 @@ export function ForecastSlot({
                 )}
                 <ChevronRight size={18} />
               </button>
-            )}
-            {slot.isEpic && (
-              <Badge variant="epic" className="flex items-center gap-1">
-                <Flame size={12} className="text-red-accent" />
-                EPIC
-              </Badge>
             )}
           </div>
         </div>
