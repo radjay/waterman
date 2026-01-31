@@ -1,5 +1,10 @@
 # Changelog
 
+## [2026-01-31]
+
+### Fixed
+- **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices
+
 ## [2026-01-30]
 
 ### Added

@@ -73,7 +73,7 @@ export function MobileMenu({ onOpenChange }) {
           setIsOpen(!isOpen);
         }}
         className={`p-1.5 rounded-md border border-ink/30 bg-newsprint hover:bg-ink/5 md:hidden ${
-          isOpen ? "fixed left-[17px] top-[12px] z-[201]" : "relative z-[200]"
+          isOpen ? "fixed left-[17px] top-[12px] z-[201] pointer-events-auto" : "relative z-[200]"
         }`}
         aria-label="Menu"
         aria-expanded={isOpen}
@@ -110,7 +110,7 @@ export function MobileMenu({ onOpenChange }) {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/50 z-[190] md:hidden"
+              className="fixed inset-0 bg-black/50 z-[190] md:hidden pointer-events-auto"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -121,7 +121,7 @@ export function MobileMenu({ onOpenChange }) {
             {/* Slide-out panel */}
             <motion.div
               ref={menuRef}
-              className="fixed top-0 left-0 h-full w-64 bg-newsprint border-r border-ink/20 shadow-xl z-[195] md:hidden"
+              className="fixed top-0 left-0 h-full w-64 bg-newsprint border-r border-ink/20 shadow-xl z-[195] md:hidden pointer-events-auto"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
