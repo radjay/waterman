@@ -3,6 +3,7 @@
 ## [2026-01-31]
 
 ### Fixed
+- **Sign-in with code now works correctly** - Fixed issue where entering the 6-digit verification code would not properly log users in. The login result was not being checked before redirecting, causing users to appear logged out after sign-in. Also improved error handling to show meaningful errors if sign-in fails.
 - **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices
 
 ## [2026-01-30]
