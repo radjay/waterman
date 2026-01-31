@@ -12,6 +12,7 @@
   - New "Scoring Debug" link in admin sidebar
 
 ### Fixed
+- **Wind direction in LLM scoring prompts now matches UI** - Fixed bug where wind direction shown to the LLM was opposite to what users see (e.g., prompt showed "E" while UI showed "W"). The LLM now receives the same direction users see, improving scoring accuracy and reasoning clarity.
 - **Wind direction in Scoring Debug page now matches main app** - Fixed issue where wind direction was shown incorrectly (e.g., NE instead of SW). The debug page now uses the same direction conversion as the main forecast view.
 - **Sign-in with code now works correctly** - Fixed issue where entering the 6-digit verification code would not properly log users in. The login result was not being checked before redirecting, causing users to appear logged out after sign-in. Also improved error handling to show meaningful errors if sign-in fails.
 - **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices
