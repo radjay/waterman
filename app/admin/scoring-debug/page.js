@@ -19,7 +19,7 @@ function CopyableId({ id, label }) {
   
   return (
     <div className="group inline-flex items-center gap-1.5">
-      {label && <span className="text-xs text-ink/50 uppercase">{label}:</span>}
+      {label && <span className="text-xs text-ink/50">{label}:</span>}
       <span 
         className="font-mono text-xs text-ink/60 max-w-[80px] truncate" 
         title={id}
@@ -466,7 +466,7 @@ function SlotCard({ item, sport, onViewLog }) {
                       Scored at: {new Date(score.scoredAt).toLocaleString()}
                       {score.model && ` • Model: ${score.model}`}
                     </span>
-                    {score._id && <CopyableId id={score._id} label="Score" />}
+                    {score._id && <CopyableId id={score._id} label="SCORE ID" />}
                   </div>
                 </div>
 
@@ -483,7 +483,7 @@ function SlotCard({ item, sport, onViewLog }) {
                       >
                         Provenance
                       </button>
-                      <CopyableId id={scoringLogId} label="Log" />
+                      <CopyableId id={scoringLogId} label="LOG ID" />
                     </>
                   ) : (
                     <span className="text-xs text-ink/50">No provenance</span>
@@ -531,7 +531,7 @@ function ProvenanceModal({ log, loading, onClose }) {
                 : `Scoring Provenance - ${log?.spotName}, ${formatTimestamp(log?.timestamp)}`}
             </h2>
             {log?._id && (
-              <CopyableId id={log._id} label="Provenance ID" />
+              <CopyableId id={log._id} label="LOG ID" />
             )}
           </div>
           <button
@@ -576,7 +576,11 @@ function ProvenanceModal({ log, loading, onClose }) {
                 </div>
                 <div>
                   <div className="text-xs text-ink/50 uppercase">User</div>
-                  <div className="font-mono">{log.userId || "System"}</div>
+                  {log.userId ? (
+                    <CopyableId id={log.userId} />
+                  ) : (
+                    <div className="font-mono">System</div>
+                  )}
                 </div>
                 <div>
                   <div className="text-xs text-ink/50 uppercase">Sport</div>
@@ -584,7 +588,7 @@ function ProvenanceModal({ log, loading, onClose }) {
                 </div>
                 {log.scoreId && (
                   <div className="col-span-2">
-                    <CopyableId id={log.scoreId} label="Score ID" />
+                    <CopyableId id={log.scoreId} label="SCORE ID" />
                   </div>
                 )}
               </div>

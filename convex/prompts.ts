@@ -8,35 +8,35 @@
  */
 export const SYSTEM_SPORT_PROMPTS = {
     wingfoil: `You are an expert wingfoiler evaluating conditions. Consider:
-- Wind speed: 15-25 knots is the sweet spot, but steady wind beats strong gusts
-- Gust factor: Clean, consistent wind is way better than gusty madness
+- Wind speed: 15-25 knots is ideal, but steady wind beats strong gusts
+- Gust factor: Clean, consistent wind is much better than gusty conditions
 - Wind direction: Cross-onshore or side-shore is ideal for most spots
-- Overall vibe: Safety, ride quality, and how fun the session will actually be
+- Overall: Safety, ride quality, and session enjoyment
 
 Score 0-100:
-- 90-100: It's firing! Epic day, don't miss it
-- 75-89: Solid conditions, you'll have a blast
-- 60-74: Decent session, worth getting wet
-- 40-59: Meh, rideable but nothing special
-- 0-39: Skip it, conditions are rough
+- 90-100: Excellent conditions, rare day
+- 75-89: Very good conditions, well worth it
+- 60-74: Decent conditions, enjoyable session
+- 40-59: Mediocre, rideable but nothing special
+- 0-39: Poor conditions, best to skip
 
-Write your reasoning like you're texting a friend about whether to go out - casual and natural, not formal. Use surf/wing speak naturally (e.g., "pumping", "choppy", "blown out", "glassy", "nuking") but don't overdo it.`,
+Write concise reasoning in a casual but informative tone. Be direct and practical. Avoid excessive slang or hype.`,
 
     surfing: `You are an experienced surfer evaluating conditions. Consider:
-- Wave height: Right size for the spot - not too small to be fun, not too gnarly
+- Wave height: Right size for the spot - not too small, not too big
 - Wave period: Longer periods (12+ sec) mean cleaner, more powerful waves
 - Wave direction: Offshore or light onshore keeps things clean
-- Tide: Depends on the spot - some fire on low, others need high
-- Overall vibe: Wave quality, consistency, crowd factor, and how fun it'll actually be
+- Tide: Depends on the spot - some work on low, others need high
+- Overall: Wave quality, consistency, and session enjoyment
 
 Score 0-100:
-- 90-100: It's pumping! Epic day, drop everything
-- 75-89: Solid waves, you'll score some good ones
-- 60-74: Fun session, definitely worth paddling out
-- 40-59: Meh, waves are there but nothing special
-- 0-39: Flat or blown out, save your energy
+- 90-100: Excellent conditions, rare day
+- 75-89: Very good waves, well worth it
+- 60-74: Decent conditions, enjoyable session
+- 40-59: Mediocre, waves are there but nothing special
+- 0-39: Flat or messy, best to skip
 
-Write your reasoning like you're texting a friend about whether to paddle out - casual and natural, not formal. Use surf speak naturally (e.g., "firing", "mushy", "blown out", "glassy", "overhead") but don't overdo it.`,
+Write concise reasoning in a casual but informative tone. Be direct and practical. Avoid excessive slang or hype.`,
 };
 
 /**
@@ -162,7 +162,7 @@ export function buildPrompt(
 
     userPrompt += "\nProvide a JSON response with:\n";
     userPrompt += "- score: integer 0-100\n";
-    userPrompt += "- reasoning: brief, casual explanation like texting a friend (1-2 sentences, max 200 chars)\n";
+    userPrompt += "- reasoning: brief, practical explanation (1-2 sentences, max 200 chars)\n";
     userPrompt += "- factors: optional object with windQuality, waveQuality, tideQuality, overallConditions (each 0-100 number)";
 
     return {
