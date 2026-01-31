@@ -288,10 +288,12 @@ export const verifyCode = mutation({
     }
     
     // Find magic link by code and email (codes are only unique per email)
+    // Order by descending creation time to get the most recent magic link first
     // Note: Filter out magic links without codes (old records before code field was added)
     const magicLink = await ctx.db
       .query("magic_links")
       .withIndex("by_email", (q) => q.eq("email", email))
+      .order("desc")
       .filter((q) => q.and(
         q.neq(q.field("code"), undefined),
         q.eq(q.field("code"), code)

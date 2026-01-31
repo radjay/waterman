@@ -70,14 +70,18 @@ export function AuthProvider({ children }) {
         setUser(userData);
         return { success: true, user: userData };
       } else {
-        // Invalid token
+        // Invalid token - clean up
+        console.error("Login failed: getCurrentUser returned null for token");
         localStorage.removeItem("waterman_session_token");
         setSessionToken(null);
-        return { success: false, error: "Invalid session" };
+        return { success: false, error: "Session could not be verified. Please try again." };
       }
     } catch (error) {
       console.error("Error during login:", error);
-      return { success: false, error: error.message };
+      // Clean up on error
+      localStorage.removeItem("waterman_session_token");
+      setSessionToken(null);
+      return { success: false, error: error.message || "An error occurred during sign in" };
     }
   };
 
