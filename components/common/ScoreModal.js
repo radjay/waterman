@@ -116,7 +116,7 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
 
         {/* Score ID for debugging */}
         {score._id && (
-          <div className="mt-4 pt-3 border-t border-ink/10">
+          <div className="mt-4 pt-3">
             <span className="text-[10px] text-ink/30 font-mono select-all">
               {score._id}
             </span>
