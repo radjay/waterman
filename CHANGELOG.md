@@ -4,9 +4,11 @@
 
 ### Added
 - Scoring Debug admin page for troubleshooting scores
+- Flame rating system shows condition quality at a glance (🔥 good, 🔥🔥 great, EPIC! 🔥🔥🔥)
 
 ### Fixed
 - Wind direction now displays correctly in scoring debug
+- Scores now display correctly on all forecast pages
 - Sign-in with 6-digit code now works properly
 - Mobile menu buttons now tappable
 - Personalized scoring toggle updates immediately
