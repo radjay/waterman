@@ -19,7 +19,13 @@
 
 ### Improved
 - **Score modal now shows Score ID** - Added subtle score ID at the bottom of score modals for easier debugging
-- **Score reasoning uses more natural language** - Updated scoring prompts to produce reasoning in casual surf/wing speak rather than formal language
+- **Scoring debug page improvements** - Added copyable IDs throughout for debugging:
+  - Score ID and Log ID shown in slot cards with one-click copy
+  - Provenance ID shown in provenance modal header
+  - User ID in provenance view now truncated with copy button
+  - All long IDs are truncated with ellipsis to prevent UI overflow
+  - Shortened "View Full Prompt & Response" button to "Provenance"
+- **Score reasoning toned down** - Updated scoring prompts to use casual but professional tone instead of excessive surf slang
 
 ## [2026-01-30]
 
