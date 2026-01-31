@@ -8,7 +8,7 @@
 
 | PRD | Title | Status | Priority |
 |-----|-------|--------|----------|
-| [08](prds/08-scoring-debug-provenance.md) | Scoring Debug Page & LLM Provenance Tracking | Ready to implement | High |
+| - | (none) | - | - |
 
 ### Planned
 
@@ -21,6 +21,7 @@
 
 | PRD | Title | Completed |
 |-----|-------|-----------|
+| [08](prds/08-scoring-debug-provenance.md) | Scoring Debug Page & LLM Provenance Tracking | 2026-01-31 |
 | [07](prds/07-personalized-scoring.md) | Personalized Scoring & User Context | 2026-01-30 |
 | [06](prds/06-sunrise-sunset-filtering.md) | Sunrise/Sunset Filtering | 2026-01-28 |
 | [05](prds/05-calendar-subscriptions.md) | Calendar Subscription Feature | 2026-01-27 |

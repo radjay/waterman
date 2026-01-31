@@ -1,9 +1,10 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import Groq from "groq-sdk";
 import { buildPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
 import SunCalc from "suncalc";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Validates that a scrape contains sufficient forecast data.
@@ -919,22 +920,32 @@ export const scoreSingleSlot = action({
         // Retry configuration
         const retryDelays = [30000, 60000, 300000]; // 30s, 1 min, 5 min
         let lastError: any = null;
+        
+        // LLM parameters for provenance tracking
+        const MODEL = "openai/gpt-oss-120b";
+        const TEMPERATURE = 0.3;
+        const MAX_TOKENS = 800;
 
         for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
             try {
+                // Track timing for provenance
+                const startTime = Date.now();
+                
                 // Call Groq API with structured output
                 const completion = await groq.chat.completions.create({
-                    model: "openai/gpt-oss-120b",
+                    model: MODEL,
                     messages: [
                         { role: "system", content: system },
                         { role: "user", content: user },
                     ],
-                    temperature: 0.3,
-                    max_tokens: 800, // Increased to handle longer reasoning + factors
+                    temperature: TEMPERATURE,
+                    max_tokens: MAX_TOKENS,
                     response_format: {
                         type: "json_object",
                     },
                 });
+                
+                const durationMs = Date.now() - startTime;
 
                 const content = completion.choices[0]?.message?.content;
                 if (!content) {
@@ -957,9 +968,11 @@ export const scoreSingleSlot = action({
                 // Get prompt IDs and text for history tracking
                 const systemPromptId = systemPromptData?._id;
                 const spotPromptId = spotPromptData?._id;
+                
+                const scoredAt = Date.now();
 
                 // Save score to database with prompt tracking
-                await ctx.runMutation(api.spots.saveConditionScore, {
+                const scoreId: Id<"condition_scores"> = await ctx.runMutation(api.spots.saveConditionScore, {
                     slotId: args.slotId,
                     spotId: args.spotId,
                     timestamp: slot.timestamp,
@@ -968,13 +981,32 @@ export const scoreSingleSlot = action({
                     score,
                     reasoning: response.reasoning.trim(),
                     factors: response.factors || undefined,
-                    model: "openai/gpt-oss-120b",
+                    model: MODEL,
                     scrapeTimestamp: slot.scrapeTimestamp,
                     systemPromptId,
                     spotPromptId,
                     systemPromptText: systemPrompt,
                     spotPromptText: spotPrompt,
                     temporalPromptText: temporalPrompt,
+                });
+                
+                // Save scoring log for provenance tracking
+                await ctx.runMutation(internal.admin.saveScoringLog, {
+                    scoreId,
+                    slotId: args.slotId,
+                    spotId: args.spotId,
+                    sport: args.sport,
+                    userId: args.userId || null,
+                    timestamp: slot.timestamp,
+                    systemPrompt: system,
+                    userPrompt: user,
+                    model: MODEL,
+                    temperature: TEMPERATURE,
+                    maxTokens: MAX_TOKENS,
+                    rawResponse: content, // Store the raw JSON string
+                    scoredAt,
+                    durationMs,
+                    attempt: attempt + 1, // 1-based attempt number
                 });
 
                 return {

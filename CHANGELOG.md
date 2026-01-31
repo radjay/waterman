@@ -2,6 +2,15 @@
 
 ## [2026-01-31]
 
+### Added
+- **Scoring Debug admin page** - New admin tool for debugging LLM scoring
+  - View forecast slots with weather data, scores, and reasoning for any spot/sport/user combination
+  - Expandable cards show full weather details and score factors
+  - LLM provenance tracking captures complete prompts and responses for every scoring call
+  - One-click access to full prompt/response for debugging scoring issues
+  - Filter by sport, spot, and user (system or personalized scores)
+  - New "Scoring Debug" link in admin sidebar
+
 ### Fixed
 - **Sign-in with code now works correctly** - Fixed issue where entering the 6-digit verification code would not properly log users in. The login result was not being checked before redirecting, causing users to appear logged out after sign-in. Also improved error handling to show meaningful errors if sign-in fails.
 - **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices

@@ -1,4 +1,4 @@
-import { query, mutation, action, internalQuery } from "./_generated/server";
+import { query, mutation, action, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
@@ -1040,21 +1040,31 @@ export const scorePersonalizedSlot = action({
     // Call Groq API with retry logic (shorter delays for interactive use)
     const retryDelays = [2000, 5000]; // 2s, 5s - faster retries for better UX
     let lastError: Error | null = null;
+    
+    // LLM parameters for provenance tracking
+    const MODEL = "openai/gpt-oss-120b";
+    const TEMPERATURE = 0.3;
+    const MAX_TOKENS = 1500;
 
     for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
+        // Track timing for provenance
+        const startTime = Date.now();
+        
         const completion = await groq.chat.completions.create({
-          model: "openai/gpt-oss-120b",
+          model: MODEL,
           messages: [
             { role: "system", content: system },
             { role: "user", content: user },
           ],
-          temperature: 0.3,
-          max_tokens: 1500,
+          temperature: TEMPERATURE,
+          max_tokens: MAX_TOKENS,
           response_format: {
             type: "json_object",
           },
         });
+        
+        const durationMs = Date.now() - startTime;
 
         const content = completion.choices[0]?.message?.content;
         if (!content) {
@@ -1079,9 +1089,10 @@ export const scorePersonalizedSlot = action({
         }
 
         const score = Math.round(response.score);
+        const scoredAt = Date.now();
 
         // Save personalized score
-        await ctx.runMutation(api.spots.saveConditionScore, {
+        const scoreId: Id<"condition_scores"> = await ctx.runMutation(api.spots.saveConditionScore, {
           slotId: args.slotId,
           spotId: args.spotId,
           timestamp: slot.timestamp,
@@ -1090,8 +1101,27 @@ export const scorePersonalizedSlot = action({
           score,
           reasoning: response.reasoning.substring(0, 200),
           factors: response.factors,
-          model: "openai/gpt-oss-120b",
+          model: MODEL,
           scrapeTimestamp: slot.scrapeTimestamp,
+        });
+        
+        // Save scoring log for provenance tracking
+        await ctx.runMutation(internal.admin.saveScoringLog, {
+          scoreId,
+          slotId: args.slotId,
+          spotId: args.spotId,
+          sport: args.sport,
+          userId: args.userId,
+          timestamp: slot.timestamp,
+          systemPrompt: system,
+          userPrompt: user,
+          model: MODEL,
+          temperature: TEMPERATURE,
+          maxTokens: MAX_TOKENS,
+          rawResponse: content, // Store the raw JSON string
+          scoredAt,
+          durationMs,
+          attempt: attempt + 1, // 1-based attempt number
         });
 
         return { score, reasoning: response.reasoning };

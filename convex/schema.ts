@@ -349,4 +349,38 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_user_timestamp", ["userId", "timestamp"]),
+    /**
+     * Scoring logs for LLM provenance tracking.
+     * Stores complete prompt/response pairs for debugging scoring issues.
+     */
+    scoring_logs: defineTable({
+        // Link to the score
+        scoreId: v.id("condition_scores"),
+        
+        // Context identifiers
+        slotId: v.id("forecast_slots"),
+        spotId: v.id("spots"),
+        sport: v.string(),
+        userId: v.union(v.string(), v.null()), // null = system score
+        timestamp: v.number(), // Slot timestamp for easy querying
+        
+        // Request data
+        systemPrompt: v.string(), // Full constructed system prompt
+        userPrompt: v.string(),   // Full constructed user prompt
+        model: v.string(),        // e.g., "openai/gpt-oss-120b"
+        temperature: v.number(),  // e.g., 0.3
+        maxTokens: v.number(),    // e.g., 800
+        
+        // Response data
+        rawResponse: v.string(),  // Raw JSON string from LLM
+        
+        // Metadata
+        scoredAt: v.number(),     // When scoring occurred
+        durationMs: v.optional(v.number()), // How long the API call took
+        attempt: v.optional(v.number()),    // Which retry attempt succeeded (1-based)
+    })
+        .index("by_score", ["scoreId"])
+        .index("by_slot_sport", ["slotId", "sport"])
+        .index("by_spot_timestamp_sport", ["spotId", "timestamp", "sport"])
+        .index("by_user_spot_sport", ["userId", "spotId", "sport"]),
 });

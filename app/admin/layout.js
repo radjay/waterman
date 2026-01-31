@@ -148,6 +148,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/prompts", label: "Prompts" },
     { href: "/admin/expert-inputs", label: "Expert Inputs" },
     { href: "/admin/logs", label: "Logs" },
+    { href: "/admin/scoring-debug", label: "Scoring Debug" },
     { href: "/admin/operations", label: "Operations" },
   ];
 

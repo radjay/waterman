@@ -1,7 +1,8 @@
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import crypto from "crypto";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Verify admin authentication
@@ -1121,6 +1122,219 @@ export const updateAllSpotsToPortugal = mutation({
     }
     
     return { updated, total: spots.length };
+  },
+});
+
+// ============================================================================
+// SCORING DEBUG & PROVENANCE
+// ============================================================================
+
+/**
+ * Save scoring log for provenance tracking (internal use only)
+ */
+export const saveScoringLog = internalMutation({
+  args: {
+    scoreId: v.id("condition_scores"),
+    slotId: v.id("forecast_slots"),
+    spotId: v.id("spots"),
+    sport: v.string(),
+    userId: v.union(v.string(), v.null()),
+    timestamp: v.number(),
+    systemPrompt: v.string(),
+    userPrompt: v.string(),
+    model: v.string(),
+    temperature: v.number(),
+    maxTokens: v.number(),
+    rawResponse: v.string(),
+    scoredAt: v.number(),
+    durationMs: v.optional(v.number()),
+    attempt: v.optional(v.number()),
+  },
+  returns: v.id("scoring_logs"),
+  handler: async (ctx, args) => {
+    const logId = await ctx.db.insert("scoring_logs", {
+      scoreId: args.scoreId,
+      slotId: args.slotId,
+      spotId: args.spotId,
+      sport: args.sport,
+      userId: args.userId,
+      timestamp: args.timestamp,
+      systemPrompt: args.systemPrompt,
+      userPrompt: args.userPrompt,
+      model: args.model,
+      temperature: args.temperature,
+      maxTokens: args.maxTokens,
+      rawResponse: args.rawResponse,
+      scoredAt: args.scoredAt,
+      durationMs: args.durationMs,
+      attempt: args.attempt,
+    });
+    return logId;
+  },
+});
+
+/**
+ * Get scoring debug data for a spot-sport-user combination (admin only)
+ * Returns forecast slots with their scores and scoring log references
+ */
+export const getScoringDebugData = query({
+  args: {
+    sessionToken: v.string(),
+    spotId: v.id("spots"),
+    sport: v.string(),
+    userId: v.union(v.string(), v.null()), // null = system scores
+  },
+  handler: async (ctx, args) => {
+    if (!verifyAdmin(args.sessionToken)) {
+      throw new Error("Unauthorized");
+    }
+    
+    // Get the spot
+    const spot = await ctx.db.get(args.spotId);
+    if (!spot) {
+      throw new Error("Spot not found");
+    }
+    
+    // Get all slots for this spot from the most recent scrape
+    const allSlots = await ctx.db
+      .query("forecast_slots")
+      .withIndex("by_spot", q => q.eq("spotId", args.spotId))
+      .collect();
+    
+    if (allSlots.length === 0) {
+      return { spot, slots: [] };
+    }
+    
+    // Find the most recent scrape timestamp
+    const scrapeTimestamps = [...new Set(
+      allSlots.map(s => s.scrapeTimestamp).filter(ts => ts !== undefined)
+    )];
+    const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
+    
+    // Filter to most recent scrape and future slots
+    const now = Date.now();
+    const recentSlots = allSlots.filter(
+      slot => slot.scrapeTimestamp === latestScrapeTimestamp && slot.timestamp >= now
+    ).sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Get scores and scoring logs for these slots
+    const result = await Promise.all(
+      recentSlots.map(async (slot) => {
+        // Get the condition score for this slot-sport-user combination
+        const scores = await ctx.db
+          .query("condition_scores")
+          .withIndex("by_slot_sport", q => 
+            q.eq("slotId", slot._id).eq("sport", args.sport)
+          )
+          .filter(q => q.eq(q.field("userId"), args.userId))
+          .collect();
+        
+        const score = scores[0] || null;
+        
+        // Get the scoring log if it exists
+        let scoringLogId: Id<"scoring_logs"> | null = null;
+        if (score) {
+          const logs = await ctx.db
+            .query("scoring_logs")
+            .withIndex("by_score", q => q.eq("scoreId", score._id))
+            .collect();
+          scoringLogId = logs[0]?._id || null;
+        }
+        
+        return {
+          slot: {
+            _id: slot._id,
+            timestamp: slot.timestamp,
+            speed: slot.speed,
+            gust: slot.gust,
+            direction: slot.direction,
+            waveHeight: slot.waveHeight,
+            wavePeriod: slot.wavePeriod,
+            waveDirection: slot.waveDirection,
+          },
+          score: score ? {
+            _id: score._id,
+            score: score.score,
+            reasoning: score.reasoning,
+            factors: score.factors,
+            scoredAt: score.scoredAt,
+            model: score.model,
+          } : null,
+          scoringLogId,
+        };
+      })
+    );
+    
+    return { spot, slots: result };
+  },
+});
+
+/**
+ * Get a scoring log with full prompt/response data (admin only)
+ */
+export const getScoringLog = query({
+  args: {
+    sessionToken: v.string(),
+    scoringLogId: v.id("scoring_logs"),
+  },
+  handler: async (ctx, args) => {
+    if (!verifyAdmin(args.sessionToken)) {
+      throw new Error("Unauthorized");
+    }
+    
+    const log = await ctx.db.get(args.scoringLogId);
+    if (!log) {
+      throw new Error("Scoring log not found");
+    }
+    
+    // Get spot name for display
+    const spot = await ctx.db.get(log.spotId);
+    
+    return {
+      ...log,
+      spotName: spot?.name || "Unknown Spot",
+    };
+  },
+});
+
+/**
+ * Get list of users who have personalized scores for admin dropdown
+ */
+export const getUsersWithPersonalizedScores = query({
+  args: {
+    sessionToken: v.string(),
+    spotId: v.optional(v.id("spots")),
+  },
+  handler: async (ctx, args) => {
+    if (!verifyAdmin(args.sessionToken)) {
+      throw new Error("Unauthorized");
+    }
+    
+    // Get all condition scores with userId not null
+    let scores = await ctx.db.query("condition_scores").collect();
+    
+    // Filter to scores with userId (personalized scores)
+    const userIds = [...new Set(
+      scores
+        .filter(s => s.userId !== null)
+        .map(s => s.userId as string)
+    )];
+    
+    // Get user details
+    const users = await Promise.all(
+      userIds.map(async (userId) => {
+        // Try to find the user in the users table
+        const allUsers = await ctx.db.query("users").collect();
+        const user = allUsers.find(u => u._id === userId);
+        return {
+          userId,
+          email: user?.email || "Unknown",
+          name: user?.name,
+        };
+      })
+    );
+    
+    return users;
   },
 });
 
