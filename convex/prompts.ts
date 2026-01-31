@@ -64,14 +64,23 @@ function getCardinalDirection(degrees: number): string {
 }
 
 /**
+ * Get display wind direction from stored wind direction.
+ * Wind direction is stored as "from" direction, but displayed as "to" direction (180° opposite).
+ * This ensures the LLM prompt matches what users see in the UI.
+ */
+function getDisplayWindDirection(degrees: number): string {
+    return getCardinalDirection(degrees + 180);
+}
+
+/**
  * Format a slot's condition data for the prompt.
  */
 export function formatSlotData(slot: any): string {
     const date = new Date(slot.timestamp);
     const dateStr = date.toISOString().replace('T', ' ').substring(0, 16);
     
-    const windCardinal = getCardinalDirection(slot.direction);
-    let data = `${dateStr} - Wind: ${slot.speed} knots from ${windCardinal} (${slot.direction}°), Gust: ${slot.gust} knots`;
+    const windCardinal = getDisplayWindDirection(slot.direction);
+    let data = `${dateStr} - Wind: ${slot.speed} knots ${windCardinal} (${slot.direction}°), Gust: ${slot.gust} knots`;
     
     if (slot.waveHeight !== undefined) {
         data += `, Waves: ${slot.waveHeight}m`;
