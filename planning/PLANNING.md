@@ -32,48 +32,43 @@
 
 ## TODOs
 
+### Bugs
+
+- [ ] **Personalized Scores Switch Mobile Rendering**
+  - The toggle switch looks like a radio button on mobile
+  - Creates confusing UX where users may not understand it's a toggle
+  - Location: Forecast/settings components where personalized scoring toggle lives
+
+- [ ] **Personalized Scoring Toggle Doesn't Update Without Refresh**
+  - When toggling personalized scoring on/off and navigating back to reports page, scores don't update
+  - User must fully refresh the page to see updated scores
+  - Likely a caching/reactivity issue with score fetching
+
 ### Near Term (This Week)
 
-- [ ] **Scoring Debug Page**: Implement PRD-08 to debug strange LLM scores
-  - Add `scoring_logs` table for full prompt/response provenance
-  - Build admin UI at `/admin/scoring-debug`
-  - Integrate provenance tracking into `scoreSingleSlot` action
+- [ ] **Show Score ID on Score Cards**
+  - Display the score ID in very faint grey text on score displays
+  - Helps with debugging specific scoring issues
+  - Should be subtle/unobtrusive
+
+- [ ] **Update Score Reasoning Tone to Surf Speak**
+  - Current reasoning text sounds too formal/boring
+  - Should sound more like natural surf speak (not over the top though)
+  - Update prompts to guide LLM toward more casual, surf-appropriate language
 
 - [ ] **Deep Links for PWA Authentication**: Investigate iOS Universal Links
   - Requires dedicated domain (e.g., `waterman.app`)
   - Would allow magic links to open directly in PWA instead of Safari
-  - See [TODO.md](TODO.md) for details
+  - Requirements:
+    - Apple App Site Association file (`.well-known/apple-app-site-association`)
+    - Android Digital Asset Links file (`.well-known/assetlinks.json`)
+    - Configure domain with proper certificates
+  - Blocked: Need dedicated domain (currently using waterman.radx.dev subdomain)
+  - Related: Auth PRD, session token transfer is current workaround
 
 ### Later (Backlog)
 
-- [ ] **Email Notifications**: Alert users when conditions match preferences
-  - Daily digest of ideal conditions
-  - Real-time alerts for "epic" conditions
-  - Configurable frequency
 
-- [ ] **Performance Monitoring**: Add observability
-  - Auth metrics (magic link open rate, session duration)
-  - User metrics (retention, onboarding completion)
-  - Technical metrics (error rates, latency)
-
-- [ ] **Custom Scoring Profiles**: Multiple scoring profiles per user
-  - "Teaching mode" vs "personal session"
-  - Safety-focused vs performance-focused
-
-- [ ] **User-Created Spots**: Allow adding private/public spots
-  - Custom lat/lon
-  - Attach webcams and tide stations
-  - Community moderation
-
-- [ ] **Account Settings**: Full account management
-  - Change email address
-  - Delete account (GDPR)
-  - Export user data
-
-- [ ] **Social Features**: Share conditions with friends
-  - Shareable links
-  - Session tracking
-  - Activity feed
 
 ---
 
@@ -94,4 +89,3 @@ See [architecture.md](architecture.md) for full system documentation.
 
 - [Architecture](architecture.md) - Full system documentation
 - [Future Features PRD](prds/04-future-features.md) - Aspirational features list
-- [TODO.md](TODO.md) - Legacy TODO list (to be merged here)
