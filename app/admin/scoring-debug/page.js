@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { Wind, Waves, ArrowUp, Clock, ChevronDown, ChevronUp, X, Copy, Check } from "lucide-react";
+import { getDisplayWindDirection, getCardinalDirection } from "../../../lib/utils";
 
 // Reusable component for copyable IDs with truncation
 function CopyableId({ id, label }) {
@@ -295,13 +296,6 @@ function SlotCard({ item, sport, onViewLog }) {
     minute: "2-digit",
   });
 
-  // Format direction as compass
-  const formatDirection = (deg) => {
-    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    const index = Math.round(deg / 45) % 8;
-    return dirs[index];
-  };
-
   const isIdeal = score && score.score >= 75;
   const isEpic = score && score.score >= 90;
 
@@ -326,7 +320,7 @@ function SlotCard({ item, sport, onViewLog }) {
                   className="w-3 h-3 text-ink/50"
                   style={{ transform: `rotate(${slot.direction}deg)` }}
                 />
-                <span className="text-ink/50">{formatDirection(slot.direction)}</span>
+                <span className="text-ink/50">{getDisplayWindDirection(slot.direction)}</span>
               </div>
 
               {slot.waveHeight !== undefined && (
@@ -403,7 +397,7 @@ function SlotCard({ item, sport, onViewLog }) {
             <div>
               <div className="text-xs text-ink/50 uppercase">Direction</div>
               <div className="font-medium">
-                {slot.direction}° ({formatDirection(slot.direction)})
+                {slot.direction}° ({getDisplayWindDirection(slot.direction)})
               </div>
             </div>
             {slot.waveHeight !== undefined && (
@@ -420,7 +414,7 @@ function SlotCard({ item, sport, onViewLog }) {
                   <div className="text-xs text-ink/50 uppercase">Wave Direction</div>
                   <div className="font-medium">
                     {slot.waveDirection !== undefined
-                      ? `${slot.waveDirection}° (${formatDirection(slot.waveDirection)})`
+                      ? `${slot.waveDirection}° (${getCardinalDirection(slot.waveDirection)})`
                       : "-"}
                   </div>
                 </div>

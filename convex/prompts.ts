@@ -49,13 +49,29 @@ export const DEFAULT_TEMPORAL_PROMPT = `Consider trends in conditions 72 hours b
 - Rapid changes may indicate unstable weather patterns`;
 
 /**
+ * Convert degrees to cardinal direction (16-point compass).
+ * Wind direction is stored as "from" direction (meteorological convention).
+ */
+function getCardinalDirection(degrees: number): string {
+    const directions = [
+        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+    ];
+    // Normalize degrees to 0-360 range
+    const normalizedDegrees = ((degrees % 360) + 360) % 360;
+    const index = Math.round(normalizedDegrees / 22.5) % 16;
+    return directions[index];
+}
+
+/**
  * Format a slot's condition data for the prompt.
  */
 export function formatSlotData(slot: any): string {
     const date = new Date(slot.timestamp);
     const dateStr = date.toISOString().replace('T', ' ').substring(0, 16);
     
-    let data = `${dateStr} - Wind: ${slot.speed} knots, Gust: ${slot.gust} knots, Direction: ${slot.direction}°`;
+    const windCardinal = getCardinalDirection(slot.direction);
+    let data = `${dateStr} - Wind: ${slot.speed} knots from ${windCardinal} (${slot.direction}°), Gust: ${slot.gust} knots`;
     
     if (slot.waveHeight !== undefined) {
         data += `, Waves: ${slot.waveHeight}m`;
@@ -64,7 +80,8 @@ export function formatSlotData(slot: any): string {
         data += `, Period: ${slot.wavePeriod}s`;
     }
     if (slot.waveDirection !== undefined) {
-        data += `, Wave Dir: ${slot.waveDirection}°`;
+        const waveCardinal = getCardinalDirection(slot.waveDirection);
+        data += `, Wave Dir: ${waveCardinal} (${slot.waveDirection}°)`;
     }
     if (slot.tideType) {
         data += `, Tide: ${slot.tideType}`;
