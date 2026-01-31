@@ -35,27 +35,9 @@
 
 ### Bugs
 
-- [ ] **Personalized Scores Switch Mobile Rendering**
-  - The toggle switch looks like a radio button on mobile
-  - Creates confusing UX where users may not understand it's a toggle
-  - Location: Forecast/settings components where personalized scoring toggle lives
-
-- [ ] **Personalized Scoring Toggle Doesn't Update Without Refresh**
-  - When toggling personalized scoring on/off and navigating back to reports page, scores don't update
-  - User must fully refresh the page to see updated scores
-  - Likely a caching/reactivity issue with score fetching
+(none)
 
 ### Near Term (This Week)
-
-- [ ] **Show Score ID on Score Cards**
-  - Display the score ID in very faint grey text on score displays
-  - Helps with debugging specific scoring issues
-  - Should be subtle/unobtrusive
-
-- [ ] **Update Score Reasoning Tone to Surf Speak**
-  - Current reasoning text sounds too formal/boring
-  - Should sound more like natural surf speak (not over the top though)
-  - Update prompts to guide LLM toward more casual, surf-appropriate language
 
 - [ ] **Deep Links for PWA Authentication**: Investigate iOS Universal Links
   - Requires dedicated domain (e.g., `waterman.app`)

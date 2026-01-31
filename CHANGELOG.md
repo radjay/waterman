@@ -14,6 +14,12 @@
 ### Fixed
 - **Sign-in with code now works correctly** - Fixed issue where entering the 6-digit verification code would not properly log users in. The login result was not being checked before redirecting, causing users to appear logged out after sign-in. Also improved error handling to show meaningful errors if sign-in fails.
 - **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices
+- **Personalized scoring toggle now updates scores immediately** - Toggling personalized scoring on/off in profile settings now updates scores on the forecast page without requiring a refresh
+- **Toggle switch now renders correctly on mobile** - Fixed the personalized scores toggle that appeared as a radio button on some mobile browsers
+
+### Improved
+- **Score modal now shows Score ID** - Added subtle score ID at the bottom of score modals for easier debugging
+- **Score reasoning uses more natural language** - Updated scoring prompts to produce reasoning in casual surf/wing speak rather than formal language
 
 ## [2026-01-30]
 

@@ -14,7 +14,7 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { sessionToken, logout: authLogout } = useAuth();
+  const { sessionToken, logout: authLogout, refreshUser } = useAuth();
   const user = useUser();
 
   const [name, setName] = useState("");
@@ -160,6 +160,8 @@ export default function ProfilePage() {
         sessionToken,
         showPersonalizedScores: newValue,
       });
+      // Refresh user data so HomeContent picks up the new setting
+      await refreshUser();
     } catch (err) {
       console.error("Error updating setting:", err);
       // Revert on error
@@ -371,18 +373,27 @@ export default function ProfilePage() {
                     When off, you'll see the default system scores instead
                   </p>
                 </div>
-                <button
+                <div
+                  role="switch"
+                  aria-checked={showPersonalizedScores}
+                  tabIndex={0}
                   onClick={handleTogglePersonalizedScores}
-                  className={`relative w-12 h-7 rounded-full transition-colors ${
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleTogglePersonalizedScores();
+                    }
+                  }}
+                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
                     showPersonalizedScores ? "bg-ink" : "bg-ink/20"
                   }`}
                 >
                   <span
-                    className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-200 ${
                       showPersonalizedScores ? "left-6" : "left-1"
                     }`}
                   />
-                </button>
+                </div>
               </div>
             )}
           </div>
