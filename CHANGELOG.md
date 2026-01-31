@@ -12,12 +12,14 @@
   - New "Scoring Debug" link in admin sidebar
 
 ### Fixed
+- **Wind direction in Scoring Debug page now matches main app** - Fixed issue where wind direction was shown incorrectly (e.g., NE instead of SW). The debug page now uses the same direction conversion as the main forecast view.
 - **Sign-in with code now works correctly** - Fixed issue where entering the 6-digit verification code would not properly log users in. The login result was not being checked before redirecting, causing users to appear logged out after sign-in. Also improved error handling to show meaningful errors if sign-in fails.
 - **Mobile sidebar menu buttons now clickable** - Fixed issue where Profile, Calendar, Changelog, and other buttons in the mobile hamburger menu couldn't be tapped on mobile devices
 - **Personalized scoring toggle now updates scores immediately** - Toggling personalized scoring on/off in profile settings now updates scores on the forecast page without requiring a refresh
 - **Toggle switch now renders correctly on mobile** - Fixed the personalized scores toggle that appeared as a radio button on some mobile browsers
 
 ### Improved
+- **LLM scoring prompts now include cardinal directions** - Wind and wave directions in LLM prompts now show cardinal directions alongside degrees (e.g., "Wind: 15 knots from NE (36°)") for better scoring accuracy
 - **Score modal now shows Score ID** - Added subtle score ID at the bottom of score modals for easier debugging
 - **Scoring debug page improvements** - Added copyable IDs throughout for debugging:
   - Score ID and Log ID shown in slot cards with one-click copy
