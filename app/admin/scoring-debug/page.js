@@ -4,7 +4,42 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
-import { Wind, Waves, ArrowUp, Clock, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Wind, Waves, ArrowUp, Clock, ChevronDown, ChevronUp, X, Copy, Check } from "lucide-react";
+
+// Reusable component for copyable IDs with truncation
+function CopyableId({ id, label }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    await navigator.clipboard.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <div className="group inline-flex items-center gap-1.5">
+      {label && <span className="text-xs text-ink/50 uppercase">{label}:</span>}
+      <span 
+        className="font-mono text-xs text-ink/60 max-w-[80px] truncate" 
+        title={id}
+      >
+        {id}
+      </span>
+      <button
+        onClick={handleCopy}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-ink/10 rounded"
+        title="Copy ID"
+      >
+        {copied ? (
+          <Check className="w-3 h-3 text-green-600" />
+        ) : (
+          <Copy className="w-3 h-3 text-ink/50" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 function ScoringDebugContent() {
   const searchParams = useSearchParams();
@@ -426,26 +461,32 @@ function SlotCard({ item, sport, onViewLog }) {
                     </div>
                   )}
 
-                  <div className="mt-3 text-xs text-ink/50">
-                    Scored at: {new Date(score.scoredAt).toLocaleString()}
-                    {score.model && ` • Model: ${score.model}`}
+                  <div className="mt-3 flex items-center gap-4 text-xs text-ink/50">
+                    <span>
+                      Scored at: {new Date(score.scoredAt).toLocaleString()}
+                      {score.model && ` • Model: ${score.model}`}
+                    </span>
+                    {score._id && <CopyableId id={score._id} label="Score" />}
                   </div>
                 </div>
 
                 {/* View Log Button */}
-                <div className="ml-4">
+                <div className="ml-4 flex flex-col items-end gap-2">
                   {scoringLogId ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewLog(scoringLogId);
-                      }}
-                      className="px-3 py-2 border border-ink/30 rounded-md text-sm hover:bg-ink/5 transition-colors"
-                    >
-                      View Full Prompt & Response
-                    </button>
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewLog(scoringLogId);
+                        }}
+                        className="px-3 py-1.5 border border-ink/30 rounded-md text-xs hover:bg-ink/5 transition-colors"
+                      >
+                        Provenance
+                      </button>
+                      <CopyableId id={scoringLogId} label="Log" />
+                    </>
                   ) : (
-                    <span className="text-xs text-ink/50">No provenance log</span>
+                    <span className="text-xs text-ink/50">No provenance</span>
                   )}
                 </div>
               </div>
@@ -483,11 +524,16 @@ function ProvenanceModal({ log, loading, onClose }) {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-ink/10">
-          <h2 className="text-xl font-semibold">
-            {loading
-              ? "Loading..."
-              : `Scoring Provenance - ${log?.spotName}, ${formatTimestamp(log?.timestamp)}`}
-          </h2>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-semibold">
+              {loading
+                ? "Loading..."
+                : `Scoring Provenance - ${log?.spotName}, ${formatTimestamp(log?.timestamp)}`}
+            </h2>
+            {log?._id && (
+              <CopyableId id={log._id} label="Provenance ID" />
+            )}
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-ink/5 rounded-full transition-colors"
@@ -536,6 +582,11 @@ function ProvenanceModal({ log, loading, onClose }) {
                   <div className="text-xs text-ink/50 uppercase">Sport</div>
                   <div className="font-mono capitalize">{log.sport}</div>
                 </div>
+                {log.scoreId && (
+                  <div className="col-span-2">
+                    <CopyableId id={log.scoreId} label="Score ID" />
+                  </div>
+                )}
               </div>
 
               {/* System Prompt */}
