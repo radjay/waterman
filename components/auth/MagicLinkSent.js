@@ -37,7 +37,13 @@ export default function MagicLinkSent({ email, onBack }) {
       const result = await verifyCode({ email, code: code.trim() });
       
       if (result.success && result.sessionToken) {
-        await login(result.sessionToken);
+        // Login with the session token and check if it succeeded
+        const loginResult = await login(result.sessionToken);
+        
+        if (!loginResult.success) {
+          setError(loginResult.error || "Failed to complete sign in. Please try again.");
+          return;
+        }
         
         // Check if needs onboarding
         if (result.needsOnboarding) {

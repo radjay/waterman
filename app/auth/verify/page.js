@@ -39,8 +39,14 @@ function VerifyContent() {
       });
 
       if (result.success && result.sessionToken) {
-        // Login with the session token
-        await login(result.sessionToken);
+        // Login with the session token and check if it succeeded
+        const loginResult = await login(result.sessionToken);
+        
+        if (!loginResult.success) {
+          setStatus("error");
+          setError(loginResult.error || "Failed to complete sign in. Please try again.");
+          return;
+        }
         
         // Check if needs onboarding
         if (result.needsOnboarding) {
