@@ -583,6 +583,7 @@ export const getCurrentUser = query({
       onboardingCompleted: v.boolean(),
       favoriteSpots: v.optional(v.array(v.id("spots"))),
       favoriteSports: v.optional(v.array(v.string())),
+      showPersonalizedScores: v.optional(v.boolean()),
       createdAt: v.number(),
       lastLoginAt: v.optional(v.number()),
     }),
