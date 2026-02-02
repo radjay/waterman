@@ -156,11 +156,11 @@ export default function AdminLayout({ children }) {
     <div className="min-h-screen bg-newsprint">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-ink/20 min-h-screen">
+        <aside className="w-64 bg-white border-r border-ink/20 min-h-screen fixed left-0 top-0 bottom-0 overflow-y-auto">
           <div className="p-6 border-b border-ink/20">
             <h1 className="text-xl font-bold">Waterman Admin</h1>
           </div>
-          <nav className="p-4">
+          <nav className="p-4 pb-24">
             <ul className="space-y-2">
               {navItems.map((item) => (
                 <li key={item.href}>
@@ -178,7 +178,7 @@ export default function AdminLayout({ children }) {
               ))}
             </ul>
           </nav>
-          <div className="absolute bottom-0 w-64 p-4 border-t border-ink/20 bg-white">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-ink/20 bg-white">
             <div className="relative account-menu-container">
               <button
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
@@ -237,7 +237,7 @@ export default function AdminLayout({ children }) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 ml-64">
           {children}
         </main>
       </div>

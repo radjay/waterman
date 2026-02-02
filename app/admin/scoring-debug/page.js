@@ -179,6 +179,35 @@ function ScoringDebugContent() {
     return groups;
   };
 
+  // Auto-scroll to current time slot when data loads
+  useEffect(() => {
+    if (debugData && debugData.slots.length > 0) {
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const now = Date.now();
+        // Find the slot closest to current time
+        let closestSlot = null;
+        let closestDiff = Infinity;
+        
+        for (const item of debugData.slots) {
+          const diff = Math.abs(item.slot.timestamp - now);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestSlot = item.slot._id;
+          }
+        }
+        
+        if (closestSlot) {
+          // Find the element with this slot ID and scroll to it
+          const element = document.querySelector(`[data-slot-id="${closestSlot}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
+    }
+  }, [debugData]);
+
   if (loading && !debugData) {
     return <div className="p-4">Loading...</div>;
   }
@@ -189,8 +218,8 @@ function ScoringDebugContent() {
     <div>
       <h1 className="text-3xl font-bold mb-8">Scoring Debug</h1>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      {/* Filters - Sticky at top */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6 sticky top-3 z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Sport</label>
@@ -301,7 +330,10 @@ function SlotCard({ item, sport, onViewLog }) {
   const isEpic = score && score.score >= 90;
 
   return (
-    <div className={`bg-white rounded-lg shadow overflow-hidden ${isPast ? "opacity-75" : ""}`}>
+    <div 
+      data-slot-id={slot._id}
+      className={`bg-white rounded-lg shadow overflow-hidden ${isPast ? "opacity-75" : ""}`}
+    >
       {/* Header - always visible */}
       <div
         className="p-4 cursor-pointer hover:bg-ink/5 transition-colors"

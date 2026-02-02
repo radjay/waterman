@@ -1206,18 +1206,35 @@ export const getScoringDebugData = query({
       return { spot, slots: [] };
     }
     
-    // Find the most recent scrape timestamp
-    const scrapeTimestamps = [...new Set(
-      allSlots.map(s => s.scrapeTimestamp).filter(ts => ts !== undefined)
-    )];
-    const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
-    
-    // Filter to most recent scrape, show slots from 72 hours ago onwards (past + future)
+    // Show slots from 72 hours ago onwards (past + future)
+    // Search across ALL scrapes, not just the most recent, to find historical slots
     const now = Date.now();
     const past72Hours = now - (72 * 60 * 60 * 1000);
-    const recentSlots = allSlots.filter(
-      slot => slot.scrapeTimestamp === latestScrapeTimestamp && slot.timestamp >= past72Hours
-    ).sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Filter to slots within the time window from any scrape
+    let recentSlots = allSlots.filter(
+      slot => slot.timestamp >= past72Hours
+    ).sort((a, b) => {
+      // Sort by timestamp first
+      if (a.timestamp !== b.timestamp) {
+        return a.timestamp - b.timestamp;
+      }
+      // If same timestamp, prefer newer scrape (more recent data)
+      const aScrape = a.scrapeTimestamp || 0;
+      const bScrape = b.scrapeTimestamp || 0;
+      return bScrape - aScrape;
+    });
+    
+    // Deduplicate by timestamp (keep the one from the most recent scrape)
+    const uniqueSlots: any[] = [];
+    const seenTimestamps = new Set<number>();
+    for (const slot of recentSlots) {
+      if (!seenTimestamps.has(slot.timestamp)) {
+        seenTimestamps.add(slot.timestamp);
+        uniqueSlots.push(slot);
+      }
+    }
+    recentSlots = uniqueSlots;
     
     // Get all journal entries for this spot+sport (if table exists)
     let journalEntriesBySlot: Map<string, Array<{ userId: string; rating: number; sessionDate: number }>> = new Map();
