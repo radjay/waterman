@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-02-02]
+
+### Fixed
+- Calendar subscription shows correct wind direction
+- Calendar subscription only shows daylight session times
+
+---
+
 ## [2026-01-31]
 
 ### Added

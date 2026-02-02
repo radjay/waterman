@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { generateICS } from "../../../../../lib/ics";
+import { isDaylightSlot } from "../../../../../lib/daylight";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -30,6 +31,16 @@ export async function GET(request, { params }) {
       spotIds,
     });
 
+    // Filter events to only include daylight hours
+    const daylightEvents = feedData.events.filter((event) => {
+      const timestamp = new Date(event.timestamp);
+      const spot = {
+        latitude: event.latitude,
+        longitude: event.longitude,
+      };
+      return isDaylightSlot(timestamp, spot);
+    });
+
     // Generate calendar name and description
     const sportName = sport === "wingfoil" ? "Wingfoiling" : "Surfing";
     const calendarName = feedData.metadata.isPersonalized
@@ -41,7 +52,7 @@ export async function GET(request, { params }) {
 
     // Generate ICS content
     const icsContent = generateICS({
-      events: feedData.events,
+      events: daylightEvents,
       calendarName,
       calendarDescription,
     });
