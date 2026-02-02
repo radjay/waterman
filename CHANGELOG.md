@@ -2,6 +2,11 @@
 
 ## [2026-02-02]
 
+### Added
+- Session journal to log your wingfoiling and surfing sessions
+- Compare actual conditions to forecasted conditions
+- Track sessions at custom locations we don't monitor
+
 ### Fixed
 - Calendar subscription shows correct wind direction
 - Calendar subscription only shows daylight session times
