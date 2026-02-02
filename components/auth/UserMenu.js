@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
-import { User, LogOut, ChevronDown, Calendar, FileText } from "lucide-react";
+import { User, LogOut, ChevronDown, Calendar, FileText, BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -98,6 +98,17 @@ export default function UserMenu() {
             >
               <User className="w-4 h-4" />
               Profile
+            </button>
+
+            <button
+              onClick={() => {
+                router.push("/journal");
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              Journal
             </button>
 
             <div className="border-t border-ink/10 my-1" />

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
-import { Wind, Waves, ArrowUp, Clock, ChevronDown, ChevronUp, X, Copy, Check } from "lucide-react";
+import { Wind, Waves, ArrowUp, Clock, ChevronDown, ChevronUp, X, Copy, Check, BookOpen, Star } from "lucide-react";
 import { getDisplayWindDirection, getCardinalDirection } from "../../../lib/utils";
 
 // Reusable component for copyable IDs with truncation
@@ -288,7 +288,7 @@ function ScoringDebugContent() {
 }
 
 function SlotCard({ item, sport, onViewLog }) {
-  const { slot, score, scoringLogId } = item;
+  const { slot, score, scoringLogId, journalEntries = [] } = item;
   const [expanded, setExpanded] = useState(false);
 
   const time = new Date(slot.timestamp).toLocaleTimeString("en-US", {
@@ -296,11 +296,12 @@ function SlotCard({ item, sport, onViewLog }) {
     minute: "2-digit",
   });
 
+  const isPast = slot.timestamp < Date.now();
   const isIdeal = score && score.score >= 75;
   const isEpic = score && score.score >= 90;
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className={`bg-white rounded-lg shadow overflow-hidden ${isPast ? "opacity-75" : ""}`}>
       {/* Header - always visible */}
       <div
         className="p-4 cursor-pointer hover:bg-ink/5 transition-colors"
@@ -308,7 +309,18 @@ function SlotCard({ item, sport, onViewLog }) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="text-lg font-semibold w-20">{time}</div>
+            <div className="flex items-center gap-2">
+              <div className={`text-lg font-semibold w-20 ${isPast ? "text-ink/60" : ""}`}>{time}</div>
+              {isPast && (
+                <span className="px-1.5 py-0.5 bg-ink/10 text-ink/60 text-xs rounded">PAST</span>
+              )}
+              {journalEntries.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" />
+                  {journalEntries.length}
+                </span>
+              )}
+            </div>
 
             {/* Weather Data Summary */}
             <div className="flex items-center gap-6 text-sm">
@@ -490,6 +502,44 @@ function SlotCard({ item, sport, onViewLog }) {
           {!score && (
             <div className="text-center py-4 text-ink/50 text-sm">
               No score available for this slot. It may not have been scored yet.
+            </div>
+          )}
+
+          {/* Journal Entries Section */}
+          {journalEntries.length > 0 && (
+            <div className="border-t border-ink/10 pt-4 mt-4">
+              <div className="text-xs text-ink/50 uppercase mb-2 flex items-center gap-1">
+                <BookOpen className="w-3 h-3" />
+                Journal Entries ({journalEntries.length})
+              </div>
+              <div className="space-y-2">
+                {journalEntries.map((entry, idx) => (
+                  <div key={idx} className="bg-white rounded p-2 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <CopyableId id={entry.userId} label="User" />
+                      <span className="text-ink/50">•</span>
+                      <span className="text-ink/70">
+                        {new Date(entry.sessionDate).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3 h-3 ${
+                            star <= entry.rating ? "text-yellow-500 fill-yellow-500" : "text-ink/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

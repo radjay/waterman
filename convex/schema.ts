@@ -383,4 +383,43 @@ export default defineSchema({
         .index("by_slot_sport", ["slotId", "sport"])
         .index("by_spot_timestamp_sport", ["spotId", "timestamp", "sport"])
         .index("by_user_spot_sport", ["userId", "spotId", "sport"]),
+    /**
+     * Session journal entries for watersports sessions.
+     * Users can log their sessions with location, time, duration, rating, and notes.
+     * Links to forecast slots for comparison with actual conditions.
+     */
+    session_entries: defineTable({
+        userId: v.id("users"),
+        
+        // Sport type
+        sport: v.string(), // "wingfoil" | "surfing"
+        
+        // Location - either a spot reference or custom location
+        spotId: v.optional(v.id("spots")), // Reference to known spot (null for custom)
+        customLocation: v.optional(v.string()), // Name of custom location (free text)
+        
+        // Session timing
+        sessionDate: v.number(), // Epoch ms of session start
+        durationMinutes: v.number(), // Duration in minutes
+        
+        // Rating (1-5 stars)
+        rating: v.number(),
+        
+        // Notes
+        sessionNotes: v.optional(v.string()), // Personal session experience
+        conditionNotes: v.optional(v.string()), // Observed conditions (live report)
+        
+        // Forecast references (links to actual scraped/scored data)
+        // Captured at creation time, not updated on edit
+        forecastSlotIds: v.optional(v.array(v.id("forecast_slots"))), // Slots covering session time
+        
+        // Metadata
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_date", ["userId", "sessionDate"])
+        .index("by_user_sport", ["userId", "sport"])
+        .index("by_spot", ["spotId"])
+        .index("by_user_spot", ["userId", "spotId"]),
 });

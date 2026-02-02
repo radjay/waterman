@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText } from "lucide-react";
+import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, BookOpen } from "lucide-react";
 
 export function MobileMenu({ onOpenChange }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -165,6 +165,16 @@ export function MobileMenu({ onOpenChange }) {
 
                 {/* Navigation links */}
                 <div className="flex-1 space-y-1">
+                  {isAuthenticated && (
+                    <button
+                      onClick={() => handleNavigation("/journal")}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Journal
+                    </button>
+                  )}
+
                   <button
                     onClick={() => handleNavigation("/subscribe")}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"

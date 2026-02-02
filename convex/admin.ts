@@ -1175,7 +1175,8 @@ export const saveScoringLog = internalMutation({
 
 /**
  * Get scoring debug data for a spot-sport-user combination (admin only)
- * Returns forecast slots with their scores and scoring log references
+ * Returns forecast slots with their scores, scoring log references, and linked journal entries
+ * Shows slots from 72 hours ago to the future for debugging past slots
  */
 export const getScoringDebugData = query({
   args: {
@@ -1211,11 +1212,41 @@ export const getScoringDebugData = query({
     )];
     const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
     
-    // Filter to most recent scrape and future slots
+    // Filter to most recent scrape, show slots from 72 hours ago onwards (past + future)
     const now = Date.now();
+    const past72Hours = now - (72 * 60 * 60 * 1000);
     const recentSlots = allSlots.filter(
-      slot => slot.scrapeTimestamp === latestScrapeTimestamp && slot.timestamp >= now
+      slot => slot.scrapeTimestamp === latestScrapeTimestamp && slot.timestamp >= past72Hours
     ).sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Get all journal entries for this spot+sport (if table exists)
+    let journalEntriesBySlot: Map<string, Array<{ userId: string; rating: number; sessionDate: number }>> = new Map();
+    try {
+      const journalEntries = await ctx.db
+        .query("session_entries")
+        .withIndex("by_spot", q => q.eq("spotId", args.spotId))
+        .filter(q => q.eq(q.field("sport"), args.sport))
+        .collect();
+      
+      // Group entries by the slot they reference
+      for (const entry of journalEntries) {
+        if (entry.forecastSlotIds) {
+          for (const slotId of entry.forecastSlotIds) {
+            const slotIdStr = slotId as string;
+            if (!journalEntriesBySlot.has(slotIdStr)) {
+              journalEntriesBySlot.set(slotIdStr, []);
+            }
+            journalEntriesBySlot.get(slotIdStr)!.push({
+              userId: entry.userId as string,
+              rating: entry.rating,
+              sessionDate: entry.sessionDate,
+            });
+          }
+        }
+      }
+    } catch {
+      // session_entries table doesn't exist yet - that's fine
+    }
     
     // Get scores and scoring logs for these slots
     const result = await Promise.all(
@@ -1241,6 +1272,9 @@ export const getScoringDebugData = query({
           scoringLogId = logs[0]?._id || null;
         }
         
+        // Get journal entries linked to this slot
+        const journalEntries = journalEntriesBySlot.get(slot._id as string) || [];
+        
         return {
           slot: {
             _id: slot._id,
@@ -1261,6 +1295,7 @@ export const getScoringDebugData = query({
             model: score.model,
           } : null,
           scoringLogId,
+          journalEntries, // Array of { userId, rating, sessionDate }
         };
       })
     );

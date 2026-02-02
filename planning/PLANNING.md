@@ -8,7 +8,7 @@
 
 | PRD | Title | Status | Priority |
 |-----|-------|--------|----------|
-| - | (none) | - | - |
+| [09](prds/09-session-journal.md) | Session Journal - Watersports Logbook | Draft | Medium |
 
 ### Planned
 
