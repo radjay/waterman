@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Wind } from "lucide-react";
-import { Arrow } from "../ui/Arrow";
 
 /**
  * LiveWindRow component displays real-time wind data as a forecast-like row.
@@ -98,16 +97,6 @@ export function LiveWindRow({ stationId, className = "" }) {
             <span className={`text-sm tabular-nums ${isStale ? "text-ink/40" : "text-green-700"}`}>
               ({Math.round(liveWind.windGustKnots)}*)
             </span>
-          )}
-          {liveWind.windDirection !== null && (
-            <>
-              <span className={`mx-1 ${isStale ? "text-ink/30" : "text-green-600"}`}>|</span>
-              <Arrow
-                direction={liveWind.windDirection}
-                size={14}
-                className={isStale ? "text-ink/40" : "text-green-700"}
-              />
-            </>
           )}
         </div>
       </div>
