@@ -104,8 +104,8 @@ function CamsContent() {
   return (
     <MainLayout>
       <Header />
-      {/* Tabs bar - sticky on desktop */}
-      <div className="md:sticky md:top-[57px] md:z-40 bg-newsprint md:border-b md:border-ink/20 py-3 md:py-4">
+      {/* Tabs bar - sticky on mobile and desktop */}
+      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
         <div className="flex items-center justify-between gap-2">
           <ViewToggle onChange={handleViewChange} />
         </div>
