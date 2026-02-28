@@ -12,7 +12,9 @@ import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
+import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
+import { Tv } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -24,6 +26,7 @@ function CamsContent() {
   const [loading, setLoading] = useState(true);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
   const [favoriteSpots, setFavoriteSpots] = useState([]);
+  const [tvMode, setTvMode] = useState(false);
 
   // Sync favorite spots from user
   useEffect(() => {
@@ -108,6 +111,15 @@ function CamsContent() {
       <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
         <div className="flex items-center justify-between gap-2">
           <ViewToggle onChange={handleViewChange} />
+          {/* TV Mode button */}
+          <button
+            onClick={() => setTvMode(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors"
+            aria-label="TV Mode"
+          >
+            <Tv size={16} />
+            <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">TV Mode</span>
+          </button>
         </div>
       </div>
       <div className="h-4" /> {/* Spacer below tabs */}
@@ -153,6 +165,14 @@ function CamsContent() {
           onClose={handleCloseFullscreen}
           allWebcams={webcams}
           onNavigate={handleNavigateWebcam}
+        />
+      )}
+
+      {/* TV Mode */}
+      {tvMode && (
+        <TvMode
+          webcams={webcams}
+          onClose={() => setTvMode(false)}
         />
       )}
 
