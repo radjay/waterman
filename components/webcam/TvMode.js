@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Maximize2 } from "lucide-react";
 import Hls from "hls.js";
+import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
 
 /**
  * TvMode component - Fullscreen dark theme view with 3-column grid and no spacing.
@@ -215,6 +216,16 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
         muted
         controls={false}
       />
+
+      {/* Live wind indicator overlay - top left corner */}
+      {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
+        <div className="absolute top-2 left-2 z-10">
+          <LiveWindIndicator
+            stationId={extractWindguruStationId(spot.liveReportUrl)}
+            compact={true}
+          />
+        </div>
+      )}
 
       {/* Hover overlay with expand icon */}
       {onClick && (

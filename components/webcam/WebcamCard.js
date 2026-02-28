@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
 import { CircleGauge, ChartNoAxesCombined, Heart } from "lucide-react";
+import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
 
 /**
  * WebcamCard component that displays a webcam video stream with current conditions.
@@ -194,7 +195,17 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
           muted
           autoPlay
         />
-        
+
+        {/* Live wind indicator overlay - top left corner */}
+        {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
+          <div className="absolute top-2 left-2">
+            <LiveWindIndicator
+              stationId={extractWindguruStationId(spot.liveReportUrl)}
+              compact={true}
+            />
+          </div>
+        )}
+
         {/* Hover buttons overlay - top right corner */}
         {showHoverButtons && (
           <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
