@@ -62,8 +62,8 @@ export function TvMode({ webcams, onClose }) {
         <X className="w-6 h-6 text-white" />
       </button>
 
-      {/* 3-column grid with no spacing */}
-      <div className="grid grid-cols-3 h-full">
+      {/* 3-column grid with no spacing, scrollable */}
+      <div className="grid grid-cols-3 auto-rows-[600px] overflow-y-auto h-full">
         {webcams.map((webcam) => (
           <TvWebcamCell key={webcam._id} spot={webcam} getStreamUrl={getStreamUrl} />
         ))}
@@ -177,11 +177,11 @@ function TvWebcamCell({ spot, getStreamUrl }) {
         controls={false}
       />
 
-      {/* Spot name overlay (bottom-left) */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        <h3 className="text-white font-semibold text-lg">{spot.name}</h3>
+      {/* Spot name overlay (bottom-left) - subtle */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+        <h3 className="text-white/90 font-medium text-sm">{spot.name}</h3>
         {spot.town && (
-          <p className="text-white/70 text-sm">{spot.town}</p>
+          <p className="text-white/60 text-xs">{spot.town}</p>
         )}
       </div>
     </div>
