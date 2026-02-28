@@ -23,15 +23,16 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Fetch live data from Windguru JSON API
-    // API returns last measurement from the station
-    const windguruUrl = `https://stations.windguru.cz/getdata_v2.php?id_station=${stationId}&avg_minutes=10&last_hour_count=1`;
+    // Try multiple Windguru API endpoints
+    // First try the v2 API
+    let windguruUrl = `https://www.windguru.cz/int/iapi.php?q=station_data_current&id_station=${stationId}`;
 
-    const response = await fetch(windguruUrl, {
+    let response = await fetch(windguruUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        Accept: "application/json",
+        Accept: "application/json, */*",
+        Referer: `https://www.windguru.cz/station/${stationId}`,
       },
     });
 
@@ -41,37 +42,24 @@ export async function GET(request, { params }) {
 
     const data = await response.json();
 
-    // Extract latest measurement
-    // Windguru API returns arrays of measurements
-    // We want the most recent one
-    if (!data || !data[stationId]) {
+    // Extract latest measurement from Windguru response
+    // The API returns current station data
+    if (!data) {
       return NextResponse.json(
         { error: "No data available for station" },
         { status: 404 }
       );
     }
 
-    const stationData = data[stationId];
-
-    // Get the latest measurement index
-    const measurements = stationData.dt_utc || [];
-    if (measurements.length === 0) {
-      return NextResponse.json(
-        { error: "No recent measurements" },
-        { status: 404 }
-      );
-    }
-
-    const latestIndex = measurements.length - 1;
-
-    // Extract wind data from the latest measurement
+    // Windguru iAPI returns data in this format:
+    // { wind_avg: number, wind_max: number, wind_direction: number, etc. }
     const liveWind = {
       stationId: stationId,
-      timestamp: measurements[latestIndex] * 1000, // Convert to milliseconds
-      windSpeed: stationData.wind_avg?.[latestIndex] || null, // Average wind speed in m/s
-      windGust: stationData.wind_max?.[latestIndex] || null, // Max gust in m/s
-      windDirection: stationData.wind_direction?.[latestIndex] || null, // Direction in degrees
-      temperature: stationData.temperature?.[latestIndex] || null, // Temperature in Celsius
+      timestamp: data.dt_utc ? data.dt_utc * 1000 : Date.now(), // Convert to milliseconds
+      windSpeed: data.wind_avg || null, // Average wind speed in m/s
+      windGust: data.wind_max || null, // Max gust in m/s
+      windDirection: data.wind_direction || null, // Direction in degrees
+      temperature: data.temperature || null, // Temperature in Celsius
       updatedAt: Date.now(),
     };
 
