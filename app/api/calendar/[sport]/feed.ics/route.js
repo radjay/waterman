@@ -42,7 +42,7 @@ export async function GET(request, { params }) {
     });
 
     // Generate calendar name and description
-    const sportName = sport === "wingfoil" ? "Wingfoiling" : "Surfing";
+    const sportName = sport === "wingfoil" ? "Wingfoiling" : sport === "kitesurfing" ? "Kitesurfing" : "Surfing";
     const calendarName = feedData.metadata.isPersonalized
       ? `Waterman ${sportName} - Your Spots`
       : `Waterman ${sportName}`;
