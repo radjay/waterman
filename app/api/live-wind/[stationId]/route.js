@@ -53,22 +53,23 @@ export async function GET(request, { params }) {
 
     // Windguru iAPI returns data in this format:
     // { wind_avg: number, wind_max: number, wind_direction: number, etc. }
+    // NOTE: Data is already in KNOTS, not m/s!
     const liveWind = {
       stationId: stationId,
       timestamp: data.dt_utc ? data.dt_utc * 1000 : Date.now(), // Convert to milliseconds
-      windSpeed: data.wind_avg || null, // Average wind speed in m/s
-      windGust: data.wind_max || null, // Max gust in m/s
+      windSpeed: data.wind_avg || null, // Average wind speed in knots (already converted)
+      windGust: data.wind_max || null, // Max gust in knots (already converted)
       windDirection: data.wind_direction || null, // Direction in degrees
       temperature: data.temperature || null, // Temperature in Celsius
       updatedAt: Date.now(),
     };
 
-    // Convert m/s to knots (1 m/s = 1.94384 knots)
+    // Data is already in knots, so we just use it directly
     if (liveWind.windSpeed !== null) {
-      liveWind.windSpeedKnots = Math.round(liveWind.windSpeed * 1.94384 * 10) / 10;
+      liveWind.windSpeedKnots = Math.round(liveWind.windSpeed * 10) / 10;
     }
     if (liveWind.windGust !== null) {
-      liveWind.windGustKnots = Math.round(liveWind.windGust * 1.94384 * 10) / 10;
+      liveWind.windGustKnots = Math.round(liveWind.windGust * 10) / 10;
     }
 
     return NextResponse.json(liveWind, {
