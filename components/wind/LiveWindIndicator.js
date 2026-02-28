@@ -92,10 +92,10 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
     );
   }
 
-  // Full version for spot headers
+  // Full version for spot headers - now more compact to avoid wrapping
   return (
     <div
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border ${
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${
         isStale
           ? "border-ink/20 bg-ink/5"
           : "border-green-500/30 bg-green-50"
@@ -103,37 +103,32 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       title={`Live wind from Windguru station ${stationId} • Updated ${ageMinutes}m ago`}
     >
       <Wind
-        size={16}
+        size={12}
         className={isStale ? "text-ink/40" : "text-green-600"}
       />
-      <div className="flex items-center gap-1.5">
+      <span
+        className={`font-bold tabular-nums ${
+          isStale ? "text-ink/60" : "text-green-900"
+        }`}
+      >
+        {Math.round(liveWind.windSpeedKnots)}
+      </span>
+      {liveWind.windGustKnots !== null && (
         <span
-          className={`font-bold tabular-nums ${
-            isStale ? "text-ink/60" : "text-green-900"
+          className={`opacity-70 tabular-nums ${
+            isStale ? "text-ink/50" : "text-green-800"
           }`}
         >
-          {Math.round(liveWind.windSpeedKnots)} kn
+          ({Math.round(liveWind.windGustKnots)})
         </span>
-        {liveWind.windGustKnots !== null && (
-          <span
-            className={`text-sm opacity-70 tabular-nums ${
-              isStale ? "text-ink/50" : "text-green-800"
-            }`}
-          >
-            ({Math.round(liveWind.windGustKnots)})
-          </span>
-        )}
-        {liveWind.windDirection !== null && (
-          <>
-            <Arrow
-              direction={liveWind.windDirection}
-              size={14}
-              className={isStale ? "text-ink/40" : "text-green-700"}
-            />
-          </>
-        )}
-      </div>
-      <span className="text-xs text-ink/40 ml-1">LIVE</span>
+      )}
+      {liveWind.windDirection !== null && (
+        <Arrow
+          direction={liveWind.windDirection}
+          size={10}
+          className={isStale ? "text-ink/40" : "text-green-700"}
+        />
+      )}
     </div>
   );
 }
