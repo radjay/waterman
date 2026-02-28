@@ -132,15 +132,6 @@ function CamsContent() {
         <EmptyState message="No webcams available" />
       ) : (
         <div className="space-y-6">
-          <div>
-            <h1 className="font-headline text-2xl font-bold text-ink mb-2">
-              Webcams
-            </h1>
-            <p className="text-ink/60 text-sm">
-              Live streams with current wave, wind, and tide conditions
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {webcams.map((webcam) => (
               <div
