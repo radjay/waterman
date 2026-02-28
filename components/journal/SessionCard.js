@@ -20,12 +20,12 @@ export function SessionCard({ entry }) {
     minute: "2-digit",
   });
 
-  const sportLabel = entry.sport === "wingfoil" ? "Wingfoiling" : "Surfing";
+  const sportLabel = entry.sport === "wingfoil" ? "Wing" : entry.sport === "kitesurfing" ? "Kite" : "Surf";
 
   return (
     <button
       onClick={() => router.push(`/journal/${entry._id}`)}
-      className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left bg-white"
+      className="w-full p-4 rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/5 transition-all text-left bg-newsprint"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">

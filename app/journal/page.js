@@ -75,62 +75,66 @@ export default function JournalPage() {
       </div>
       <div className="h-4" /> {/* Spacer below tabs */}
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-semibold text-ink">Session Journal</h1>
+      {/* Action bar - sport filters and new session button */}
+      <div className="sticky top-[120px] z-30 bg-newsprint border-b border-ink/20 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint">
+            <button
+              onClick={() => setSelectedSport("")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === ""
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">All</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("wingfoil")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "wingfoil"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Wing</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("kitesurfing")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "kitesurfing"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Kite</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("surfing")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "surfing"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Surf</span>
+            </button>
+          </div>
+
           <button
             onClick={() => router.push("/journal/new")}
-            className="flex items-center gap-2 px-4 py-2 bg-ink text-newsprint rounded-md hover:bg-ink/90 transition-colors font-medium"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors"
           >
-            <Plus className="w-5 h-5" />
-            Log Session
+            <Plus className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">New Session</span>
           </button>
         </div>
+      </div>
 
-        {/* Sport Filter */}
-        <div className="mb-6 flex gap-2">
-          <button
-            onClick={() => setSelectedSport("")}
-            className={`px-4 py-2 rounded-md border-2 transition-all ${
-              selectedSport === ""
-                ? "border-ink bg-ink/5"
-                : "border-ink/20 hover:border-ink/30"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setSelectedSport("wingfoil")}
-            className={`px-4 py-2 rounded-md border-2 transition-all ${
-              selectedSport === "wingfoil"
-                ? "border-ink bg-ink/5"
-                : "border-ink/20 hover:border-ink/30"
-            }`}
-          >
-            Wing
-          </button>
-          <button
-            onClick={() => setSelectedSport("kitesurfing")}
-            className={`px-4 py-2 rounded-md border-2 transition-all ${
-              selectedSport === "kitesurfing"
-                ? "border-ink bg-ink/5"
-                : "border-ink/20 hover:border-ink/30"
-            }`}
-          >
-            Kite
-          </button>
-          <button
-            onClick={() => setSelectedSport("surfing")}
-            className={`px-4 py-2 rounded-md border-2 transition-all ${
-              selectedSport === "surfing"
-                ? "border-ink bg-ink/5"
-                : "border-ink/20 hover:border-ink/30"
-            }`}
-          >
-            Surf
-          </button>
-        </div>
+      <div className="h-4" /> {/* Spacer below action bar */}
 
+      {/* Content area */}
+      <div className="px-4 pb-12">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -145,20 +149,21 @@ export default function JournalPage() {
           <div className="text-center py-16">
             <BookOpen className="w-16 h-16 text-ink/30 mx-auto mb-4" />
             <h2 className="text-xl font-medium text-ink mb-2">
-              Your session journal is empty
+              No sessions yet
             </h2>
             <p className="text-ink/60 mb-6">
-              After your next session, come here to log it and track your progress!
+              Log your first session to start tracking your progress
             </p>
             <button
               onClick={() => router.push("/journal/new")}
-              className="px-4 py-2 bg-ink text-newsprint rounded-md hover:bg-ink/90 transition-colors font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors mx-auto"
             >
-              Log Your First Session
+              <Plus className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Log Session</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {entries.map((entry) => (
               <SessionCard key={entry._id} entry={entry} />
             ))}
