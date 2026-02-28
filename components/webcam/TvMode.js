@@ -210,7 +210,7 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
       {/* Video player */}
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         playsInline
         muted
         controls={false}
