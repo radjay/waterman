@@ -8,7 +8,7 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, ArrowRight } from "lucide-react";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { formatDate, formatTime } from "../../lib/utils";
 import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slots";
