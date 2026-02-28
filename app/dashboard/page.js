@@ -198,9 +198,9 @@ export default function DashboardPage() {
     <MainLayout>
       <Header />
 
-      {/* Tabs bar - sticky */}
+      {/* Tabs bar - sticky, scrollable on mobile */}
       <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="overflow-x-auto scrollbar-hide px-4">
           <ViewToggle onChange={handleViewChange} />
         </div>
       </div>

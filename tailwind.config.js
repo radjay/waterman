@@ -21,9 +21,20 @@ export default {
     },
   },
   plugins: [
-    function ({ addVariant }) {
+    function ({ addVariant, addUtilities }) {
       addVariant("portrait", "@media (orientation: portrait)");
       addVariant("landscape", "@media (orientation: landscape)");
+
+      // Hide scrollbars while keeping scroll functionality
+      addUtilities({
+        '.scrollbar-hide': {
+          '-ms-overflow-style': 'none',
+          'scrollbar-width': 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        }
+      });
     },
   ],
 };
