@@ -369,9 +369,38 @@ export const getForecastSlots = query({
         if (targetScrapeTimestamp === null) {
             return [];
         }
-        
-        // Use filter instead of index to handle optional field better
-        return allSlots.filter(s => s.scrapeTimestamp === targetScrapeTimestamp);
+
+        // Get slots from the most recent scrape
+        const latestSlots = allSlots.filter(s => s.scrapeTimestamp === targetScrapeTimestamp);
+
+        // PRESERVE TODAY'S PAST SLOTS: Also include slots from today that are in the past
+        // and not in the latest scrape (e.g., 12:00 slot when scraper ran at 15:00)
+        const now = Date.now();
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date(todayStart);
+        todayEnd.setDate(todayEnd.getDate() + 1);
+
+        // Find slots from today that are NOT in the latest scrape
+        const latestTimestamps = new Set(latestSlots.map(s => s.timestamp));
+        const todaysPastSlots = allSlots.filter(s => {
+            // Must be from today
+            if (s.timestamp < todayStart.getTime() || s.timestamp >= todayEnd.getTime()) {
+                return false;
+            }
+            // Must NOT be in the latest scrape (avoid duplicates)
+            if (latestTimestamps.has(s.timestamp)) {
+                return false;
+            }
+            // Must be from a different (older) scrape
+            if (s.scrapeTimestamp === targetScrapeTimestamp) {
+                return false;
+            }
+            return true;
+        });
+
+        // Combine latest scrape slots + preserved today's past slots
+        return [...latestSlots, ...todaysPastSlots];
     }
 });
 
