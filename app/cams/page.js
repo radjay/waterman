@@ -27,6 +27,7 @@ function CamsContent() {
   const [focusedWebcam, setFocusedWebcam] = useState(null);
   const [favoriteSpots, setFavoriteSpots] = useState([]);
   const [tvMode, setTvMode] = useState(false);
+  const [selectedSport, setSelectedSport] = useState(""); // Empty = all sports
 
   // Sync favorite spots from user
   useEffect(() => {
@@ -40,7 +41,9 @@ function CamsContent() {
     async function fetchWebcams() {
       setLoading(true);
       try {
-        const webcamSpots = await client.query(api.spots.listWebcams);
+        const webcamSpots = await client.query(api.spots.listWebcams, {
+          sports: selectedSport ? [selectedSport] : undefined,
+        });
         setWebcams(webcamSpots);
       } catch (error) {
         console.error("Error fetching webcams:", error);
@@ -50,7 +53,7 @@ function CamsContent() {
     }
 
     fetchWebcams();
-  }, []);
+  }, [selectedSport]);
 
   // Toggle favorite spot
   const handleToggleFavorite = async (spotId, e) => {
@@ -128,12 +131,62 @@ function CamsContent() {
       </div>
       <div className="h-4" /> {/* Spacer below tabs */}
 
-      {loading ? (
-        <Loader />
-      ) : webcams.length === 0 ? (
-        <EmptyState message="No webcams available" />
-      ) : (
-        <div className="space-y-6">
+      {/* Sport filter - sticky, scrollable on mobile */}
+      <div className="sticky top-[120px] z-30 bg-newsprint border-b border-ink/20 py-3">
+        <div className="overflow-x-auto scrollbar-hide px-4">
+          <div className="inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint">
+            <button
+              onClick={() => setSelectedSport("")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === ""
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">All</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("wingfoil")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "wingfoil"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Wing</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("kitesurfing")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "kitesurfing"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Kite</span>
+            </button>
+            <button
+              onClick={() => setSelectedSport("surfing")}
+              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+                selectedSport === "surfing"
+                  ? "bg-ink text-newsprint"
+                  : "text-ink hover:bg-ink/5"
+              }`}
+            >
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Surf</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="h-4" /> {/* Spacer below sport filter */}
+
+      <div className="px-4 pb-12">
+        {loading ? (
+          <Loader />
+        ) : webcams.length === 0 ? (
+          <EmptyState message="No webcams available" />
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {webcams.map((webcam) => (
               <div
@@ -150,8 +203,8 @@ function CamsContent() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Fullscreen webcam modal */}
       {focusedWebcam && (

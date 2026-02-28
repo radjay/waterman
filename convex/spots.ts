@@ -86,24 +86,38 @@ export const list = query({
 
 /**
  * Query to list all webcam spots.
- * 
+ *
+ * @param {Array<string>} sports - Optional array of sport names to filter by (e.g., ["wingfoil", "surfing"])
  * @returns {Array} Array of webcam spot objects
  */
 export const listWebcams = query({
-    args: {},
-    handler: async (ctx) => {
+    args: {
+        sports: v.optional(v.array(v.string())),
+    },
+    handler: async (ctx, args) => {
         const allSpots = await ctx.db.query("spots").collect();
         // Return spots that have usable webcam data:
         // 1. webcamOnly spots with webcamStreamId (new format)
         // 2. Spots with webcamUrl (old format - full URL)
         // 3. Spots with webcamStreamId (new format without webcamOnly flag)
-        return allSpots.filter(spot => {
+        let webcamSpots = allSpots.filter(spot => {
             // New format: has webcamStreamId
             if (spot.webcamStreamId !== undefined) return true;
             // Old format: has webcamUrl (full URL)
             if (spot.webcamUrl !== undefined && spot.webcamUrl.trim() !== "") return true;
             return false;
         });
+
+        // Filter by sports if provided
+        if (args.sports && args.sports.length > 0) {
+            webcamSpots = webcamSpots.filter(spot => {
+                // Check if spot supports any of the requested sports
+                const spotSports = spot.sports || [];
+                return args.sports.some(sport => spotSports.includes(sport));
+            });
+        }
+
+        return webcamSpots;
     },
 });
 
