@@ -66,32 +66,35 @@ export function LiveWindRow({ stationId, className = "" }) {
   const isStale = ageMinutes > 15; // Consider stale if older than 15 minutes
 
   return (
-    <div
-      className={`flex items-center justify-between py-2.5 px-2 border-y-2 ${
-        isStale ? "border-ink/20 bg-ink/5" : "border-green-600 bg-green-50"
-      } ${className}`}
-    >
-      {/* Time/Label - with pulsing indicator */}
-      <div className="flex items-center gap-2 min-w-[80px]">
-        <div className="relative flex items-center gap-1.5">
+    <div className="py-2 px-2">
+      <div
+        className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-lg border-2 ${
+          isStale
+            ? "border-ink/20 bg-ink/5"
+            : "border-green-600 bg-gradient-to-r from-green-50 to-green-100"
+        } ${className}`}
+      >
+        {/* Live indicator with pulsing dot */}
+        <div className="flex items-center gap-2">
           {!isStale && (
-            <span className="relative flex h-2 w-2">
+            <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-600 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-600"></span>
             </span>
           )}
-          <span className={`text-xs font-bold uppercase ${isStale ? "text-ink/60" : "text-green-700"}`}>
-            Live
+          <span className={`text-sm font-bold uppercase tracking-wide ${isStale ? "text-ink/60" : "text-green-700"}`}>
+            Live Now
           </span>
         </div>
-      </div>
 
-      {/* Wind data - more prominent */}
-      <div className="flex items-center gap-3 flex-1 justify-start pl-4">
-        <div className="flex items-center gap-1.5">
-          <Wind size={16} className={isStale ? "text-ink/40" : "text-green-700"} />
-          <span className={`text-base font-bold tabular-nums ${isStale ? "text-ink/60" : "text-green-900"}`}>
-            {Math.round(liveWind.windSpeedKnots)} kn
+        {/* Wind icon and data - prominent */}
+        <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-white/60">
+          <Wind size={18} className={isStale ? "text-ink/40" : "text-green-700"} />
+          <span className={`text-lg font-bold tabular-nums ${isStale ? "text-ink/60" : "text-green-900"}`}>
+            {Math.round(liveWind.windSpeedKnots)}
+          </span>
+          <span className={`text-sm font-medium ${isStale ? "text-ink/50" : "text-green-800"}`}>
+            kn
           </span>
           {liveWind.windGustKnots !== null && (
             <span className={`text-sm tabular-nums ${isStale ? "text-ink/40" : "text-green-700"}`}>
@@ -99,14 +102,14 @@ export function LiveWindRow({ stationId, className = "" }) {
             </span>
           )}
         </div>
-      </div>
 
-      {/* Age indicator - smaller and subtle */}
-      {ageMinutes > 0 && (
-        <div className={`text-xs min-w-[60px] text-right ${isStale ? "text-ink/40" : "text-green-700/70"}`}>
-          {ageMinutes}m ago
-        </div>
-      )}
+        {/* Age indicator */}
+        {ageMinutes > 0 && (
+          <div className={`text-xs ${isStale ? "text-ink/40" : "text-green-700/70"}`}>
+            {ageMinutes}m ago
+          </div>
+        )}
+      </div>
     </div>
   );
 }
