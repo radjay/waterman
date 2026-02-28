@@ -14,7 +14,8 @@ import {
 import { findTideForSlot } from "../../lib/tides";
 import { formatFullDay } from "../../lib/utils";
 import { Tooltip } from "../ui/Tooltip";
-import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
+import { LiveWindRow } from "./LiveWindRow";
+import { extractWindguruStationId } from "../wind/LiveWindIndicator";
 
 /**
  * DaySection component displays forecast slots grouped by day and spot.
@@ -180,16 +181,7 @@ export function DaySection({
                 className={`mb-6 last:mb-0 ${firstSpot ? "mt-4" : ""}`}
               >
                 <div className="flex items-center justify-between font-headline text-[1.15rem] font-bold text-ink mb-2 px-2">
-                  <div className="flex items-center gap-3">
-                    <span>{spotName}</span>
-                    {/* Live wind indicator for today/tomorrow */}
-                    {liveReportUrl && isWindSport && isTodayOrTomorrow() && extractWindguruStationId(liveReportUrl) && (
-                      <LiveWindIndicator
-                        stationId={extractWindguruStationId(liveReportUrl)}
-                        compact={false}
-                      />
-                    )}
-                  </div>
+                  <span>{spotName}</span>
                   <div className="flex items-center gap-2">
                     {isAuthenticated && (
                       <Tooltip content="Add your notes for this spot" position="bottom">
@@ -252,6 +244,11 @@ export function DaySection({
                 )}
 
                 <div className="flex flex-col border-t border-ink/20">
+                  {/* Live wind row for wind sports on today/tomorrow */}
+                  {liveReportUrl && isWindSport && isTodayOrTomorrow() && extractWindguruStationId(liveReportUrl) && (
+                    <LiveWindRow stationId={extractWindguruStationId(liveReportUrl)} />
+                  )}
+
                   {(() => {
                     // Track which tides have been used across all slots to avoid duplicates
                     const usedTides = new Set();

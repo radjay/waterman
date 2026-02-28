@@ -68,25 +68,20 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
   const isStale = ageMinutes > 15; // Consider stale if older than 15 minutes
 
   if (compact) {
-    // Compact version for overlays on webcams
+    // Compact version for overlays on webcams - ultra minimal
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded backdrop-blur-sm bg-black/60 text-white ${
-          isStale ? "opacity-60" : ""
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-white text-xs ${
+          isStale ? "opacity-50" : ""
         } ${className}`}
-        title={`Live wind • Updated ${ageMinutes}m ago`}
+        title={`Live wind: ${Math.round(liveWind.windSpeedKnots)} kn • Updated ${ageMinutes}m ago`}
       >
-        <Wind size={14} className="text-green-400" />
-        <span className="font-bold text-sm tabular-nums">
+        <Wind size={10} className="text-green-400" />
+        <span className="font-bold tabular-nums">
           {Math.round(liveWind.windSpeedKnots)}
         </span>
-        {liveWind.windGustKnots !== null && (
-          <span className="text-xs opacity-80 tabular-nums">
-            ({Math.round(liveWind.windGustKnots)})
-          </span>
-        )}
         {liveWind.windDirection !== null && (
-          <Arrow direction={liveWind.windDirection} size={12} />
+          <Arrow direction={liveWind.windDirection} size={8} />
         )}
       </div>
     );
