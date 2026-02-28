@@ -86,7 +86,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
           </span>
         )}
         {liveWind.windDirection !== null && (
-          <Arrow direction={liveWind.windDirection} size={8} />
+          <Arrow direction={(liveWind.windDirection + 180) % 360} size={8} />
         )}
       </div>
     );
@@ -124,7 +124,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       )}
       {liveWind.windDirection !== null && (
         <Arrow
-          direction={liveWind.windDirection}
+          direction={(liveWind.windDirection + 180) % 360}
           size={10}
           className={isStale ? "text-ink/40" : "text-green-700"}
         />
