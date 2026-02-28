@@ -70,7 +70,7 @@ export function CalendarView({
           
           // For each sport that this spot supports, find the best slot
           const sportData = [];
-          
+
           if (spotSports.includes("wingfoil")) {
             // Find best wingfoil slot
             const wingfoilSlots = forecastSlots.filter(s => s.sport === "wingfoil" && s.score && s.score.value >= 60);
@@ -79,16 +79,16 @@ export function CalendarView({
                 if (!best) return current;
                 return (current.score.value > best.score.value) ? current : best;
               }, null);
-              
+
               if (bestWingfoilSlot) {
                 // Get wave data from the same slot
                 const displayWaveDirection = bestWingfoilSlot.waveDirection !== undefined && bestWingfoilSlot.waveDirection !== null
                   ? (bestWingfoilSlot.waveDirection + 180) % 360
                   : bestWingfoilSlot.waveDirection;
-                
+
                 // Extract time from the slot
                 const bestTime = bestWingfoilSlot.hour || (bestWingfoilSlot.timestamp ? formatTideTime(bestWingfoilSlot.timestamp) : null);
-                
+
                 sportData.push({
                   sport: "wingfoil",
                   score: bestWingfoilSlot.score.value,
@@ -106,7 +106,43 @@ export function CalendarView({
               }
             }
           }
-          
+
+          if (spotSports.includes("kitesurfing")) {
+            // Find best kitesurfing slot
+            const kitesurfingSlots = forecastSlots.filter(s => s.sport === "kitesurfing" && s.score && s.score.value >= 60);
+            if (kitesurfingSlots.length > 0) {
+              const bestKitesurfingSlot = kitesurfingSlots.reduce((best, current) => {
+                if (!best) return current;
+                return (current.score.value > best.score.value) ? current : best;
+              }, null);
+
+              if (bestKitesurfingSlot) {
+                // Get wave data from the same slot
+                const displayWaveDirection = bestKitesurfingSlot.waveDirection !== undefined && bestKitesurfingSlot.waveDirection !== null
+                  ? (bestKitesurfingSlot.waveDirection + 180) % 360
+                  : bestKitesurfingSlot.waveDirection;
+
+                // Extract time from the slot
+                const bestTime = bestKitesurfingSlot.hour || (bestKitesurfingSlot.timestamp ? formatTideTime(bestKitesurfingSlot.timestamp) : null);
+
+                sportData.push({
+                  sport: "kitesurfing",
+                  score: bestKitesurfingSlot.score.value,
+                  bestTime,
+                  conditionData: {
+                    type: "kitesurfing",
+                    windSpeed: bestKitesurfingSlot.speed,
+                    windGust: bestKitesurfingSlot.gust,
+                    windDirection: bestKitesurfingSlot.direction,
+                    waveHeight: bestKitesurfingSlot.waveHeight,
+                    wavePeriod: bestKitesurfingSlot.wavePeriod,
+                    waveDirection: displayWaveDirection,
+                  },
+                });
+              }
+            }
+          }
+
           if (spotSports.includes("surfing")) {
             // Find best surfing slot
             const surfingSlots = forecastSlots.filter(s => s.sport === "surfing" && s.score && s.score.value >= 60);
@@ -160,18 +196,21 @@ export function CalendarView({
 
       // Group spots by sport, then sort by score within each sport group
       const wingfoilSpots = bestSpots.filter(s => s.sportData.some(sd => sd.sport === "wingfoil"));
+      const kitesurfingSpots = bestSpots.filter(s => s.sportData.some(sd => sd.sport === "kitesurfing"));
       const surfingSpots = bestSpots.filter(s => s.sportData.some(sd => sd.sport === "surfing"));
-      
+
       // Sort within each group by best score
       wingfoilSpots.sort((a, b) => b.bestScore - a.bestScore);
+      kitesurfingSpots.sort((a, b) => b.bestScore - a.bestScore);
       surfingSpots.sort((a, b) => b.bestScore - a.bestScore);
-      
-      // Combine: wingfoil first, then surfing
-      const groupedSpots = [...wingfoilSpots, ...surfingSpots];
+
+      // Combine: wingfoil first, then kitesurfing, then surfing
+      const groupedSpots = [...wingfoilSpots, ...kitesurfingSpots, ...surfingSpots];
 
       result[dayStr] = {
         spots: groupedSpots,
         wingfoilSpots,
+        kitesurfingSpots,
         surfingSpots,
       };
     });
@@ -227,7 +266,7 @@ export function CalendarView({
                 {/* Wingfoil spots */}
                 {dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0 && (
                   <div>
-                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Wingfoil</div>
+                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Wing</div>
                     <div className="space-y-3">
                       {dayInfo.wingfoilSpots.slice(0, 3).map((spot) => {
                         const wingfoilSportData = spot.sportData?.find(sd => sd.sport === "wingfoil");
@@ -294,11 +333,82 @@ export function CalendarView({
                     </div>
                   </div>
                 )}
-                
+
+                {/* Kitesurfing spots */}
+                {dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0 && (
+                  <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) ? "mt-4 pt-4 border-t border-ink/20" : ""}>
+                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Kite</div>
+                    <div className="space-y-3">
+                      {dayInfo.kitesurfingSpots.slice(0, 3).map((spot) => {
+                        const kitesurfingSportData = spot.sportData?.find(sd => sd.sport === "kitesurfing");
+                        const bestTime = kitesurfingSportData?.bestTime;
+                        return (
+                        <div
+                          key={spot.spotId}
+                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSpotClick) {
+                              onSpotClick("kitesurfing", dayStr);
+                            } else if (onDayClick) {
+                              onDayClick(dayStr);
+                            }
+                          }}
+                        >
+                          <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
+                            {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                          </div>
+                          {spot.sportData && spot.sportData.length > 0 && (
+                            <div className="text-sm text-ink/70 space-y-1.5">
+                              {spot.sportData
+                                .filter(sd => sd.sport === "kitesurfing")
+                                .map((sport) => (
+                                  <div key={sport.sport}>
+                                    {/* Wind data first for kitesurfing */}
+                                    <div className="flex items-center gap-1.5">
+                                      <Wind size={12} className="text-ink/70" />
+                                      <span>
+                                        {Math.round(sport.conditionData.windSpeed)} kn
+                                        {sport.conditionData.windGust && ` (${Math.round(sport.conditionData.windGust)}*)`}
+                                      </span>
+                                      {sport.conditionData.windDirection !== undefined && sport.conditionData.windDirection !== null && (
+                                        <>
+                                          <Arrow direction={sport.conditionData.windDirection} />
+                                          <span>{getDisplayWindDirection(sport.conditionData.windDirection)}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {/* Wave data second for kitesurfing */}
+                                    {sport.conditionData.waveHeight !== undefined && (
+                                      <div className="flex items-center gap-1.5">
+                                        <Waves size={12} className="text-ink/70" />
+                                        <span>
+                                          {sport.conditionData.waveHeight.toFixed(1)}m
+                                          {sport.conditionData.wavePeriod && ` (${sport.conditionData.wavePeriod}s)`}
+                                        </span>
+                                        {sport.conditionData.waveDirection !== undefined && sport.conditionData.waveDirection !== null && (
+                                          <>
+                                            <Arrow direction={sport.conditionData.waveDirection} />
+                                            <span>{getDisplayWindDirection(sport.conditionData.waveDirection)}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Surfing spots */}
                 {dayInfo.surfingSpots && dayInfo.surfingSpots.length > 0 && (
-                    <div className={dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0 ? "mt-4 pt-4 border-t border-ink/20" : ""}>
-                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Surfing</div>
+                    <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) || (dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0) ? "mt-4 pt-4 border-t border-ink/20" : ""}>
+                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Surf</div>
                     <div className="space-y-3">
                       {dayInfo.surfingSpots.slice(0, 3).map((spot) => {
                         const surfingSportData = spot.sportData?.find(sd => sd.sport === "surfing");
@@ -367,9 +477,9 @@ export function CalendarView({
                 )}
                 
                 {/* Show more spots indicator if needed */}
-                {(dayInfo.wingfoilSpots?.length > 3 || dayInfo.surfingSpots?.length > 3) && (
+                {(dayInfo.wingfoilSpots?.length > 3 || dayInfo.kitesurfingSpots?.length > 3 || dayInfo.surfingSpots?.length > 3) && (
                   <div className="text-xs text-ink/60 pt-1">
-                    +{Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)} more spot{(Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)) !== 1 ? 's' : ''}
+                    +{Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.kitesurfingSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)} more spot{(Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.kitesurfingSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)) !== 1 ? 's' : ''}
                   </div>
                 )}
               </div>

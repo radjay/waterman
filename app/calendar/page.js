@@ -200,7 +200,7 @@ export default function CalendarPage() {
   // Handle spot click from calendar view - navigate to sport-specific route
   const handleSpotClick = (sport, dayStr) => {
     // Map sport to URL format
-    const urlSport = sport === "wingfoil" ? "wing" : "surf";
+    const urlSport = sport === "wingfoil" ? "wing" : sport === "kitesurfing" ? "kite" : "surf";
     // Navigate to sport route with "all" filter and day parameter for scrolling
     router.push(`/${urlSport}/all?day=${encodeURIComponent(dayStr)}`);
   };
