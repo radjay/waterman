@@ -116,6 +116,7 @@ export default function DashboardPage() {
         const allSlots = (await Promise.all(slotsPromises)).flat();
 
         // Filter to daylight slots with good scores (>= 60)
+        // Keep ALL of today's ideal slots visible until midnight, regardless of current time
         const goodSlots = allSlots.filter((slot) => {
           if (slot.isTideOnly) return false;
           if (isNighttimeSlot(new Date(slot.timestamp))) return false;
@@ -123,6 +124,8 @@ export default function DashboardPage() {
           const spot = spotsMapObj[slot.spotId];
           if (!spot) return false;
 
+          // Show all daylight slots for today (don't filter by current time)
+          // This ensures users can see what conditions were/are/will be throughout the day
           const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
           const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
 
