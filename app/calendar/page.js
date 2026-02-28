@@ -87,14 +87,16 @@ export default function CalendarPage() {
 
           // Fetch scores separately (after slots are fetched)
           const scoresArrays = await Promise.all(scoresPromises);
-          
-          // Create a map of slotId -> score for quick lookup
+
+          // Create a map of timestamp -> score for quick lookup
+          // Using timestamp instead of slotId because slot IDs change with each scrape
+          // but timestamps remain consistent for the same time period
           const scoresMap = {};
           scoresArrays.forEach((scores, index) => {
             const sport = relevantSports[index];
             scores.forEach((score) => {
-              // Map by slotId and sport (since multiple sports can have scores for same slot)
-              const key = `${score.slotId}_${sport}`;
+              // Map by timestamp and sport (slot IDs change between scrapes)
+              const key = `${score.timestamp}_${sport}`;
               scoresMap[key] = score;
             });
           });
