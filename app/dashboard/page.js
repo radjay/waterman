@@ -8,13 +8,14 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, ArrowRight } from "lucide-react";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { formatDate, formatTime } from "../../lib/utils";
 import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
+import { SessionCard } from "../../components/journal/SessionCard";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [todaySlots, setTodaySlots] = useState([]);
   const [webcams, setWebcams] = useState([]);
+  const [recentSessions, setRecentSessions] = useState([]);
   const [spotsMap, setSpotsMap] = useState({});
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
@@ -142,6 +144,15 @@ export default function DashboardPage() {
         // Fetch webcams (limit to 4) - pass full spot objects
         const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
         setWebcams(allWebcams.slice(0, 4));
+
+        // Fetch recent sessions if logged in
+        if (sessionToken) {
+          const sessionsResult = await client.query(api.journal.listEntries, {
+            sessionToken,
+            limit: 3,
+          });
+          setRecentSessions(sessionsResult.entries);
+        }
 
         // Fetch scrape timestamp
         const scrapeTimestamp = await client.query(api.spots.getMostRecentScrapeTimestamp);
@@ -273,16 +284,38 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* Log a Session */}
+          {/* Recent Sessions */}
           {sessionToken && (
             <section>
-              <button
-                onClick={() => router.push("/journal/new")}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-ink text-newsprint rounded-lg hover:bg-ink/90 transition-colors border-2 border-ink"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="text-base font-bold uppercase leading-none translate-y-[1px]">Log a Session</span>
-              </button>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-ink">Recent Sessions</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => router.push("/journal/new")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">New Session</span>
+                  </button>
+                  <button
+                    onClick={() => router.push("/journal")}
+                    className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
+                  >
+                    See All
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {recentSessions.length === 0 ? (
+                <p className="text-ink/60 text-sm py-4">No sessions logged yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentSessions.map((entry) => (
+                    <SessionCard key={entry._id} entry={entry} />
+                  ))}
+                </div>
+              )}
             </section>
           )}
         </div>
