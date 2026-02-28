@@ -92,8 +92,8 @@ export function TvMode({ webcams, onClose }) {
         <X className="w-6 h-6 text-white" />
       </button>
 
-      {/* 3-column grid with 16:9 aspect ratio, scrollable */}
-      <div className="grid grid-cols-3 overflow-y-auto h-full">
+      {/* 3-column grid with auto rows based on content, scrollable */}
+      <div className="grid grid-cols-3 auto-rows-min gap-0 overflow-y-auto h-full">
         {webcams.map((webcam) => (
           <TvWebcamCell
             key={webcam._id}

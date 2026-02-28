@@ -111,10 +111,10 @@ function CamsContent() {
       <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
         <div className="flex items-center justify-between gap-2">
           <ViewToggle onChange={handleViewChange} />
-          {/* TV Mode button */}
+          {/* TV Mode button - desktop only */}
           <button
             onClick={() => setTvMode(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors"
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors"
             aria-label="TV Mode"
           >
             <Tv size={16} />
