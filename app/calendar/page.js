@@ -213,7 +213,9 @@ export default function CalendarPage() {
 
   // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
-    if (view === "list") {
+    if (view === "dashboard") {
+      router.push("/dashboard");
+    } else if (view === "list") {
       router.push("/");
     } else if (view === "cams") {
       router.push("/cams");

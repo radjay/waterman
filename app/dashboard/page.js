@@ -1,0 +1,301 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../convex/_generated/api";
+import { MainLayout } from "../../components/layout/MainLayout";
+import { Header } from "../../components/layout/Header";
+import { ViewToggle } from "../../components/layout/ViewToggle";
+import { Footer } from "../../components/layout/Footer";
+import { Loader2, Plus, ArrowRight } from "lucide-react";
+import { useAuth, useUser } from "../../components/auth/AuthProvider";
+import { formatDate, formatTime } from "../../lib/utils";
+import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slots";
+import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
+import { WebcamCard } from "../../components/webcam/WebcamCard";
+import { SessionCard } from "../../components/journal/SessionCard";
+
+const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const { sessionToken } = useAuth();
+  const user = useUser();
+
+  const [loading, setLoading] = useState(true);
+  const [todaySlots, setTodaySlots] = useState([]);
+  const [webcams, setWebcams] = useState([]);
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [spotsMap, setSpotsMap] = useState({});
+  const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
+
+  // Get user's selected sport (default to wingfoil)
+  const selectedSport = user?.selectedSport || "wingfoil";
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      setLoading(true);
+      try {
+        // Fetch all spots
+        const fetchedSpots = await client.query(api.spots.list, {
+          sports: [selectedSport],
+        });
+
+        // Create spots map
+        const spotsMapObj = {};
+        fetchedSpots.forEach((spot) => {
+          spotsMapObj[spot._id] = spot;
+        });
+        setSpotsMap(spotsMapObj);
+
+        // Determine which spots to show (favorites first if logged in)
+        let relevantSpots = fetchedSpots;
+        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
+          const favoriteSpotIds = new Set(user.favoriteSpots);
+          relevantSpots = [
+            ...fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id)),
+          ];
+          // Limit to top 3 favorites for dashboard
+          relevantSpots = relevantSpots.slice(0, 3);
+        } else {
+          // Show top 3 spots for anonymous users
+          relevantSpots = fetchedSpots.slice(0, 3);
+        }
+
+        // Fetch today's slots for these spots
+        const slotsPromises = relevantSpots.map(async (spot) => {
+          const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
+          const relevantSports = spotSports.filter((s) => s === selectedSport);
+
+          const configPromises = relevantSports.map((sport) =>
+            client.query(api.spots.getSpotConfig, { spotId: spot._id, sport })
+          );
+
+          const usePersonalizedScores = user && user.showPersonalizedScores !== false;
+          const scoresPromises = relevantSports.map((sport) =>
+            client.query(api.spots.getConditionScores, {
+              spotId: spot._id,
+              sport,
+              userId: usePersonalizedScores && user?._id ? user._id : undefined,
+            })
+          );
+
+          const [slotsData, configs] = await Promise.all([
+            client.query(api.spots.getForecastSlots, { spotId: spot._id }),
+            Promise.all(configPromises),
+          ]);
+
+          const scoresArrays = await Promise.all(scoresPromises);
+          const scoresMap = {};
+          scoresArrays.forEach((scores, index) => {
+            const sport = relevantSports[index];
+            scores.forEach((score) => {
+              const key = `${score.timestamp}_${sport}`;
+              scoresMap[key] = score;
+            });
+          });
+
+          if (!slotsData) return [];
+
+          const enriched = enrichSlots(slotsData, spot, configs, scoresMap, relevantSports);
+
+          // Filter to today's slots only
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          return enriched.filter((slot) => {
+            const slotDate = new Date(slot.timestamp);
+            slotDate.setHours(0, 0, 0, 0);
+            return slotDate.getTime() === today.getTime();
+          });
+        });
+
+        const allSlots = (await Promise.all(slotsPromises)).flat();
+
+        // Filter to daylight slots with good scores (>= 60)
+        const goodSlots = allSlots.filter((slot) => {
+          if (slot.isTideOnly) return false;
+          if (isNighttimeSlot(new Date(slot.timestamp))) return false;
+
+          const spot = spotsMapObj[slot.spotId];
+          if (!spot) return false;
+
+          const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
+          const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
+
+          if (!isDaylight || afterSunset) return false;
+
+          return slot.score && slot.score.value >= 60;
+        });
+
+        // Sort by score (best first)
+        goodSlots.sort((a, b) => (b.score?.value || 0) - (a.score?.value || 0));
+
+        setTodaySlots(goodSlots.slice(0, 6)); // Top 6 slots
+
+        // Fetch webcams (limit to 4) - pass full spot objects
+        const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
+        setWebcams(allWebcams.slice(0, 4));
+
+        // Fetch recent sessions if logged in
+        if (sessionToken) {
+          const sessionsResult = await client.query(api.journal.listEntries, {
+            sessionToken,
+            limit: 3,
+          });
+          setRecentSessions(sessionsResult.entries);
+        }
+
+        // Fetch scrape timestamp
+        const scrapeTimestamp = await client.query(api.spots.getMostRecentScrapeTimestamp);
+        setMostRecentScrapeTimestamp(scrapeTimestamp);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, [selectedSport, user, sessionToken]);
+
+  const handleViewChange = (view) => {
+    if (view === "list") {
+      router.push("/");
+    } else if (view === "calendar") {
+      router.push("/calendar");
+    } else if (view === "cams") {
+      router.push("/cams");
+    } else if (view === "sessions") {
+      router.push("/journal");
+    }
+  };
+
+  return (
+    <MainLayout>
+      <Header />
+
+      {/* Tabs bar - sticky */}
+      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
+        <div className="flex items-center justify-between gap-2">
+          <ViewToggle onChange={handleViewChange} />
+        </div>
+      </div>
+
+      <div className="h-4" /> {/* Spacer */}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 text-ink/60 animate-spin" />
+        </div>
+      ) : (
+        <div className="px-4 pb-12 space-y-8">
+          {/* Today's Best Conditions */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-ink">Today's Best Conditions</h2>
+              <button
+                onClick={() => router.push("/")}
+                className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
+              >
+                See All
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+            {todaySlots.length === 0 ? (
+              <p className="text-ink/60 text-sm py-4">No good conditions forecast for today</p>
+            ) : (
+              <div className="space-y-2">
+                {todaySlots.map((slot) => {
+                  const spot = spotsMap[slot.spotId];
+                  if (!spot) return null;
+
+                  return (
+                    <button
+                      key={`${slot.spotId}-${slot.timestamp}`}
+                      onClick={() => router.push(`/?day=${encodeURIComponent(formatDate(new Date()))}`)}
+                      className="w-full p-3 rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/5 transition-all text-left bg-newsprint"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="font-bold text-ink">{spot.name}</div>
+                          <div className="text-sm text-ink/60">{formatTime(new Date(slot.timestamp))}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-green-700">{slot.score?.value}</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Webcams Preview */}
+          {webcams.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-ink">Live Webcams</h2>
+                <button
+                  onClick={() => router.push("/cams")}
+                  className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
+                >
+                  See All
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {webcams.map((spot) => (
+                  <WebcamCard key={spot._id} spot={spot} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recent Sessions */}
+          {sessionToken && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-ink">Recent Sessions</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => router.push("/journal/new")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">New Session</span>
+                  </button>
+                  <button
+                    onClick={() => router.push("/journal")}
+                    className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
+                  >
+                    See All
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {recentSessions.length === 0 ? (
+                <p className="text-ink/60 text-sm py-4">No sessions logged yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentSessions.map((entry) => (
+                    <SessionCard key={entry._id} entry={entry} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
+      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+    </MainLayout>
+  );
+}

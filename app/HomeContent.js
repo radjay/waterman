@@ -315,7 +315,9 @@ export default function HomeContent() {
 
   // Handle view toggle - navigate to different views
   const handleViewChange = (view) => {
-    if (view === "calendar") {
+    if (view === "dashboard") {
+      router.push("/dashboard");
+    } else if (view === "calendar") {
       router.push("/calendar");
     } else if (view === "cams") {
       router.push("/cams");

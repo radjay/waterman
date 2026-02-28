@@ -1,26 +1,40 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Calendar, List, Video, BookOpen } from "lucide-react";
+import { Calendar, List, Video, BookOpen, LayoutDashboard } from "lucide-react";
 
 /**
- * ViewToggle component for switching between calendar, list, cams, and sessions views.
+ * ViewToggle component for switching between dashboard, calendar, list, cams, and sessions views.
  *
- * @param {Function} onChange - Callback when view changes (receives "calendar", "list", "cams", or "sessions")
+ * @param {Function} onChange - Callback when view changes (receives "dashboard", "calendar", "list", "cams", or "sessions")
  * @param {string} className - Additional CSS classes
  */
 export function ViewToggle({ onChange, className = "" }) {
   const pathname = usePathname();
+  const isDashboard = pathname === "/dashboard";
   const isCalendar = pathname === "/calendar";
   const isCams = pathname === "/cams";
   const isSessions = pathname?.startsWith("/journal");
+  const isReport = !isDashboard && !isCalendar && !isCams && !isSessions;
 
   return (
     <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint self-start ${className}`}>
       <button
+        onClick={() => onChange("dashboard")}
+        className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+          isDashboard
+            ? "bg-ink text-newsprint"
+            : "text-ink hover:bg-ink/5"
+        }`}
+        aria-label="Dashboard view"
+      >
+        <LayoutDashboard size={16} />
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Dashboard</span>
+      </button>
+      <button
         onClick={() => onChange("list")}
         className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-          !isCalendar && !isCams && !isSessions
+          isReport
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
         }`}
