@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, BookOpen } from "lucide-react";
+import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, BookOpen, MapPin } from "lucide-react";
 
 export function MobileMenu({ onOpenChange }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -174,6 +174,14 @@ export function MobileMenu({ onOpenChange }) {
                       Journal
                     </button>
                   )}
+
+                  <button
+                    onClick={() => handleNavigation("/request-spot")}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Request a Spot
+                  </button>
 
                   <button
                     onClick={() => handleNavigation("/subscribe")}
