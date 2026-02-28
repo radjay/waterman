@@ -169,7 +169,7 @@ export default function DashboardPage() {
 
   const handleViewChange = (view) => {
     if (view === "list") {
-      router.push("/");
+      router.push("/report");
     } else if (view === "calendar") {
       router.push("/calendar");
     } else if (view === "cams") {
@@ -237,7 +237,7 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={`${slot.spotId}-${slot.timestamp}`}
-                      onClick={() => router.push(`/?day=${encodeURIComponent(formatDate(new Date()))}`)}
+                      onClick={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
                       className="w-full p-3 rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/5 transition-all text-left bg-newsprint"
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                   onClick={() => router.push("/cams")}
                   className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
                 >
-                  See All
+                  View Report
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                     onClick={() => handleWebcamClick(spot)}
                     className="cursor-pointer group"
                   >
-                    <WebcamCard spot={spot} />
+                    <WebcamCard spot={spot} showHoverButtons />
                   </div>
                 ))}
               </div>

@@ -85,7 +85,7 @@ function CamsContent() {
     if (view === "dashboard") {
       router.push("/dashboard");
     } else if (view === "list") {
-      router.push("/");
+      router.push("/report");
     } else if (view === "calendar") {
       router.push("/calendar");
     } else if (view === "sessions") {

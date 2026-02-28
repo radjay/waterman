@@ -207,8 +207,8 @@ export default function CalendarPage() {
 
   // Handle day click from calendar view (fallback)
   const handleDayClick = (dayStr) => {
-    // Navigate to list view with day parameter for scrolling
-    router.push(`/?day=${encodeURIComponent(dayStr)}`);
+    // Navigate to report view with day parameter for scrolling
+    router.push(`/report?day=${encodeURIComponent(dayStr)}`);
   };
 
   // Handle view toggle - navigate to different views
@@ -216,7 +216,7 @@ export default function CalendarPage() {
     if (view === "dashboard") {
       router.push("/dashboard");
     } else if (view === "list") {
-      router.push("/");
+      router.push("/report");
     } else if (view === "cams") {
       router.push("/cams");
     } else if (view === "sessions") {

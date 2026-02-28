@@ -15,7 +15,7 @@ export function ViewToggle({ onChange, className = "" }) {
   const isCalendar = pathname === "/calendar";
   const isCams = pathname === "/cams";
   const isSessions = pathname?.startsWith("/journal");
-  const isReport = !isDashboard && !isCalendar && !isCams && !isSessions;
+  const isReport = pathname === "/report";
 
   return (
     <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint self-start ${className}`}>
