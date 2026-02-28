@@ -68,41 +68,53 @@ export function LiveWindRow({ stationId, className = "" }) {
 
   return (
     <div
-      className={`flex items-center justify-between py-3 px-2 border-t border-ink/10 bg-green-50/30 ${className}`}
+      className={`flex items-center justify-between py-2.5 px-2 border-y-2 ${
+        isStale ? "border-ink/20 bg-ink/5" : "border-green-600 bg-green-50"
+      } ${className}`}
     >
-      {/* Time/Label */}
+      {/* Time/Label - with pulsing indicator */}
       <div className="flex items-center gap-2 min-w-[80px]">
-        <span className="text-xs font-bold text-green-700 uppercase">Live</span>
+        <div className="relative flex items-center gap-1.5">
+          {!isStale && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-600 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
+            </span>
+          )}
+          <span className={`text-xs font-bold uppercase ${isStale ? "text-ink/60" : "text-green-700"}`}>
+            Live
+          </span>
+        </div>
       </div>
 
-      {/* Wind data */}
-      <div className="flex items-center gap-4 flex-1 justify-start pl-4">
+      {/* Wind data - more prominent */}
+      <div className="flex items-center gap-3 flex-1 justify-start pl-4">
         <div className="flex items-center gap-1.5">
-          <Wind size={14} className={isStale ? "text-ink/40" : "text-green-600"} />
-          <span className={`text-sm font-bold tabular-nums ${isStale ? "text-ink/60" : "text-ink"}`}>
+          <Wind size={16} className={isStale ? "text-ink/40" : "text-green-700"} />
+          <span className={`text-base font-bold tabular-nums ${isStale ? "text-ink/60" : "text-green-900"}`}>
             {Math.round(liveWind.windSpeedKnots)} kn
           </span>
           {liveWind.windGustKnots !== null && (
-            <span className={`text-sm tabular-nums ${isStale ? "text-ink/40" : "text-ink/60"}`}>
+            <span className={`text-sm tabular-nums ${isStale ? "text-ink/40" : "text-green-700"}`}>
               ({Math.round(liveWind.windGustKnots)}*)
             </span>
           )}
           {liveWind.windDirection !== null && (
             <>
-              <span className="text-ink/40 mx-1">|</span>
+              <span className={`mx-1 ${isStale ? "text-ink/30" : "text-green-600"}`}>|</span>
               <Arrow
                 direction={liveWind.windDirection}
-                size={12}
-                className={isStale ? "text-ink/40" : "text-ink/70"}
+                size={14}
+                className={isStale ? "text-ink/40" : "text-green-700"}
               />
             </>
           )}
         </div>
       </div>
 
-      {/* Age indicator */}
+      {/* Age indicator - smaller and subtle */}
       {ageMinutes > 0 && (
-        <div className="text-xs text-ink/40 min-w-[60px] text-right">
+        <div className={`text-xs min-w-[60px] text-right ${isStale ? "text-ink/40" : "text-green-700/70"}`}>
           {ageMinutes}m ago
         </div>
       )}
