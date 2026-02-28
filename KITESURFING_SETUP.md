@@ -22,17 +22,22 @@ This document explains how to enable kitesurfing as a third sport in the Waterma
 
 ## Running the Migration
 
-To add the kitesurfing spots and configs to your database:
+**IMPORTANT**: Always use the safe migration runner which creates automatic backups:
 
 ```bash
-npx convex run addKitesurfing:addKitesurfingToSpots
+node scripts/runMigration.mjs addKitesurfing:addKitesurfingToSpots
 ```
 
-This will:
-- Create Guincho and Fonte da Telha spots if they don't exist
-- Add kitesurfing to Lagoa da Albufeira (which already exists)
-- Create kitesurfing configs for all three spots
-- Create wingfoil configs for any new spots
+This script will:
+1. Create a backup of your database first
+2. Run the migration
+3. Report results
+
+The migration will:
+- Update Praia do Guincho (existing surf spot) to add wingfoil + kitesurfing
+- Add kitesurfing to Lagoa da Albufeira (existing wingfoil spot)
+- Create or update Fonte da Telha to support wingfoil + kitesurfing + surfing
+- Create sport configs for all new sport/spot combinations
 
 ## After Migration
 
