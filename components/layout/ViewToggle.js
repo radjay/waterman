@@ -1,18 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Calendar, List, Video } from "lucide-react";
+import { Calendar, List, Video, BookOpen } from "lucide-react";
 
 /**
- * ViewToggle component for switching between calendar, list, and cams views.
- * 
- * @param {Function} onChange - Callback when view changes (receives "calendar", "list", or "cams")
+ * ViewToggle component for switching between calendar, list, cams, and sessions views.
+ *
+ * @param {Function} onChange - Callback when view changes (receives "calendar", "list", "cams", or "sessions")
  * @param {string} className - Additional CSS classes
  */
 export function ViewToggle({ onChange, className = "" }) {
   const pathname = usePathname();
   const isCalendar = pathname === "/calendar";
   const isCams = pathname === "/cams";
+  const isSessions = pathname?.startsWith("/journal");
 
   return (
     <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint self-start ${className}`}>
@@ -51,6 +52,18 @@ export function ViewToggle({ onChange, className = "" }) {
       >
         <Video size={16} />
         <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Cams</span>
+      </button>
+      <button
+        onClick={() => onChange("sessions")}
+        className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
+          isSessions
+            ? "bg-ink text-newsprint"
+            : "text-ink hover:bg-ink/5"
+        }`}
+        aria-label="Sessions view"
+      >
+        <BookOpen size={16} />
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Sessions</span>
       </button>
     </div>
   );

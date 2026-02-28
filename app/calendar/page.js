@@ -217,6 +217,8 @@ export default function CalendarPage() {
       router.push("/");
     } else if (view === "cams") {
       router.push("/cams");
+    } else if (view === "sessions") {
+      router.push("/journal");
     }
   };
 

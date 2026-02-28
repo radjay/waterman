@@ -7,6 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { useAuth } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
+import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { SessionCard } from "../../components/journal/SessionCard";
 import { Loader2, Plus, BookOpen } from "lucide-react";
@@ -48,6 +49,17 @@ export default function JournalPage() {
     fetchEntries();
   }, [sessionToken, selectedSport, router]);
 
+  // Handle view toggle - navigate to different views
+  const handleViewChange = (view) => {
+    if (view === "list") {
+      router.push("/");
+    } else if (view === "calendar") {
+      router.push("/calendar");
+    } else if (view === "cams") {
+      router.push("/cams");
+    }
+  };
+
   if (!sessionToken) {
     return null;
   }
@@ -55,6 +67,14 @@ export default function JournalPage() {
   return (
     <MainLayout>
       <Header />
+      {/* Tabs bar - sticky on mobile and desktop */}
+      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
+        <div className="flex items-center justify-between gap-2">
+          <ViewToggle onChange={handleViewChange} />
+        </div>
+      </div>
+      <div className="h-4" /> {/* Spacer below tabs */}
+
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-semibold text-ink">Session Journal</h1>
@@ -87,7 +107,17 @@ export default function JournalPage() {
                 : "border-ink/20 hover:border-ink/30"
             }`}
           >
-            Wingfoiling
+            Wing
+          </button>
+          <button
+            onClick={() => setSelectedSport("kitesurfing")}
+            className={`px-4 py-2 rounded-md border-2 transition-all ${
+              selectedSport === "kitesurfing"
+                ? "border-ink bg-ink/5"
+                : "border-ink/20 hover:border-ink/30"
+            }`}
+          >
+            Kite
           </button>
           <button
             onClick={() => setSelectedSport("surfing")}
@@ -97,7 +127,7 @@ export default function JournalPage() {
                 : "border-ink/20 hover:border-ink/30"
             }`}
           >
-            Surfing
+            Surf
           </button>
         </div>
 

@@ -346,6 +346,8 @@ function SportFilterPageContent() {
       router.push("/calendar");
     } else if (view === "cams") {
       router.push("/cams");
+    } else if (view === "sessions") {
+      router.push("/journal");
     } else {
       // Navigate to report view (main page)
       router.push("/");

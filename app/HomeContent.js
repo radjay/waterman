@@ -315,6 +315,8 @@ export default function HomeContent() {
       router.push("/calendar");
     } else if (view === "cams") {
       router.push("/cams");
+    } else if (view === "sessions") {
+      router.push("/journal");
     }
   };
 

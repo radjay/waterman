@@ -86,6 +86,8 @@ function CamsContent() {
       router.push("/");
     } else if (view === "calendar") {
       router.push("/calendar");
+    } else if (view === "sessions") {
+      router.push("/journal");
     }
   };
 
