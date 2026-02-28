@@ -95,8 +95,8 @@ export function TvMode({ webcams, onClose }) {
         <X className="w-6 h-6 text-white" />
       </button>
 
-      {/* 3-column grid with no spacing, scrollable */}
-      <div className="grid grid-cols-3 auto-rows-[600px] overflow-y-auto h-full">
+      {/* 3-column grid with 16:9 aspect ratio, scrollable */}
+      <div className="grid grid-cols-3 overflow-y-auto h-full">
         {webcams.map((webcam) => (
           <TvWebcamCell
             key={webcam._id}
@@ -207,7 +207,7 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
 
   return (
     <div
-      className="relative w-full h-full bg-black overflow-hidden group cursor-pointer"
+      className="relative w-full aspect-video bg-black overflow-hidden group cursor-pointer"
       onClick={onClick}
     >
       {/* Video player */}
