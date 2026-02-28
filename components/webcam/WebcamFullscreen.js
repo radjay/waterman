@@ -323,11 +323,11 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           <X size={24} />
         </button>
 
-        {/* Video container */}
-        <div className="flex-1 flex items-center justify-center p-4 relative z-0 overflow-hidden min-h-0">
+        {/* Video container - fills entire viewport on large displays */}
+        <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">
           <video
             ref={videoRef}
-            className="max-w-full max-h-full object-contain"
+            className="w-full h-full object-cover"
             playsInline
             muted
             autoPlay
