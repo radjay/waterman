@@ -15,6 +15,7 @@ import type * as _archive_fixConfig from "../_archive/fixConfig.js";
 import type * as _archive_migrate from "../_archive/migrate.js";
 import type * as _archive_updateCarcavelosConfig from "../_archive/updateCarcavelosConfig.js";
 import type * as _archive_updateStats from "../_archive/updateStats.js";
+import type * as addKitesurfing from "../addKitesurfing.js";
 import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as calendar from "../calendar.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "_archive/migrate": typeof _archive_migrate;
   "_archive/updateCarcavelosConfig": typeof _archive_updateCarcavelosConfig;
   "_archive/updateStats": typeof _archive_updateStats;
+  addKitesurfing: typeof addKitesurfing;
   admin: typeof admin;
   auth: typeof auth;
   calendar: typeof calendar;
