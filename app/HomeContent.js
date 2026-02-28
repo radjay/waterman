@@ -278,24 +278,28 @@ export default function HomeContent() {
 
       // Filter to daylight slots + contextual slots
       // Always exclude nighttime slots regardless of showFilter setting
+      // BUT: Keep all slots for today regardless of whether they're in the past
+      const isToday = day === formatDate(new Date());
+
       filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
         // Always show tide-only slots
         if (slot.isTideOnly) return true;
-        
+
         // Always exclude clearly nighttime slots (10 PM - 6 AM) as a safety check
         if (isNighttimeSlot(new Date(slot.timestamp))) return false;
-        
+
         // Show contextual slots (these are special cases)
         if (slot.isContextual) return true;
-        
-        // Show daylight slots (but not if they're after sunset)
+
+        // For today: show all daylight slots regardless of current time
+        // For future days: only show slots that haven't happened yet
         const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
         const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
-        
+
         // Only show if it's daylight AND not after sunset
         // (isDaylight should already exclude after-sunset, but double-check for safety)
         if (isDaylight && !afterSunset) return true;
-        
+
         // Filter out everything else (including slots after sunset that aren't contextual)
         return false;
       });
