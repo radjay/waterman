@@ -33,17 +33,23 @@ export function TvMode({ webcams, onClose }) {
     return null;
   };
 
-  // Handle ESC key to exit
+  // Handle ESC key - close focused cam or exit TV mode
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        if (focusedSpot) {
+          // If focused on a cam, just unfocus it (back to grid)
+          setFocusedSpot(null);
+        } else {
+          // If in grid view, exit TV mode completely
+          onClose();
+        }
       }
     };
 
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
+  }, [focusedSpot, onClose]);
 
   // Lock body scroll when TV mode is active
   useEffect(() => {
@@ -57,20 +63,11 @@ export function TvMode({ webcams, onClose }) {
   if (focusedSpot) {
     return (
       <div className="fixed inset-0 z-[200] bg-black">
-        {/* Back button */}
+        {/* Close button - unfocuses cam and returns to grid */}
         <button
           onClick={() => setFocusedSpot(null)}
-          className="absolute top-4 left-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-          aria-label="Back to grid"
-        >
-          <X className="w-6 h-6 text-white" />
-        </button>
-
-        {/* Close TV mode button */}
-        <button
-          onClick={onClose}
           className="absolute top-4 right-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-          aria-label="Exit TV mode"
+          aria-label="Back to grid"
         >
           <X className="w-6 h-6 text-white" />
         </button>
