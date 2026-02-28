@@ -18,7 +18,7 @@ export function ViewToggle({ onChange, className = "" }) {
   const isReport = pathname === "/report";
 
   return (
-    <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint overflow-x-auto scrollbar-hide ${className}`}>
+    <div className={`inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint ${className}`}>
       <button
         onClick={() => onChange("dashboard")}
         className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${

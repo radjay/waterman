@@ -347,7 +347,7 @@ export default function HomeContent() {
     <MainLayout>
       <Header />
       {/* Tabs + filters bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4">
+      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 px-4">
           {/* Tabs row with filter toggle on mobile */}
           <div className="flex items-center justify-between md:justify-start overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
