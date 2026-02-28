@@ -14,6 +14,7 @@ import { formatDate, formatTime } from "../../lib/utils";
 import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
+import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { SessionCard } from "../../components/journal/SessionCard";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [recentSessions, setRecentSessions] = useState([]);
   const [spotsMap, setSpotsMap] = useState({});
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
+  const [focusedWebcam, setFocusedWebcam] = useState(null);
 
   // Get user's selected sport (default to wingfoil)
   const selectedSport = user?.selectedSport || "wingfoil";
@@ -177,6 +179,21 @@ export default function DashboardPage() {
     }
   };
 
+  // Handle webcam click (open fullscreen)
+  const handleWebcamClick = (webcam) => {
+    setFocusedWebcam(webcam);
+  };
+
+  // Handle close fullscreen
+  const handleCloseFullscreen = () => {
+    setFocusedWebcam(null);
+  };
+
+  // Handle navigate between webcams
+  const handleNavigateWebcam = (webcam) => {
+    setFocusedWebcam(webcam);
+  };
+
   return (
     <MainLayout>
       <Header />
@@ -255,7 +272,13 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {webcams.map((spot) => (
-                  <WebcamCard key={spot._id} spot={spot} />
+                  <div
+                    key={spot._id}
+                    onClick={() => handleWebcamClick(spot)}
+                    className="cursor-pointer group"
+                  >
+                    <WebcamCard spot={spot} />
+                  </div>
                 ))}
               </div>
             </section>
@@ -299,6 +322,16 @@ export default function DashboardPage() {
       )}
 
       <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+
+      {/* Fullscreen Webcam Viewer */}
+      {focusedWebcam && (
+        <WebcamFullscreen
+          spot={focusedWebcam}
+          onClose={handleCloseFullscreen}
+          allWebcams={webcams}
+          onNavigate={handleNavigateWebcam}
+        />
+      )}
     </MainLayout>
   );
 }
