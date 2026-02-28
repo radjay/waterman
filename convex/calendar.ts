@@ -122,10 +122,15 @@ export const getSportFeed = query({
         // but timestamps remain consistent for the same time period
         const latestTimestamps = new Set<number>();
         for (const spotId of targetSpotIds) {
+            // Only fetch slots in our time range to avoid hitting document read limits
             // Use the same logic as getForecastSlots to get latest slots
             const allSlots = await ctx.db
                 .query("forecast_slots")
-                .withIndex("by_spot", q => q.eq("spotId", spotId))
+                .withIndex("by_spot_timestamp", q =>
+                    q.eq("spotId", spotId)
+                     .gte("timestamp", now)
+                     .lte("timestamp", sevenDaysFromNow)
+                )
                 .collect();
 
             if (allSlots.length === 0) continue;
