@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
     const sportParam = params?.sport || "wingfoil";
     
     // Validate sport parameter
-    const validSports = ["wingfoil", "surfing"];
+    const validSports = ["wingfoil", "kitesurfing", "surfing"];
     const sport = validSports.includes(sportParam) ? sportParam : "wingfoil";
     
     // Get ideal slots from Convex for the specific sport
@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
     lines.push("PRODID:-//Waterman//Ideal Conditions Calendar//EN");
     lines.push("CALSCALE:GREGORIAN");
     lines.push("METHOD:PUBLISH");
-    const sportName = sport === "wingfoil" ? "Wingfoil" : "Surfing";
+    const sportName = sport === "wingfoil" ? "Wingfoil" : sport === "kitesurfing" ? "Kitesurfing" : "Surfing";
     lines.push(`X-WR-CALNAME:Waterman ${sportName} Ideal Conditions`);
     lines.push(`X-WR-CALDESC:Calendar feed for ideal ${sportName.toLowerCase()} conditions`);
     lines.push("X-WR-TIMEZONE:UTC");

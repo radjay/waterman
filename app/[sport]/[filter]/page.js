@@ -24,12 +24,14 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 // Map URL sport values to internal sport values
 const sportMap = {
   wing: "wingfoil",
+  kite: "kitesurfing",
   surf: "surfing",
 };
 
 // Map internal sport values to URL sport values
 const reverseSportMap = {
   wingfoil: "wing",
+  kitesurfing: "kite",
   surfing: "surf",
 };
 

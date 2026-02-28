@@ -32,7 +32,7 @@ export default function HomeContent() {
   const [localSelectedSport, setLocalSelectedSport] = usePersistedState(
     "waterman_selected_sport",
     "wingfoil",
-    (val) => val === "wingfoil" || val === "surfing"
+    (val) => val === "wingfoil" || val === "kitesurfing" || val === "surfing"
   );
 
   // Track if we've synced with user's favorite sports (only sync once on initial load)

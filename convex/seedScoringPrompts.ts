@@ -107,6 +107,19 @@ export const seedScoringPrompts = mutation({
                     }
                     spotPrompt += "Consider wind consistency - steady wind is preferred over gusty conditions. ";
                     spotPrompt += "Higher wind speeds (15-25 knots) are ideal, but consistency and direction matter more than peak speed.";
+                } else if (sport === "kitesurfing" || sport === "kite") {
+                    spotPrompt += "For kitesurfing at this spot: ";
+                    if (config?.minSpeed) {
+                        spotPrompt += `Minimum wind speed required is ${config.minSpeed} knots. `;
+                    }
+                    if (config?.minGust) {
+                        spotPrompt += `Minimum gust speed required is ${config.minGust} knots. `;
+                    }
+                    if (config?.directionFrom !== undefined && config?.directionTo !== undefined) {
+                        spotPrompt += `Optimal wind directions are from ${config.directionFrom}° to ${config.directionTo}° (wrapping through 0° if needed). `;
+                    }
+                    spotPrompt += "Consider wind consistency - steady wind is preferred over gusty conditions. ";
+                    spotPrompt += "Wind speeds of 12-25 knots are ideal, with lower wind requirements than wingfoiling.";
                 } else if (sport === "surfing" || sport === "surf") {
                     spotPrompt += "For surfing at this spot: ";
                     if (config?.minSwellHeight) {

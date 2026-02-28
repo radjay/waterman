@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
     const sportParam = resolvedParams?.sport || "wingfoil";
     
     // Validate sport parameter
-    const validSports = ["wingfoil", "surfing"];
+    const validSports = ["wingfoil", "kitesurfing", "surfing"];
     const sport = validSports.includes(sportParam) ? sportParam : "wingfoil";
     
     // Get query parameters

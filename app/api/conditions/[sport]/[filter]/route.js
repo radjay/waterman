@@ -5,7 +5,7 @@ import { enrichSlots } from "../../../../../lib/slots";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-const VALID_SPORTS = ["wingfoil", "surfing"];
+const VALID_SPORTS = ["wingfoil", "kitesurfing", "surfing"];
 const VALID_FILTERS = ["best", "all"];
 
 function corsHeaders() {

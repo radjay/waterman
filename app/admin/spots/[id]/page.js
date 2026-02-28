@@ -263,7 +263,7 @@ export default function SpotEdit() {
         <div>
           <label className="block text-sm font-medium mb-2">Sports</label>
           <div className="space-y-2">
-            {["wingfoil", "surfing"].map((sport) => (
+            {["wingfoil", "kitesurfing", "surfing"].map((sport) => (
               <div key={sport} className="flex items-center justify-between">
                 <label className="flex items-center">
                   <input

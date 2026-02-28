@@ -63,7 +63,7 @@ export default function SportProfilePage({ params }) {
   const [scoringResult, setScoringResult] = useState(null);
 
   // Validate sport
-  const isValidSport = sport === "wingfoil" || sport === "surfing";
+  const isValidSport = sport === "wingfoil" || sport === "kitesurfing" || sport === "surfing";
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -155,7 +155,7 @@ export default function SportProfilePage({ params }) {
         <div className="max-w-2xl mx-auto px-4 py-12">
           <h1 className="text-2xl font-semibold text-ink mb-4">Invalid Sport</h1>
           <p className="text-ink/60 mb-6">
-            The sport "{sport}" is not recognized. Please choose wingfoil or surfing.
+            The sport "{sport}" is not recognized. Please choose wingfoil, kitesurfing, or surfing.
           </p>
           <button
             onClick={() => router.push("/profile")}

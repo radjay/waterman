@@ -21,8 +21,8 @@ export default function CalendarPage() {
   const router = useRouter();
   const user = useUser();
 
-  // Calendar shows all sports, so we always fetch data for both
-  const selectedSports = useMemo(() => ["wingfoil", "surfing"], []);
+  // Calendar shows all sports, so we always fetch data for all three
+  const selectedSports = useMemo(() => ["wingfoil", "kitesurfing", "surfing"], []);
   
   // Calendar always shows best conditions (score >= 60)
   const showFilter = "best";
