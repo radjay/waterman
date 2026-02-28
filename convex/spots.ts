@@ -396,8 +396,11 @@ export const getForecastSlots = query({
         todayEnd.setDate(todayEnd.getDate() + 1);
 
         // Find slots from today that are NOT in the latest scrape
+        // We need to deduplicate by timestamp, keeping only the most recent version
         const latestTimestamps = new Set(latestSlots.map(s => s.timestamp));
-        const todaysPastSlots = allSlots.filter(s => {
+
+        // Get all today's slots that aren't in the latest scrape
+        const candidatePastSlots = allSlots.filter(s => {
             // Must be from today
             if (s.timestamp < todayStart.getTime() || s.timestamp >= todayEnd.getTime()) {
                 return false;
@@ -412,6 +415,16 @@ export const getForecastSlots = query({
             }
             return true;
         });
+
+        // Deduplicate by timestamp, keeping the slot from the most recent scrape
+        const slotsByTimestamp = new Map();
+        for (const slot of candidatePastSlots) {
+            const existing = slotsByTimestamp.get(slot.timestamp);
+            if (!existing || (slot.scrapeTimestamp && slot.scrapeTimestamp > (existing.scrapeTimestamp || 0))) {
+                slotsByTimestamp.set(slot.timestamp, slot);
+            }
+        }
+        const todaysPastSlots = Array.from(slotsByTimestamp.values());
 
         // Combine latest scrape slots + preserved today's past slots
         return [...latestSlots, ...todaysPastSlots];
