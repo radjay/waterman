@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Maximize2 } from "lucide-react";
 import Hls from "hls.js";
 
 /**
  * TvMode component - Fullscreen dark theme view with 3-column grid and no spacing.
  * Designed for displaying all webcams simultaneously on a TV or large display.
+ * Clicking a webcam focuses on it in fullscreen.
  *
  * @param {Array} webcams - Array of webcam spot objects
  * @param {Function} onClose - Callback when TV mode is exited
  */
 export function TvMode({ webcams, onClose }) {
+  const [focusedSpot, setFocusedSpot] = useState(null);
   // Get stream URL for a spot
   const getStreamUrl = (spot) => {
     // New format: webcamStreamId + webcamStreamSource
@@ -51,6 +53,37 @@ export function TvMode({ webcams, onClose }) {
     };
   }, []);
 
+  // If a spot is focused, show it fullscreen
+  if (focusedSpot) {
+    return (
+      <div className="fixed inset-0 z-[200] bg-black">
+        {/* Back button */}
+        <button
+          onClick={() => setFocusedSpot(null)}
+          className="absolute top-4 left-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+          aria-label="Back to grid"
+        >
+          <X className="w-6 h-6 text-white" />
+        </button>
+
+        {/* Close TV mode button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+          aria-label="Exit TV mode"
+        >
+          <X className="w-6 h-6 text-white" />
+        </button>
+
+        {/* Fullscreen single webcam */}
+        <div className="w-full h-full">
+          <TvWebcamCell spot={focusedSpot} getStreamUrl={getStreamUrl} />
+        </div>
+      </div>
+    );
+  }
+
+  // Grid view
   return (
     <div className="fixed inset-0 z-[200] bg-black">
       {/* Close button */}
@@ -65,7 +98,12 @@ export function TvMode({ webcams, onClose }) {
       {/* 3-column grid with no spacing, scrollable */}
       <div className="grid grid-cols-3 auto-rows-[600px] overflow-y-auto h-full">
         {webcams.map((webcam) => (
-          <TvWebcamCell key={webcam._id} spot={webcam} getStreamUrl={getStreamUrl} />
+          <TvWebcamCell
+            key={webcam._id}
+            spot={webcam}
+            getStreamUrl={getStreamUrl}
+            onClick={() => setFocusedSpot(webcam)}
+          />
         ))}
       </div>
     </div>
@@ -75,8 +113,9 @@ export function TvMode({ webcams, onClose }) {
 /**
  * Individual webcam cell for TV mode grid.
  * Each cell contains a video player and spot name overlay.
+ * Clicking the cell focuses on it in fullscreen.
  */
-function TvWebcamCell({ spot, getStreamUrl }) {
+function TvWebcamCell({ spot, getStreamUrl, onClick }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
@@ -167,7 +206,10 @@ function TvWebcamCell({ spot, getStreamUrl }) {
   }, [spot, getStreamUrl]);
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden">
+    <div
+      className="relative w-full h-full bg-black overflow-hidden group cursor-pointer"
+      onClick={onClick}
+    >
       {/* Video player */}
       <video
         ref={videoRef}
@@ -176,6 +218,13 @@ function TvWebcamCell({ spot, getStreamUrl }) {
         muted
         controls={false}
       />
+
+      {/* Hover overlay with expand icon */}
+      {onClick && (
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <Maximize2 className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      )}
 
       {/* Spot name overlay (bottom-left) - subtle */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
