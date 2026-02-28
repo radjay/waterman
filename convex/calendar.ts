@@ -117,64 +117,22 @@ export const getSportFeed = query({
         const now = Date.now();
         const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
 
-        // Get latest forecast slot timestamps for each spot (matching app behavior)
-        // Using timestamps instead of slot IDs because slot IDs change with each scrape
-        // but timestamps remain consistent for the same time period
-        const latestTimestamps = new Set<number>();
+        // Get the most recent scrape timestamp for each spot
+        // We'll use this to filter scores to only the latest scrape's data
+        const latestScrapeBySpot = new Map<Id<"spots">, number>();
         for (const spotId of targetSpotIds) {
-            // Only fetch slots in our time range to avoid hitting document read limits
-            // Use the same logic as getForecastSlots to get latest slots
-            const allSlots = await ctx.db
-                .query("forecast_slots")
-                .withIndex("by_spot_timestamp", q =>
-                    q.eq("spotId", spotId)
-                     .gte("timestamp", now)
-                     .lte("timestamp", sevenDaysFromNow)
-                )
-                .collect();
-
-            if (allSlots.length === 0) continue;
-
-            // Find all unique scrape timestamps from slots
-            const slotScrapeTimestamps = [...new Set(
-                allSlots.map(s => s.scrapeTimestamp).filter(ts => ts !== undefined && ts !== null)
-            )];
-
-            if (slotScrapeTimestamps.length === 0) {
-                // Legacy data - use all slot timestamps
-                allSlots.forEach(slot => latestTimestamps.add(slot.timestamp));
-                continue;
-            }
-
             // Find all successful scrapes for this spot
             const successfulScrapes = await ctx.db
                 .query("scrapes")
                 .filter((q) => q.eq(q.field("spotId"), spotId))
                 .collect();
 
-            let targetScrapeTimestamp = null;
-
             if (successfulScrapes.length > 0) {
-                // Find the most recent successful scrape timestamp
+                // Get the most recent successful scrape timestamp
                 const lastSuccessfulTimestamp = Math.max(
                     ...successfulScrapes.map(s => s.scrapeTimestamp)
                 );
-
-                // Use the most recent timestamp from either successful scrapes OR slots
-                targetScrapeTimestamp = Math.max(
-                    lastSuccessfulTimestamp,
-                    ...slotScrapeTimestamps
-                );
-            } else {
-                // No successful scrapes - use the most recent slot timestamp
-                targetScrapeTimestamp = Math.max(...slotScrapeTimestamps);
-            }
-
-            // Get all slot timestamps from the target scrape
-            if (targetScrapeTimestamp !== null) {
-                allSlots
-                    .filter(s => s.scrapeTimestamp === targetScrapeTimestamp)
-                    .forEach(slot => latestTimestamps.add(slot.timestamp));
+                latestScrapeBySpot.set(spotId, lastSuccessfulTimestamp);
             }
         }
 
@@ -216,17 +174,26 @@ export const getSportFeed = query({
                     scoresByTimestamp.set(score.timestamp, score);
                 }
                 
-                // Filter to score >= 75 and matching latest slot timestamps
-                // Using timestamp instead of slotId because slot IDs change with each scrape
+                // Filter to score >= 75 and matching latest scrape
+                // Use scrapeTimestamp to ensure we're showing scores from the latest data
+                const latestScrape = latestScrapeBySpot.get(spotId);
                 filtered = Array.from(scoresByTimestamp.values()).filter(score =>
-                    score.score >= 75 && latestTimestamps.has(score.timestamp)
+                    score.score >= 75 && (
+                        !latestScrape || // No scrape timestamp means legacy data - include it
+                        !score.scrapeTimestamp || // Score has no scrape timestamp - include it
+                        score.scrapeTimestamp === latestScrape // Matches latest scrape
+                    )
                 );
             } else {
                 // System scores only
+                const latestScrape = latestScrapeBySpot.get(spotId);
                 filtered = sportScores.filter(score =>
                     score.userId === null &&
-                    score.score >= 75 &&
-                    latestTimestamps.has(score.timestamp)
+                    score.score >= 75 && (
+                        !latestScrape ||
+                        !score.scrapeTimestamp ||
+                        score.scrapeTimestamp === latestScrape
+                    )
                 );
             }
             
