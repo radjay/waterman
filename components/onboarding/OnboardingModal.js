@@ -287,6 +287,21 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
                 )}
               </div>
 
+              {/* Request a Spot link */}
+              <div className="text-center pt-4 border-t border-ink/10">
+                <p className="text-sm text-ink/60">
+                  Don't see your spot?{" "}
+                  <a
+                    href="/request-spot"
+                    className="text-ink font-bold underline hover:text-ink/80 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Request it here
+                  </a>
+                </p>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep(2)}

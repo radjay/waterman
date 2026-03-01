@@ -14,7 +14,8 @@ import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
-import { Tv } from "lucide-react";
+import { Tv, MapPin } from "lucide-react";
+import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -118,15 +119,25 @@ function CamsContent() {
       <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
         <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-hide px-4">
           <ViewToggle onChange={handleViewChange} />
-          {/* TV Mode button - desktop only */}
-          <button
-            onClick={() => setTvMode(true)}
-            className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors flex-shrink-0"
-            aria-label="TV Mode"
-          >
-            <Tv size={16} />
-            <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">TV Mode</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Request a Spot link */}
+            <Link
+              href="/request-spot"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold uppercase text-ink/60 hover:text-ink transition-colors flex-shrink-0"
+            >
+              <MapPin size={16} />
+              <span className="hidden sm:inline text-xs leading-none translate-y-[1.5px]">Request a Spot</span>
+            </Link>
+            {/* TV Mode button - desktop only */}
+            <button
+              onClick={() => setTvMode(true)}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors flex-shrink-0"
+              aria-label="TV Mode"
+            >
+              <Tv size={16} />
+              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">TV Mode</span>
+            </button>
+          </div>
         </div>
       </div>
       <div className="h-4" /> {/* Spacer below tabs */}
