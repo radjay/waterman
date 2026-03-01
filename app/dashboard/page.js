@@ -43,10 +43,8 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       setLoading(true);
       try {
-        // Fetch all spots
-        const fetchedSpots = await client.query(api.spots.list, {
-          sports: [selectedSport],
-        });
+        // Fetch all spots (don't filter by selected sport - we want to show best conditions for ALL sports)
+        const fetchedSpots = await client.query(api.spots.list, {});
 
         // Create spots map
         const spotsMapObj = {};
