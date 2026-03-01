@@ -4,39 +4,55 @@
 
 ### Added
 - First-visit onboarding flow with sports, country, and favorite spots selection
-- Anonymous user preferences stored in localStorage
-- Home page as default landing with best conditions overview
+- Settings page separate from Profile for better organization
+- Request a Spot links in onboarding and Cams page
+
+### Fixed
+- Dashboard now shows conditions from all favorite spots (not just first 3)
+- Dashboard Best Conditions shows all sports (not just selected sport)
+- Onboarding modal no longer flashes on page load for authenticated users
+- Duplicate timeslots no longer appear on Reports tab
+
+### Changed
+- Dashboard renamed to Home throughout the app
+- Best conditions section shows all sports on Home page
+- Live webcams section shows all favorite spots
+- Profile page split into Profile (account info) and Settings (preferences)
+- Account menu reorganized (removed Journal, added Settings and Request a Spot)
+- Removed header divider lines for cleaner visual appearance
+- Anonymous user preferences now stored in localStorage
+
+---
+
+## [2026-02-28]
+
+### Added
+- Dashboard/Home page as default landing with best conditions overview
 - Live wind indicators on webcams and reports (data from Windguru)
 - Kitesurfing sport with dedicated spots
 - Sessions tab added to main navigation
 - Request a Spot page for users to suggest new locations
-- Request a Spot links in onboarding and Cams page
-- Settings page separate from Profile for better organization
-- TV Mode for Cams page (full-screen 3-column grid)
+- TV Mode for Cams page (full-screen 3-column grid with focus mode)
+- Sport filter to Cams page
+- Standard Operating Procedures (SOPs) documentation
 
 ### Fixed
-- Dashboard now shows conditions from all favorite spots (not just first 3)
-- Onboarding modal no longer flashes on page load for authenticated users
 - Calendar page displays conditions correctly
 - .ics calendar feed no longer returns 500 errors (fixed document read limits)
-- Duplicate timeslots no longer appear on Reports tab
+- .ics calendar now supports kitesurfing
 - Fullscreen webcams now use letterboxing instead of cropping
 - Live wind data units corrected (knots, not m/s)
 - ViewToggle - Report and Sessions tabs both showing active (fixed)
 - Mobile navigation issues resolved
+- TV mode webcam aspect ratio and cropping issues
+- Wind direction display in live wind indicators
 
 ### Changed
-- Dashboard renamed to Home throughout the app
-- Best conditions section shows all sports (not just selected sport)
-- Log a Session button moved to bottom of conditions section
-- Live webcams show all favorite spots
-- Improved visual distinction between dashboard sections
-- Profile page now separate from Settings page
-- Account menu reorganized (removed redundant Journal link, added Settings)
-- Removed header divider lines for cleaner visual appearance
-- Sport filter added to Cams page
+- Dashboard webcams are now clickable for fullscreen viewing
 - Navigation made horizontally scrollable on mobile
 - Sessions page redesigned to match app aesthetic
+- Live wind display redesigned (prominent badge format)
+- Today's past ideal slots preserved until midnight (not filtered out by scraper updates)
 
 ---
 
