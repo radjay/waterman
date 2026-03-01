@@ -224,7 +224,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-ink">Today's Best Conditions</h2>
               <button
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/report")}
                 className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
               >
                 See All
@@ -265,7 +265,7 @@ export default function DashboardPage() {
             {isAuthenticated && (
               <button
                 onClick={() => router.push("/journal/new")}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mt-4 bg-ink/5 text-ink rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/10 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 mt-4 bg-ink/5 text-ink rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/10 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-bold uppercase">Log a Session</span>
