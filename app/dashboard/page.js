@@ -15,6 +15,9 @@ import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slot
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
+import { useOnboarding } from "../../hooks/useOnboarding";
+import { OnboardingFooter } from "../../components/onboarding/OnboardingFooter";
+import { OnboardingModal } from "../../components/onboarding/OnboardingModal";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -22,6 +25,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const { sessionToken, isAuthenticated } = useAuth();
   const user = useUser();
+
+  // Onboarding state
+  const { needsOnboarding, showFooter, isLoading: onboardingLoading, markOnboardingComplete, dismissFooter } = useOnboarding();
 
   const [loading, setLoading] = useState(true);
   const [todaySlots, setTodaySlots] = useState([]);
@@ -184,8 +190,18 @@ export default function DashboardPage() {
   };
 
   return (
-    <MainLayout>
-      <Header />
+    <>
+      {/* Show onboarding modal on first visit (dismissible on dashboard) */}
+      {!onboardingLoading && needsOnboarding && (
+        <OnboardingModal
+          onComplete={markOnboardingComplete}
+          onDismiss={markOnboardingComplete}
+          isDismissible={true}
+        />
+      )}
+
+      <MainLayout>
+        <Header />
 
       {/* Tabs bar - sticky, scrollable on mobile */}
       <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
@@ -299,6 +315,10 @@ export default function DashboardPage() {
           onNavigate={handleNavigateWebcam}
         />
       )}
-    </MainLayout>
+      </MainLayout>
+
+      {/* Show onboarding footer if user hasn't completed onboarding */}
+      {showFooter && <OnboardingFooter onDismiss={dismissFooter} />}
+    </>
   );
 }

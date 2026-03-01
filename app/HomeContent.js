@@ -19,6 +19,8 @@ import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { useAuth, useUser } from "../components/auth/AuthProvider";
 import { ListFilter, SlidersHorizontal } from "lucide-react";
 import { ViewToggle } from "../components/layout/ViewToggle";
+import { useOnboarding } from "../hooks/useOnboarding";
+import { OnboardingModal } from "../components/onboarding/OnboardingModal";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -27,6 +29,9 @@ export default function HomeContent() {
   const searchParams = useSearchParams();
   const { sessionToken } = useAuth();
   const user = useUser();
+
+  // Onboarding state
+  const { needsOnboarding, isLoading: onboardingLoading, markOnboardingComplete } = useOnboarding();
 
   // Use persisted state hook for sport selection (fallback for anonymous users)
   const [localSelectedSport, setLocalSelectedSport] = usePersistedState(
@@ -344,8 +349,17 @@ export default function HomeContent() {
   }, [highlightedDay, router]);
 
   return (
-    <MainLayout>
-      <Header />
+    <>
+      {/* Show onboarding modal on first visit (non-dismissible on homepage) */}
+      {!onboardingLoading && needsOnboarding && (
+        <OnboardingModal
+          onComplete={markOnboardingComplete}
+          isDismissible={false}
+        />
+      )}
+
+      <MainLayout>
+        <Header />
       {/* Tabs + filters bar - sticky, scrollable on mobile */}
       <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 px-4">
@@ -481,7 +495,8 @@ export default function HomeContent() {
             </div>
           )}
 
-      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
-    </MainLayout>
+        <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+      </MainLayout>
+    </>
   );
 }
