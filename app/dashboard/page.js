@@ -54,14 +54,37 @@ export default function DashboardPage() {
         setSpotsMap(spotsMapObj);
 
         // Determine which spots to fetch conditions for
-        // For logged-in users: fetch ALL favorite spots (we want to show best conditions across all of them)
-        // For anonymous users: fetch all spots (up to reasonable limit)
+        // Use database preferences for authenticated users, localStorage for anonymous users
         let relevantSpots = fetchedSpots;
+        let favoriteSpotIds = new Set();
+
         if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
-          const favoriteSpotIds = new Set(user.favoriteSpots);
+          // Authenticated user with favorites in database
+          favoriteSpotIds = new Set(user.favoriteSpots);
           relevantSpots = fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id));
+        } else if (!user) {
+          // Anonymous user - check localStorage for onboarding preferences
+          const preferencesStr = localStorage.getItem("waterman_preferences");
+          if (preferencesStr) {
+            try {
+              const preferences = JSON.parse(preferencesStr);
+              if (preferences.favoriteSpots && preferences.favoriteSpots.length > 0) {
+                favoriteSpotIds = new Set(preferences.favoriteSpots);
+                relevantSpots = fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id));
+              } else {
+                // No favorite spots in localStorage - show top 10
+                relevantSpots = fetchedSpots.slice(0, 10);
+              }
+            } catch (e) {
+              console.error("Error parsing localStorage preferences:", e);
+              relevantSpots = fetchedSpots.slice(0, 10);
+            }
+          } else {
+            // No localStorage preferences - show top 10 spots
+            relevantSpots = fetchedSpots.slice(0, 10);
+          }
         } else {
-          // Show top 10 spots for anonymous users (to find best conditions)
+          // Authenticated user with no favorites - show top 10
           relevantSpots = fetchedSpots.slice(0, 10);
         }
 
@@ -142,17 +165,16 @@ export default function DashboardPage() {
 
         setTodaySlots(goodSlots.slice(0, 6)); // Top 6 slots
 
-        // Fetch webcams from favorite spots only
-        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
-          const favoriteSpotIds = new Set(user.favoriteSpots);
+        // Fetch webcams from favorite spots (using the same favoriteSpotIds from above)
+        if (favoriteSpotIds.size > 0) {
           const favoriteWebcams = fetchedSpots.filter(
             (spot) => favoriteSpotIds.has(spot._id) && spot.webcamUrl
           );
           setWebcams(favoriteWebcams);
         } else {
-          // For anonymous users, show all webcams
+          // No favorites - show all webcams (limit to 4)
           const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
-          setWebcams(allWebcams.slice(0, 4)); // Limit to 4 for anonymous users
+          setWebcams(allWebcams.slice(0, 4));
         }
 
         // Fetch scrape timestamp
