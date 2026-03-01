@@ -313,7 +313,7 @@ export default function DashboardPage() {
                   onClick={() => router.push("/cams")}
                   className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
                 >
-                  View Report
+                  See All
                   <ArrowRight size={14} />
                 </button>
               </div>
