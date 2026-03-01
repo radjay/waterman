@@ -23,7 +23,7 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { sessionToken, isAuthenticated } = useAuth();
+  const { sessionToken, isAuthenticated, loading: authLoading } = useAuth();
   const user = useUser();
 
   // Onboarding state (skip for authenticated users)
@@ -219,8 +219,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Show onboarding modal on first visit (dismissible on dashboard) */}
-      {!onboardingLoading && needsOnboarding && (
+      {/* Show onboarding modal on first visit (dismissible on dashboard)
+          Wait for both auth and onboarding state to be loaded to prevent flash */}
+      {!authLoading && !onboardingLoading && needsOnboarding && (
         <OnboardingModal
           onComplete={markOnboardingComplete}
           onDismiss={markOnboardingComplete}
@@ -346,8 +347,9 @@ export default function DashboardPage() {
       )}
       </MainLayout>
 
-      {/* Show onboarding footer if user hasn't completed onboarding */}
-      {showFooter && <OnboardingFooter onDismiss={dismissFooter} />}
+      {/* Show onboarding footer if user hasn't completed onboarding
+          Wait for both auth and onboarding state to be loaded to prevent flash */}
+      {!authLoading && !onboardingLoading && showFooter && <OnboardingFooter onDismiss={dismissFooter} />}
     </>
   );
 }
