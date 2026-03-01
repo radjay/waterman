@@ -358,7 +358,7 @@ function SportFilterPageContent() {
     <MainLayout>
       <Header />
       {/* Tabs + filters bar - sticky on mobile and desktop */}
-      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
+      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2">
           {/* Tabs row with filter toggle on mobile */}
           <div className="flex items-center justify-between md:justify-start">

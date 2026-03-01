@@ -233,7 +233,7 @@ export default function DashboardPage() {
         <Header />
 
       {/* Tabs bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint border-b border-ink/20 py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
+      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
         <div className="overflow-x-auto scrollbar-hide px-4">
           <ViewToggle onChange={handleViewChange} />
         </div>

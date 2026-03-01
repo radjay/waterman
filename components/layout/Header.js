@@ -78,9 +78,6 @@ export function Header({ className = "" }) {
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* Bottom border */}
-      <div className="border-b border-ink/20" />
     </header>
   );
 }
