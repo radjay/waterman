@@ -26,8 +26,8 @@ export default function DashboardPage() {
   const { sessionToken, isAuthenticated } = useAuth();
   const user = useUser();
 
-  // Onboarding state
-  const { needsOnboarding, showFooter, isLoading: onboardingLoading, markOnboardingComplete, dismissFooter } = useOnboarding();
+  // Onboarding state (skip for authenticated users)
+  const { needsOnboarding, showFooter, isLoading: onboardingLoading, markOnboardingComplete, dismissFooter } = useOnboarding(user);
 
   const [loading, setLoading] = useState(true);
   const [todaySlots, setTodaySlots] = useState([]);

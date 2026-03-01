@@ -30,8 +30,8 @@ export default function HomeContent() {
   const { sessionToken } = useAuth();
   const user = useUser();
 
-  // Onboarding state
-  const { needsOnboarding, isLoading: onboardingLoading, markOnboardingComplete } = useOnboarding();
+  // Onboarding state (skip for authenticated users)
+  const { needsOnboarding, isLoading: onboardingLoading, markOnboardingComplete } = useOnboarding(user);
 
   // Use persisted state hook for sport selection (fallback for anonymous users)
   const [localSelectedSport, setLocalSelectedSport] = usePersistedState(

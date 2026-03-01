@@ -118,7 +118,7 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/95 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-newsprint border-4 border-ink shadow-2xl">
         {/* Close button (only if dismissible) */}
         {isDismissible && (

@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from "react";
 
-export function useOnboarding() {
+export function useOnboarding(user = null) {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [showFooter, setShowFooter] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Authenticated users never need onboarding (they have account preferences)
+    if (user) {
+      setNeedsOnboarding(false);
+      setShowFooter(false);
+      setIsLoading(false);
+      return;
+    }
+
     // Check if onboarding is completed
     const preferencesStr = localStorage.getItem("waterman_preferences");
     const footerDismissed = localStorage.getItem("waterman_onboarding_footer_dismissed");
@@ -25,7 +33,7 @@ export function useOnboarding() {
     }
 
     setIsLoading(false);
-  }, []);
+  }, [user]);
 
   const markOnboardingComplete = () => {
     setNeedsOnboarding(false);
