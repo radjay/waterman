@@ -69,10 +69,11 @@ export default function DashboardPage() {
           relevantSpots = fetchedSpots.slice(0, 3);
         }
 
-        // Fetch today's slots for these spots
+        // Fetch today's slots for these spots (ALL sports, not just selected)
         const slotsPromises = relevantSpots.map(async (spot) => {
           const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-          const relevantSports = spotSports.filter((s) => s === selectedSport);
+          // Show all sports instead of filtering by selectedSport
+          const relevantSports = spotSports;
 
           const configPromises = relevantSports.map((sport) =>
             client.query(api.spots.getSpotConfig, { spotId: spot._id, sport })
@@ -145,9 +146,9 @@ export default function DashboardPage() {
 
         setTodaySlots(goodSlots.slice(0, 6)); // Top 6 slots
 
-        // Fetch webcams (limit to 4) - pass full spot objects
+        // Fetch ALL favorite webcams (no limit)
         const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
-        setWebcams(allWebcams.slice(0, 4));
+        setWebcams(allWebcams);
 
         // Fetch scrape timestamp
         const scrapeTimestamp = await client.query(api.spots.getMostRecentScrapeTimestamp);
@@ -217,7 +218,7 @@ export default function DashboardPage() {
           <Loader2 className="w-8 h-8 text-ink/60 animate-spin" />
         </div>
       ) : (
-        <div className="px-4 pb-12 space-y-8">
+        <div className="px-4 pb-12 space-y-10">
           {/* Today's Best Conditions */}
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -259,11 +260,25 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
+
+            {/* Log a Session button - only show for authenticated users */}
+            {isAuthenticated && (
+              <button
+                onClick={() => router.push("/journal/new")}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mt-4 bg-ink/5 text-ink rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/10 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-bold uppercase">Log a Session</span>
+              </button>
+            )}
           </section>
 
           {/* Webcams Preview */}
           {webcams.length > 0 && (
             <section>
+              {/* Visual separator */}
+              <div className="border-t border-ink/20 mb-6"></div>
+
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-ink">Live Webcams</h2>
                 <button
@@ -286,19 +301,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
-
-          {/* Log a Session - only show for authenticated users */}
-          {isAuthenticated && (
-            <section>
-              <button
-                onClick={() => router.push("/journal/new")}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-ink text-newsprint rounded-lg hover:bg-ink/90 transition-colors border-2 border-ink"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="text-base font-bold uppercase leading-none translate-y-[1px]">Log a Session</span>
-              </button>
             </section>
           )}
         </div>

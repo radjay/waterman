@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Calendar, List, Video, BookOpen, LayoutDashboard } from "lucide-react";
+import { Calendar, List, Video, BookOpen, Home } from "lucide-react";
 
 /**
  * ViewToggle component for switching between dashboard, calendar, list, cams, and sessions views.
@@ -26,10 +26,10 @@ export function ViewToggle({ onChange, className = "" }) {
             ? "bg-ink text-newsprint"
             : "text-ink hover:bg-ink/5"
         }`}
-        aria-label="Dashboard view"
+        aria-label="Home view"
       >
-        <LayoutDashboard size={16} />
-        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Dashboard</span>
+        <Home size={16} />
+        <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Home</span>
       </button>
       <button
         onClick={() => onChange("list")}
