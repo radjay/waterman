@@ -53,18 +53,16 @@ export default function DashboardPage() {
         });
         setSpotsMap(spotsMapObj);
 
-        // Determine which spots to show (favorites first if logged in)
+        // Determine which spots to fetch conditions for
+        // For logged-in users: fetch ALL favorite spots (we want to show best conditions across all of them)
+        // For anonymous users: fetch all spots (up to reasonable limit)
         let relevantSpots = fetchedSpots;
         if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
           const favoriteSpotIds = new Set(user.favoriteSpots);
-          relevantSpots = [
-            ...fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id)),
-          ];
-          // Limit to top 3 favorites for dashboard
-          relevantSpots = relevantSpots.slice(0, 3);
+          relevantSpots = fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id));
         } else {
-          // Show top 3 spots for anonymous users
-          relevantSpots = fetchedSpots.slice(0, 3);
+          // Show top 10 spots for anonymous users (to find best conditions)
+          relevantSpots = fetchedSpots.slice(0, 10);
         }
 
         // Fetch today's slots for these spots (ALL sports, not just selected)
@@ -144,9 +142,18 @@ export default function DashboardPage() {
 
         setTodaySlots(goodSlots.slice(0, 6)); // Top 6 slots
 
-        // Fetch ALL favorite webcams (no limit)
-        const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
-        setWebcams(allWebcams);
+        // Fetch webcams from favorite spots only
+        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
+          const favoriteSpotIds = new Set(user.favoriteSpots);
+          const favoriteWebcams = fetchedSpots.filter(
+            (spot) => favoriteSpotIds.has(spot._id) && spot.webcamUrl
+          );
+          setWebcams(favoriteWebcams);
+        } else {
+          // For anonymous users, show all webcams
+          const allWebcams = fetchedSpots.filter((spot) => spot.webcamUrl);
+          setWebcams(allWebcams.slice(0, 4)); // Limit to 4 for anonymous users
+        }
 
         // Fetch scrape timestamp
         const scrapeTimestamp = await client.query(api.spots.getMostRecentScrapeTimestamp);
