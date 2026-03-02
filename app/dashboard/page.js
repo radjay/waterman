@@ -18,9 +18,6 @@ import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import { OnboardingFooter } from "../../components/onboarding/OnboardingFooter";
 import { OnboardingModal } from "../../components/onboarding/OnboardingModal";
-import { SportToggle } from "../../components/shared/SportToggle";
-import { RightNowMarquee } from "../../components/home/RightNowMarquee";
-import { DataStripCard } from "../../components/forecast/DataStripCard";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -38,14 +35,9 @@ export default function DashboardPage() {
   const [spotsMap, setSpotsMap] = useState({});
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
-  const [selectedSport, setSelectedSport] = useState("wingfoil");
 
-  // Initialize selected sport from user preferences
-  useEffect(() => {
-    if (user?.selectedSport) {
-      setSelectedSport(user.selectedSport);
-    }
-  }, [user]);
+  // Get user's selected sport (default to wingfoil)
+  const selectedSport = user?.selectedSport || "wingfoil";
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -171,8 +163,7 @@ export default function DashboardPage() {
         // Sort by score (best first)
         goodSlots.sort((a, b) => (b.score?.value || 0) - (a.score?.value || 0));
 
-        // Store all good slots (will be filtered by sport in render)
-        setTodaySlots(goodSlots);
+        setTodaySlots(goodSlots.slice(0, 6)); // Top 6 slots
 
         // Fetch webcams from favorite spots (using the same favoriteSpotIds from above)
         if (favoriteSpotIds.size > 0) {
@@ -197,34 +188,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData();
-  }, [user, sessionToken]); // Don't refetch on sport change - we filter client-side
-
-  // Filter slots by selected sport
-  const filteredSlots = todaySlots.filter((slot) => slot.sport === selectedSport);
-  const displaySlots = filteredSlots.slice(0, 6); // Top 6 for selected sport
-
-  // Find "right now" slot (within ±1 hour, highest score for selected sport)
-  const findRightNowSlot = () => {
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-
-    const currentSlots = filteredSlots.filter((slot) => {
-      const slotTime = new Date(slot.timestamp);
-      return slotTime >= oneHourAgo && slotTime <= oneHourFromNow;
-    });
-
-    if (currentSlots.length === 0) return null;
-
-    // Return highest-scored slot in the current time window
-    return currentSlots.reduce((best, slot) => {
-      if (!best) return slot;
-      return (slot.score?.value || 0) > (best.score?.value || 0) ? slot : best;
-    }, null);
-  };
-
-  const rightNowSlot = findRightNowSlot();
-  const rightNowSpot = rightNowSlot ? spotsMap[rightNowSlot.spotId] : null;
+  }, [selectedSport, user, sessionToken]);
 
   const handleViewChange = (view) => {
     if (view === "list") {
@@ -275,10 +239,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Sport Toggle */}
-      <div className="px-4 pt-4 pb-2">
-        <SportToggle selected={selectedSport} onChange={setSelectedSport} />
-      </div>
+      <div className="h-4" /> {/* Spacer */}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -286,18 +247,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="px-4 pb-12 space-y-10">
-          {/* Right Now Marquee */}
-          {rightNowSlot && rightNowSpot && (
-            <section>
-              <RightNowMarquee
-                slot={rightNowSlot}
-                spot={rightNowSpot}
-                onViewCam={() => handleWebcamClick(rightNowSpot)}
-                onViewDetails={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
-              />
-            </section>
-          )}
-
           {/* Today's Best Conditions */}
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -311,21 +260,30 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {displaySlots.length === 0 ? (
+            {todaySlots.length === 0 ? (
               <p className="text-ink/60 text-sm py-4">No good conditions forecast for today</p>
             ) : (
-              <div className="border border-ink/20 rounded-lg overflow-hidden bg-newsprint">
-                {displaySlots.map((slot) => {
+              <div className="space-y-2">
+                {todaySlots.map((slot) => {
                   const spot = spotsMap[slot.spotId];
                   if (!spot) return null;
 
                   return (
-                    <DataStripCard
+                    <button
                       key={`${slot.spotId}-${slot.timestamp}`}
-                      slot={slot}
-                      spot={spot}
                       onClick={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
-                    />
+                      className="w-full p-3 rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/5 transition-all text-left bg-newsprint"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="font-bold text-ink">{spot.name}</div>
+                          <div className="text-sm text-ink/60">{formatTime(new Date(slot.timestamp))}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl font-bold text-green-700">{slot.score?.value}</div>
+                        </div>
+                      </div>
+                    </button>
                   );
                 })}
               </div>

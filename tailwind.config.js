@@ -8,19 +8,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        newsprint: "#F5F2ED", // Updated to match design spec
+        newsprint: "#f4f1ea",
         ink: "#1a1a1a",
         "faded-ink": "#4a4a4a",
         "red-accent": "#8b0000",
         "muted-yellow": "#fef3c7",
-        "racing-green": "#004225", // Deep green for top conditions
-        "safety-yellow": "#FFD700", // Alert/warning color
-        "international-orange": "#FF6600", // Alert color
       },
       fontFamily: {
         headline: ["Playfair Display", "serif"],
         body: ["Courier Prime", "monospace"],
-        mono: ["JetBrains Mono", "monospace"], // For data display
       },
     },
   },
