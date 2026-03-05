@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -48,6 +48,13 @@
     content: '';
     @apply absolute left-0 top-0 bottom-0 w-1;
     background-color: #ffd700;
+  }
+
+  .focus-ring {
+    @apply outline-none;
+  }
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px #f4f1ea, 0 0 0 4px rgba(26,26,26,0.3);
   }
 
   .loader {

@@ -6,7 +6,6 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
-import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
@@ -15,6 +14,9 @@ import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { Tv, MapPin } from "lucide-react";
+import { PillToggle } from "../../components/ui/PillToggle";
+import { FilterGroup } from "../../components/ui/FilterGroup";
+import { FilterBar } from "../../components/ui/FilterBar";
 import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -84,19 +86,6 @@ function CamsContent() {
     }
   };
 
-  // Handle view toggle
-  const handleViewChange = (view) => {
-    if (view === "dashboard") {
-      router.push("/dashboard");
-    } else if (view === "list") {
-      router.push("/report");
-    } else if (view === "calendar") {
-      router.push("/calendar");
-    } else if (view === "sessions") {
-      router.push("/journal");
-    }
-  };
-
   // Handle webcam click (open fullscreen)
   const handleWebcamClick = (webcam) => {
     setFocusedWebcam(webcam);
@@ -115,82 +104,46 @@ function CamsContent() {
   return (
     <MainLayout>
       <Header />
-      {/* Tabs bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-hide px-4">
-          <ViewToggle onChange={handleViewChange} />
-          <div className="flex items-center gap-2">
-            {/* Request a Spot link */}
+
+      {/* Filters + actions */}
+      <FilterBar
+        activeFilters={[
+          { "": "All", wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+        ].filter(Boolean)}
+        actions={
+          <>
             <Link
               href="/request-spot"
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold uppercase text-ink/60 hover:text-ink transition-colors flex-shrink-0"
+              className="flex items-center gap-2 px-3 py-1.5 text-faded-ink hover:text-ink transition-all duration-fast ease-smooth flex-shrink-0"
             >
               <MapPin size={16} />
-              <span className="hidden sm:inline text-xs leading-none translate-y-[1.5px]">Request a Spot</span>
+              <span className="hidden sm:inline text-xs font-semibold uppercase tracking-wider leading-none">Request a Spot</span>
             </Link>
-            {/* TV Mode button - desktop only */}
             <button
               onClick={() => setTvMode(true)}
-              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded border border-ink/30 bg-newsprint text-ink hover:bg-ink hover:text-newsprint transition-colors flex-shrink-0"
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-ink/[0.04] text-ink hover:bg-ink/[0.08] transition-all duration-fast ease-smooth flex-shrink-0"
               aria-label="TV Mode"
             >
               <Tv size={16} />
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">TV Mode</span>
+              <span className="text-xs font-semibold uppercase tracking-wider leading-none">TV Mode</span>
             </button>
-          </div>
-        </div>
-      </div>
-      <div className="h-4" /> {/* Spacer below tabs */}
-
-      {/* Sport filter - sticky, scrollable on mobile */}
-      <div className="sticky top-[120px] z-30 bg-newsprint border-b border-ink/20 py-3">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <div className="inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint">
-            <button
-              onClick={() => setSelectedSport("")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === ""
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">All</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("wingfoil")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "wingfoil"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Wing</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("kitesurfing")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "kitesurfing"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Kite</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("surfing")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "surfing"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Surf</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="h-4" /> {/* Spacer below sport filter */}
+          </>
+        }
+      >
+        <FilterGroup label="Sport">
+          <PillToggle
+            name="sport"
+            options={[
+              { id: "", label: "All" },
+              { id: "wingfoil", label: "Wing" },
+              { id: "kitesurfing", label: "Kite" },
+              { id: "surfing", label: "Surf" },
+            ]}
+            value={selectedSport}
+            onChange={setSelectedSport}
+          />
+        </FilterGroup>
+      </FilterBar>
 
       <div className="px-4 pb-12">
         {loading ? (

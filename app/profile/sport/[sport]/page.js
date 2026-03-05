@@ -8,6 +8,9 @@ import { useAuth } from "../../../../components/auth/AuthProvider";
 import { MainLayout } from "../../../../components/layout/MainLayout";
 import { Header } from "../../../../components/layout/Header";
 import { Footer } from "../../../../components/layout/Footer";
+import { Heading } from "../../../../components/ui/Heading";
+import { Text } from "../../../../components/ui/Text";
+import { Button } from "../../../../components/ui/Button";
 import { Loader2, ArrowLeft, Check } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -153,16 +156,11 @@ export default function SportProfilePage({ params }) {
       <MainLayout>
         <Header />
         <div className="max-w-2xl mx-auto px-4 py-12">
-          <h1 className="text-2xl font-semibold text-ink mb-4">Invalid Sport</h1>
-          <p className="text-ink/60 mb-6">
+          <Heading level={1} className="mb-4">Invalid Sport</Heading>
+          <Text variant="muted" className="mb-6">
             The sport "{sport}" is not recognized. Please choose wingfoil, kitesurfing, or surfing.
-          </p>
-          <button
-            onClick={() => router.push("/profile")}
-            className="text-ink hover:text-ink/70 transition-colors"
-          >
-            ← Back to Profile
-          </button>
+          </Text>
+          <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/settings")}>Back to settings</Button>
         </div>
         <Footer />
       </MainLayout>
@@ -186,28 +184,22 @@ export default function SportProfilePage({ params }) {
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Back button */}
-        <button
-          onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back to profile</span>
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/settings")} className="mb-6 -ml-2">Back to settings</Button>
 
-        <h1 className="text-3xl font-semibold text-ink mb-2">
+        <Heading level={1} className="mb-2">
           {SPORT_LABELS[sport]} Profile
-        </h1>
-        <p className="text-ink/60 mb-8">
+        </Heading>
+        <Text variant="muted" className="mb-8">
           Help us personalize condition scores for you. The more detail you provide,
           the better we can tailor scores to your skill level and preferences.
-        </p>
+        </Text>
 
         <div className="space-y-8">
           {/* Skill Level */}
           <div>
-            <label className="block text-sm font-medium text-ink/70 mb-3">
+            <Text variant="label" as="label" className="block mb-3">
               Skill Level <span className="text-red-500">*</span>
-            </label>
+            </Text>
             <div className="space-y-2">
               {SKILL_LEVELS.map((level) => (
                 <button
@@ -235,16 +227,13 @@ export default function SportProfilePage({ params }) {
 
           {/* Context */}
           <div>
-            <label
-              htmlFor="context"
-              className="block text-sm font-medium text-ink/70 mb-2"
-            >
+            <Text variant="label" as="label" className="block mb-2">
               About You (optional but recommended)
-            </label>
-            <p className="text-sm text-ink/50 mb-3">
+            </Text>
+            <Text variant="muted" className="text-sm mb-3">
               Tell us about your physical factors, equipment, preferences, and any
               constraints that affect what conditions work for you.
-            </p>
+            </Text>
             <textarea
               id="context"
               value={context}
@@ -260,37 +249,19 @@ export default function SportProfilePage({ params }) {
           </div>
 
           {/* Error/Success Messages */}
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <Text variant="body" className="text-red-600 text-sm">{error}</Text>}
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-md p-4">
-              <div className="text-green-700 text-sm flex items-center gap-2 font-medium">
+              <Text variant="body" as="div" className="text-green-700 text-sm flex items-center gap-2 font-medium">
                 <Check className="w-4 h-4" />
                 Profile saved! Redirecting...
-              </div>
+              </Text>
             </div>
           )}
 
           {/* Actions */}
           <div className="pt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving || success || !skillLevel}
-              className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : success ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" />
-                  Saved!
-                </span>
-              ) : (
-                "Save Profile"
-              )}
-            </button>
+            <Button variant="primary" size="lg" fullWidth loading={saving} disabled={success || !skillLevel} onClick={handleSave}>Save Profile</Button>
           </div>
         </div>
       </div>

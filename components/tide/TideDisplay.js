@@ -32,7 +32,7 @@ export function TideDisplay({ tide, className = "" }) {
         ) : (
           <span className="text-ink">•</span>
         )}
-        <span className="font-body whitespace-nowrap">
+        <span className="font-data whitespace-nowrap">
           {timeStr} {heightStr}
         </span>
       </div>

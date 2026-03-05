@@ -15,6 +15,10 @@ import { LocationPicker } from "../../../components/journal/LocationPicker";
 import { RatingInput } from "../../../components/journal/RatingInput";
 import { DurationInput } from "../../../components/journal/DurationInput";
 import { Loader2, ArrowLeft, MapPin, Clock, Trash2, Edit2, Save, X } from "lucide-react";
+import { Heading } from "../../../components/ui/Heading";
+import { Text } from "../../../components/ui/Text";
+import { Button } from "../../../components/ui/Button";
+import { SportBadge } from "../../../components/ui/SportBadge";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -219,50 +223,27 @@ export default function JournalEntryDetailPage() {
     <MainLayout>
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <button
-          onClick={() => router.push("/journal")}
-          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back to journal</span>
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/journal")} className="mb-4">Back</Button>
 
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-semibold text-ink">Session Details</h1>
+          <Heading level={1}>Session Details</Heading>
           {!editing && (
             <div className="flex gap-2">
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 border-2 border-ink/20 text-ink rounded-md hover:border-ink/30 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex items-center gap-2 px-4 py-2 border-2 border-red-200 text-red-700 rounded-md hover:border-red-300 transition-colors disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
+              <Button variant="secondary" size="sm" icon={Edit2} onClick={handleEdit}>Edit</Button>
+              <Button variant="danger" size="sm" icon={Trash2} onClick={handleDelete} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
             </div>
           )}
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
+          <Text className="text-red-600 text-sm mb-4">{error}</Text>
         )}
 
         {!editing ? (
           <div className="space-y-6">
             {/* Sport Badge */}
             <div>
-              <span className="px-3 py-1 bg-ink/10 text-ink text-sm font-medium rounded">
-                {sportLabel}
-              </span>
+              <SportBadge sport={entry.sport} />
             </div>
 
             {/* Location */}
@@ -339,7 +320,7 @@ export default function JournalEntryDetailPage() {
           <div className="space-y-6">
             {/* Sport Selection */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">Sport</label>
+              <Text variant="label" as="label" className="block mb-2">Sport</Text>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -368,7 +349,7 @@ export default function JournalEntryDetailPage() {
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">Location</label>
+              <Text variant="label" as="label" className="block mb-2">Location</Text>
               <LocationPicker
                 sport={sport}
                 value={location}
@@ -379,7 +360,7 @@ export default function JournalEntryDetailPage() {
 
             {/* Date & Time */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">Date & Time</label>
+              <Text variant="label" as="label" className="block mb-2">Date & Time</Text>
               <input
                 type="datetime-local"
                 value={sessionDate}
@@ -390,21 +371,19 @@ export default function JournalEntryDetailPage() {
 
             {/* Duration */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">Duration</label>
+              <Text variant="label" as="label" className="block mb-2">Duration</Text>
               <DurationInput value={durationMinutes} onChange={setDurationMinutes} />
             </div>
 
             {/* Rating */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">Rating</label>
+              <Text variant="label" as="label" className="block mb-2">Rating</Text>
               <RatingInput value={rating} onChange={setRating} />
             </div>
 
             {/* Session Notes */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">
-                Session Notes (optional)
-              </label>
+              <Text variant="label" as="label" className="block mb-2">Session Notes (optional)</Text>
               <textarea
                 value={sessionNotes}
                 onChange={(e) => setSessionNotes(e.target.value)}
@@ -415,9 +394,7 @@ export default function JournalEntryDetailPage() {
 
             {/* Condition Notes */}
             <div>
-              <label className="block text-sm font-medium text-ink/70 mb-2">
-                Conditions Notes (optional)
-              </label>
+              <Text variant="label" as="label" className="block mb-2">Conditions Notes (optional)</Text>
               <textarea
                 value={conditionNotes}
                 onChange={(e) => setConditionNotes(e.target.value)}
@@ -436,31 +413,8 @@ export default function JournalEntryDetailPage() {
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="flex-1 px-4 py-3 border-2 border-ink/20 text-ink rounded-md hover:border-ink/30 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 px-4 py-3 bg-ink text-newsprint rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </>
-                )}
-              </button>
+              <Button variant="secondary" size="lg" fullWidth onClick={handleCancel}>Cancel</Button>
+              <Button variant="primary" size="lg" fullWidth icon={saving ? undefined : Save} loading={saving} onClick={handleSave}>{saving ? "Saving..." : "Save Changes"}</Button>
             </div>
           </div>
         )}

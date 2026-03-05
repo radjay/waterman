@@ -10,6 +10,9 @@ import { Footer } from "../../../components/layout/Footer";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Heading } from "../../../components/ui/Heading";
+import { Text } from "../../../components/ui/Text";
+import { Button } from "../../../components/ui/Button";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -64,8 +67,8 @@ function CalendarPreviewContent() {
         <Header />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="font-bold text-red-800 mb-2">Error</h2>
-            <p className="text-red-600">{error}</p>
+            <Heading level={2} className="text-red-800 mb-2">Error</Heading>
+            <Text className="text-red-600">{error}</Text>
           </div>
         </div>
         <Footer />
@@ -94,39 +97,33 @@ function CalendarPreviewContent() {
       <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back button */}
-        <button
-          onClick={() => router.push("/subscribe")}
-          className="flex items-center gap-2 text-ink/60 hover:text-ink transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Subscribe
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/subscribe")} className="mb-6">Back to Subscribe</Button>
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ink mb-2">
+          <Heading level={1} className="mb-2">
             Calendar Preview
-          </h1>
-          <p className="text-ink/70">
+          </Heading>
+          <Text variant="muted">
             {events.length} event{events.length !== 1 ? "s" : ""} in your calendar feed
-          </p>
+          </Text>
         </div>
 
         {/* Events */}
         {events.length === 0 ? (
           <div className="bg-white border border-ink/20 rounded-lg p-6 text-center">
             <Calendar className="w-12 h-12 text-ink/30 mx-auto mb-4" />
-            <p className="text-ink/60">
+            <Text variant="muted">
               No events found. Make sure you have forecast data with scores ≥ 75.
-            </p>
+            </Text>
           </div>
         ) : (
           <div className="space-y-6">
             {Object.entries(eventsByDate).map(([dateKey, dayEvents]) => (
               <div key={dateKey} className="bg-white border border-ink/20 rounded-lg p-6">
-                <h2 className="text-xl font-bold text-ink mb-4 border-b border-ink/10 pb-2">
+                <Heading level={2} className="mb-4 border-b border-ink/10 pb-2">
                   {dateKey}
-                </h2>
+                </Heading>
                 <div className="space-y-4">
                   {dayEvents.map((event) => {
                     const startTime = new Date(event.timestamp);
@@ -141,7 +138,7 @@ function CalendarPreviewContent() {
                             <h3 className="font-bold text-ink text-lg">
                               {event.spotName}
                             </h3>
-                            <p className="text-sm text-ink/60">
+                            <Text variant="muted" className="text-sm">
                               {startTime.toLocaleTimeString("en-US", {
                                 hour: "numeric",
                                 minute: "2-digit",
@@ -151,7 +148,7 @@ function CalendarPreviewContent() {
                                 hour: "numeric",
                                 minute: "2-digit",
                               })}
-                            </p>
+                            </Text>
                           </div>
                           <div className="text-right">
                             <div className="text-2xl font-bold text-blue-600">
@@ -175,9 +172,9 @@ function CalendarPreviewContent() {
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-ink/60 italic mt-2">
+                        <Text variant="muted" className="text-sm italic mt-2">
                           {event.reasoning}
-                        </p>
+                        </Text>
                         <Link
                           href={`/${event.sport}/best`}
                           className="text-sm text-blue-600 hover:underline mt-2 inline-block"

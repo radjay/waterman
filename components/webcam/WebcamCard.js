@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CircleGauge, ChartNoAxesCombined, Heart } from "lucide-react";
+import { CircleGauge, ChartNoAxesCombined, Heart, RefreshCw } from "lucide-react";
 import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
+import { ScoreDisplay } from "../ui/ScoreDisplay";
 
 /**
  * WebcamCard component that displays a webcam video stream with current conditions.
@@ -14,9 +15,10 @@ import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindInd
  * @param {boolean} isFavorite - Whether this spot is favorited by the user
  * @param {Function} onToggleFavorite - Callback when favorite button is clicked
  */
-export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite }) {
+export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, score }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+  const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error"
 
   // Get stream URL based on source
   // Handles both new format (webcamStreamId + webcamStreamSource) and old format (webcamUrl)
@@ -45,9 +47,10 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
 
     const streamUrl = getStreamUrl();
     if (!streamUrl) {
-      console.error("No stream URL available for spot:", spot.name);
+      setStreamStatus("error");
       return;
     }
+    setStreamStatus("loading");
 
     const initializePlayer = () => {
       if (Hls.isSupported()) {
@@ -69,6 +72,7 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           // Check if video element is still valid before playing
           if (video && videoRef.current === video) {
+            setStreamStatus("playing");
             const playPromise = video.play();
             if (playPromise !== undefined) {
               playPromise.catch((error) => {
@@ -94,6 +98,7 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
                 break;
               default:
                 console.log("Fatal error, cannot recover");
+                setStreamStatus("error");
                 hls.destroy();
                 break;
             }
@@ -190,11 +195,46 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
       <div className="relative aspect-video bg-ink/10">
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${streamStatus === "error" ? "hidden" : ""}`}
           playsInline
           muted
           autoPlay
         />
+
+        {/* Loading state */}
+        {streamStatus === "loading" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-ink/5">
+            <RefreshCw size={24} className="text-ink/30 animate-spin" />
+          </div>
+        )}
+
+        {/* Error fallback */}
+        {streamStatus === "error" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/5 gap-2">
+            <span className="text-sm text-ink/40">Stream unavailable</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setStreamStatus("loading");
+                // Re-trigger the effect by forcing a state change
+                const video = videoRef.current;
+                if (video && hlsRef.current) {
+                  hlsRef.current.startLoad();
+                }
+              }}
+              className="text-xs text-ink/60 underline hover:text-ink transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Score overlay */}
+        {score && score >= 60 && (
+          <div className="absolute bottom-2 right-2 bg-newsprint/90 backdrop-blur-sm rounded px-1.5 py-0.5">
+            <ScoreDisplay score={score} size="sm" />
+          </div>
+        )}
 
         {/* Live wind indicator overlay - top left corner */}
         {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (

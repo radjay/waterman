@@ -95,6 +95,30 @@ export function DaySection({
     return day;
   };
 
+  // Check if the day is today
+  const isToday = () => {
+    const firstSpotId = Object.keys(finalSpotsData).find(
+      (id) => id !== "_tides"
+    );
+    if (
+      firstSpotId &&
+      finalSpotsData[firstSpotId] &&
+      finalSpotsData[firstSpotId].length > 0
+    ) {
+      const firstSlot = finalSpotsData[firstSpotId].find(
+        (slot) => !slot.isTideOnly
+      );
+      if (firstSlot && firstSlot.timestamp) {
+        const slotDate = new Date(firstSlot.timestamp);
+        const today = new Date();
+        const slotDateStr = `${slotDate.getFullYear()}-${slotDate.getMonth()}-${slotDate.getDate()}`;
+        const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+        return slotDateStr === todayStr;
+      }
+    }
+    return false;
+  };
+
   // Check if the day is today or tomorrow
   const isTodayOrTomorrow = () => {
     const firstSpotId = Object.keys(finalSpotsData).find(
@@ -131,8 +155,10 @@ export function DaySection({
       className={`mb-4 ${isHighlighted ? "bg-yellow-50" : ""} ${className}`}
       style={isHighlighted ? { scrollMarginTop: "80px" } : {}}
     >
-      <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-4 pb-1 sticky top-[48px] md:top-[113px] pt-[13px] md:pt-[23px] bg-newsprint z-[9] text-ink pl-2">
-        {getFormattedDay()}
+      <div className="sticky top-0 md:top-[54px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
+        <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
+          {getFormattedDay()}
+        </span>
       </div>
 
       {(() => {
@@ -180,7 +206,7 @@ export function DaySection({
                 key={spotId}
                 className={`mb-6 last:mb-0 ${firstSpot ? "mt-4" : ""}`}
               >
-                <div className="flex items-center justify-between font-headline text-[1.15rem] font-bold text-ink mb-2 px-2">
+                <div className="flex items-center justify-between text-[1.05rem] font-bold text-ink mb-2 px-2">
                   <span>{spotName}</span>
                   <div className="flex items-center gap-2">
                     {isAuthenticated && (
@@ -244,8 +270,8 @@ export function DaySection({
                 )}
 
                 <div className="flex flex-col border-t border-ink/20">
-                  {/* Live wind row for wind sports on today/tomorrow */}
-                  {liveReportUrl && isWindSport && isTodayOrTomorrow() && extractWindguruStationId(liveReportUrl) && (
+                  {/* Live wind row for wind sports on today only */}
+                  {liveReportUrl && isWindSport && isToday() && extractWindguruStationId(liveReportUrl) && (
                     <LiveWindRow stationId={extractWindguruStationId(liveReportUrl)} />
                   )}
 

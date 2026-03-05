@@ -10,6 +10,9 @@ import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 import { Calendar, Copy, Check, RefreshCw, Trash2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -129,22 +132,16 @@ export default function SubscribePage() {
       <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back to home button */}
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-ink/60 hover:text-ink transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6">Back to home</Button>
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ink mb-2">
+          <Heading level={1} className="mb-2">
             Subscribe to Forecast Calendars
-          </h1>
-          <p className="text-ink/70">
+          </Heading>
+          <Text variant="muted">
             Get ideal conditions synced to your calendar app
-          </p>
+          </Text>
         </div>
 
         {/* Calendar Cards */}
@@ -193,22 +190,13 @@ export default function SubscribePage() {
                       readOnly
                       className="flex-1 px-3 py-2 border border-ink/30 rounded bg-newsprint text-sm font-mono"
                     />
-                    <button
+                    <Button
+                      variant="secondary"
+                      icon={copiedUrl === sport.id ? Check : Copy}
                       onClick={() => copyToClipboard(feedUrl, sport.id)}
-                      className="px-4 py-2 border border-ink/30 bg-newsprint hover:bg-ink/5 rounded transition-colors flex items-center gap-2"
                     >
-                      {copiedUrl === sport.id ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </>
-                      )}
-                    </button>
+                      {copiedUrl === sport.id ? "Copied" : "Copy"}
+                    </Button>
                   </div>
                 </div>
 
@@ -222,30 +210,30 @@ export default function SubscribePage() {
                     Preview Calendar
                   </Link>
                   {!subscription && user && (
-                    <button
+                    <Button
+                      variant="primary"
                       onClick={() => createSubscription(sport.id)}
                       disabled={creatingFor === sport.id}
-                      className="px-4 py-2 bg-ink text-newsprint hover:bg-ink/90 rounded transition-colors disabled:opacity-50"
                     >
                       {creatingFor === sport.id ? "Creating..." : "Create Personalized Feed"}
-                    </button>
+                    </Button>
                   )}
                   {subscription && (
                     <>
-                      <button
+                      <Button
+                        variant="secondary"
+                        icon={RefreshCw}
                         onClick={() => regenerateToken(subscription.subscriptionId)}
-                        className="px-4 py-2 border border-ink/30 bg-newsprint hover:bg-ink/5 rounded transition-colors flex items-center gap-2"
                       >
-                        <RefreshCw className="w-4 h-4" />
                         Regenerate Token
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="danger"
+                        icon={Trash2}
                         onClick={() => deleteSubscription(subscription.subscriptionId)}
-                        className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2"
                       >
-                        <Trash2 className="w-4 h-4" />
                         Delete
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -278,16 +266,13 @@ export default function SubscribePage() {
         {/* Sign in prompt for anonymous users */}
         {!user && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <h3 className="font-bold text-ink mb-2">Want personalized feeds?</h3>
-            <p className="text-ink/70 mb-4">
+            <Heading level={3} className="mb-2">Want personalized feeds?</Heading>
+            <Text variant="muted" className="mb-4">
               Sign in to get calendar feeds filtered to your favorite spots only.
-            </p>
-            <Link
-              href="/auth/login"
-              className="inline-block px-4 py-2 bg-ink text-newsprint hover:bg-ink/90 rounded transition-colors"
-            >
+            </Text>
+            <Button variant="primary" onClick={() => router.push("/auth/login")}>
               Sign In
-            </Link>
+            </Button>
           </div>
         )}
 
@@ -297,7 +282,7 @@ export default function SubscribePage() {
             onClick={() => setShowInstructions(!showInstructions)}
             className="w-full flex items-center justify-between text-left"
           >
-            <h3 className="font-bold text-ink">How to Subscribe</h3>
+            <Heading level={3}>How to Subscribe</Heading>
             {showInstructions ? (
               <ChevronUp className="w-5 h-5 text-ink/60" />
             ) : (

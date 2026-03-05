@@ -32,14 +32,14 @@ export function Tooltip({
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
-      {isVisible && content && (
-        <div
-          className={`absolute ${positionClasses[position]} z-50 px-2 py-1 text-xs font-medium text-newsprint bg-ink rounded whitespace-nowrap pointer-events-none`}
-          role="tooltip"
-        >
-          {content}
-        </div>
-      )}
+      <div
+        className={`absolute ${positionClasses[position]} z-50 px-2.5 py-1.5 text-xs font-medium text-newsprint bg-ink rounded-ui shadow-elevated whitespace-nowrap pointer-events-none transition-all duration-fast ease-smooth ${
+          isVisible && content ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+        }`}
+        role="tooltip"
+      >
+        {content}
+      </div>
     </div>
   );
 }

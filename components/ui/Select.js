@@ -27,7 +27,7 @@ export function Select({
         <select
           value={value || ""}
           onChange={handleChange}
-          className="px-3 pr-8 py-1 rounded border border-ink/30 bg-newsprint text-ink font-body font-medium text-xs uppercase cursor-pointer focus:outline-none focus:border-ink hover:bg-ink/5 appearance-none"
+          className="px-3 pr-8 py-1.5 rounded-ui border border-ink/15 bg-newsprint text-ink font-body font-medium text-xs uppercase cursor-pointer focus-ring focus:border-ink/40 hover:bg-warm-highlight appearance-none transition-all duration-fast ease-smooth"
         >
           {options.map((option) => (
             <option key={option.id} value={option.id}>

@@ -7,10 +7,16 @@ import { api } from "../../convex/_generated/api";
 import { useAuth } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
-import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { SessionCard } from "../../components/journal/SessionCard";
-import { Loader2, Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
+import { Loader } from "../../components/common/Loader";
+import { PillToggle } from "../../components/ui/PillToggle";
+import { FilterGroup } from "../../components/ui/FilterGroup";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -49,19 +55,6 @@ export default function JournalPage() {
     fetchEntries();
   }, [sessionToken, selectedSport, router]);
 
-  // Handle view toggle - navigate to different views
-  const handleViewChange = (view) => {
-    if (view === "dashboard") {
-      router.push("/dashboard");
-    } else if (view === "list") {
-      router.push("/report");
-    } else if (view === "calendar") {
-      router.push("/calendar");
-    } else if (view === "cams") {
-      router.push("/cams");
-    }
-  };
-
   if (!sessionToken) {
     return null;
   }
@@ -69,71 +62,32 @@ export default function JournalPage() {
   return (
     <MainLayout>
       <Header />
-      {/* Tabs bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <ViewToggle onChange={handleViewChange} />
-        </div>
-      </div>
-      <div className="h-4" /> {/* Spacer below tabs */}
 
-      {/* Action bar - sport filters and new session button */}
-      <div className="sticky top-[120px] z-30 bg-newsprint border-b border-ink/20 py-3">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <div className="inline-flex items-center gap-1 border border-ink/30 rounded bg-newsprint">
-            <button
-              onClick={() => setSelectedSport("")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === ""
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">All</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("wingfoil")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "wingfoil"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Wing</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("kitesurfing")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "kitesurfing"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Kite</span>
-            </button>
-            <button
-              onClick={() => setSelectedSport("surfing")}
-              className={`px-3 py-1.5 flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${
-                selectedSport === "surfing"
-                  ? "bg-ink text-newsprint"
-                  : "text-ink hover:bg-ink/5"
-              }`}
-            >
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Surf</span>
-            </button>
-          </div>
+      <div className="pt-1" />
 
-          <button
-            onClick={() => router.push("/journal/new")}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">New Session</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="h-4" /> {/* Spacer below action bar */}
+      {/* Filters + action */}
+      <FilterBar
+        activeFilters={[
+          { "": "All", wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+        ].filter(Boolean)}
+        actions={
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => router.push("/journal/new")}>New Session</Button>
+        }
+      >
+        <FilterGroup label="Sport">
+          <PillToggle
+            name="sport"
+            options={[
+              { id: "", label: "All" },
+              { id: "wingfoil", label: "Wing" },
+              { id: "kitesurfing", label: "Kite" },
+              { id: "surfing", label: "Surf" },
+            ]}
+            value={selectedSport}
+            onChange={setSelectedSport}
+          />
+        </FilterGroup>
+      </FilterBar>
 
       {/* Content area */}
       <div className="px-4 pb-12">
@@ -144,25 +98,13 @@ export default function JournalPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-ink/60 animate-spin" />
-          </div>
+          <Loader />
         ) : entries.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="w-16 h-16 text-ink/30 mx-auto mb-4" />
-            <h2 className="text-xl font-medium text-ink mb-2">
-              No sessions yet
-            </h2>
-            <p className="text-ink/60 mb-6">
-              Log your first session to start tracking your progress
-            </p>
-            <button
-              onClick={() => router.push("/journal/new")}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-newsprint rounded hover:bg-ink/90 transition-colors mx-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase leading-none translate-y-[1.5px]">Log Session</span>
-            </button>
+            <Heading level={2}>No sessions yet</Heading>
+            <Text variant="muted">Log your first session to start tracking your progress</Text>
+            <Button variant="primary" size="sm" icon={Plus} onClick={() => router.push("/journal/new")} className="mx-auto">Log Session</Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -172,7 +114,7 @@ export default function JournalPage() {
           </div>
         )}
       </div>
-      <Footer />
+      {!loading && <Footer />}
     </MainLayout>
   );
 }

@@ -25,13 +25,13 @@ export function TideTable({ tides, spotName, className = "" }) {
           <tbody>
             {sortedTides.map((tide, idx) => (
               <tr key={idx} className="border-b border-ink/30 last:border-b-0">
-                <td className="p-2 font-body text-ink">{tide.timeStr}</td>
-                <td className="p-2 font-body text-ink uppercase">
+                <td className="p-2 font-data text-ink">{tide.timeStr}</td>
+                <td className="p-2 font-data text-ink uppercase">
                   <span className={tide.type === "high" ? "font-bold" : ""}>
                     {tide.type}
                   </span>
                 </td>
-                <td className="p-2 font-body text-ink text-right">
+                <td className="p-2 font-data text-ink text-right">
                   {tide.height !== null ? `${tide.height.toFixed(1)}m` : "-"}
                 </td>
               </tr>

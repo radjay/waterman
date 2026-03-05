@@ -35,7 +35,7 @@ export function TideSection({ slots, className = "" }) {
       </div>
       <ul className="list-none space-y-1">
         {tideEvents.map((tide, idx) => (
-          <li key={idx} className="font-body text-ink text-sm">
+          <li key={idx} className="font-data text-ink text-sm">
             - {tide.type} {tide.timeStr}{tide.height !== null ? ` ${tide.height.toFixed(1)}m` : ''}
           </li>
         ))}

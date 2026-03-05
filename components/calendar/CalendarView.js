@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Wind, Waves } from "lucide-react";
-import { formatDate, formatFullDay, getDisplayWindDirection, formatTideTime } from "../../lib/utils";
-import { Arrow } from "../ui/Arrow";
+import { formatDate, formatFullDay, formatTideTime } from "../../lib/utils";
+import { ScoreDisplay } from "../ui/ScoreDisplay";
+import { ConditionLine } from "../ui/ConditionLine";
 
 /**
  * CalendarView component displays a 7-day calendar showing which days are best
@@ -266,66 +266,37 @@ export function CalendarView({
                 {/* Wingfoil spots */}
                 {dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0 && (
                   <div>
-                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Wing</div>
-                    <div className="space-y-3">
+                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Wing</div>
+                    <div className="space-y-2">
                       {dayInfo.wingfoilSpots.slice(0, 3).map((spot) => {
-                        const wingfoilSportData = spot.sportData?.find(sd => sd.sport === "wingfoil");
-                        const bestTime = wingfoilSportData?.bestTime;
+                        const sportData = spot.sportData?.find(sd => sd.sport === "wingfoil");
+                        const bestTime = sportData?.bestTime;
+                        const cd = sportData?.conditionData;
                         return (
-                        <div 
-                          key={spot.spotId} 
-                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                        <div
+                          key={spot.spotId}
+                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onSpotClick) {
-                              onSpotClick("wingfoil", dayStr);
-                            } else if (onDayClick) {
-                              onDayClick(dayStr);
-                            }
+                            if (onSpotClick) onSpotClick("wingfoil", dayStr);
+                            else if (onDayClick) onDayClick(dayStr);
                           }}
                         >
-                          <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
-                            {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
+                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                            </span>
+                            <ScoreDisplay score={sportData?.score} size="sm" />
                           </div>
-                          {spot.sportData && spot.sportData.length > 0 && (
-                            <div className="text-sm text-ink/70 space-y-1.5">
-                              {spot.sportData
-                                .filter(sd => sd.sport === "wingfoil")
-                                .map((sport) => (
-                                  <div key={sport.sport}>
-                                    {/* Wind data first for wingfoil */}
-                                    <div className="flex items-center gap-1.5">
-                                      <Wind size={12} className="text-ink/70" />
-                                      <span>
-                                        {Math.round(sport.conditionData.windSpeed)} kn
-                                        {sport.conditionData.windGust && ` (${Math.round(sport.conditionData.windGust)}*)`}
-                                      </span>
-                                      {sport.conditionData.windDirection !== undefined && sport.conditionData.windDirection !== null && (
-                                        <>
-                                          <Arrow direction={sport.conditionData.windDirection} />
-                                          <span>{getDisplayWindDirection(sport.conditionData.windDirection)}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                    {/* Wave data second for wingfoil */}
-                                    {sport.conditionData.waveHeight !== undefined && (
-                                      <div className="flex items-center gap-1.5">
-                                        <Waves size={12} className="text-ink/70" />
-                                        <span>
-                                          {sport.conditionData.waveHeight.toFixed(1)}m
-                                          {sport.conditionData.wavePeriod && ` (${sport.conditionData.wavePeriod}s)`}
-                                        </span>
-                                        {sport.conditionData.waveDirection !== undefined && sport.conditionData.waveDirection !== null && (
-                                          <>
-                                            <Arrow direction={sport.conditionData.waveDirection} />
-                                            <span>{getDisplayWindDirection(sport.conditionData.waveDirection)}</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
+                          {cd && (
+                            <ConditionLine
+                              speed={cd.windSpeed}
+                              gust={cd.windGust}
+                              direction={cd.windDirection}
+                              waveHeight={cd.waveHeight}
+                              wavePeriod={cd.wavePeriod}
+                              sport="wingfoil"
+                            />
                           )}
                         </div>
                         );
@@ -336,67 +307,38 @@ export function CalendarView({
 
                 {/* Kitesurfing spots */}
                 {dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0 && (
-                  <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) ? "mt-4 pt-4 border-t border-ink/20" : ""}>
-                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Kite</div>
-                    <div className="space-y-3">
+                  <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) ? "mt-3 pt-3 border-t border-ink/20" : ""}>
+                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Kite</div>
+                    <div className="space-y-2">
                       {dayInfo.kitesurfingSpots.slice(0, 3).map((spot) => {
-                        const kitesurfingSportData = spot.sportData?.find(sd => sd.sport === "kitesurfing");
-                        const bestTime = kitesurfingSportData?.bestTime;
+                        const sportData = spot.sportData?.find(sd => sd.sport === "kitesurfing");
+                        const bestTime = sportData?.bestTime;
+                        const cd = sportData?.conditionData;
                         return (
                         <div
                           key={spot.spotId}
-                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onSpotClick) {
-                              onSpotClick("kitesurfing", dayStr);
-                            } else if (onDayClick) {
-                              onDayClick(dayStr);
-                            }
+                            if (onSpotClick) onSpotClick("kitesurfing", dayStr);
+                            else if (onDayClick) onDayClick(dayStr);
                           }}
                         >
-                          <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
-                            {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
+                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                            </span>
+                            <ScoreDisplay score={sportData?.score} size="sm" />
                           </div>
-                          {spot.sportData && spot.sportData.length > 0 && (
-                            <div className="text-sm text-ink/70 space-y-1.5">
-                              {spot.sportData
-                                .filter(sd => sd.sport === "kitesurfing")
-                                .map((sport) => (
-                                  <div key={sport.sport}>
-                                    {/* Wind data first for kitesurfing */}
-                                    <div className="flex items-center gap-1.5">
-                                      <Wind size={12} className="text-ink/70" />
-                                      <span>
-                                        {Math.round(sport.conditionData.windSpeed)} kn
-                                        {sport.conditionData.windGust && ` (${Math.round(sport.conditionData.windGust)}*)`}
-                                      </span>
-                                      {sport.conditionData.windDirection !== undefined && sport.conditionData.windDirection !== null && (
-                                        <>
-                                          <Arrow direction={sport.conditionData.windDirection} />
-                                          <span>{getDisplayWindDirection(sport.conditionData.windDirection)}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                    {/* Wave data second for kitesurfing */}
-                                    {sport.conditionData.waveHeight !== undefined && (
-                                      <div className="flex items-center gap-1.5">
-                                        <Waves size={12} className="text-ink/70" />
-                                        <span>
-                                          {sport.conditionData.waveHeight.toFixed(1)}m
-                                          {sport.conditionData.wavePeriod && ` (${sport.conditionData.wavePeriod}s)`}
-                                        </span>
-                                        {sport.conditionData.waveDirection !== undefined && sport.conditionData.waveDirection !== null && (
-                                          <>
-                                            <Arrow direction={sport.conditionData.waveDirection} />
-                                            <span>{getDisplayWindDirection(sport.conditionData.waveDirection)}</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
+                          {cd && (
+                            <ConditionLine
+                              speed={cd.windSpeed}
+                              gust={cd.windGust}
+                              direction={cd.windDirection}
+                              waveHeight={cd.waveHeight}
+                              wavePeriod={cd.wavePeriod}
+                              sport="kitesurfing"
+                            />
                           )}
                         </div>
                         );
@@ -407,67 +349,38 @@ export function CalendarView({
 
                 {/* Surfing spots */}
                 {dayInfo.surfingSpots && dayInfo.surfingSpots.length > 0 && (
-                    <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) || (dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0) ? "mt-4 pt-4 border-t border-ink/20" : ""}>
-                    <div className="text-sm font-bold text-ink/60 mb-3 uppercase">Surf</div>
-                    <div className="space-y-3">
+                    <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) || (dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0) ? "mt-3 pt-3 border-t border-ink/20" : ""}>
+                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Surf</div>
+                    <div className="space-y-2">
                       {dayInfo.surfingSpots.slice(0, 3).map((spot) => {
-                        const surfingSportData = spot.sportData?.find(sd => sd.sport === "surfing");
-                        const bestTime = surfingSportData?.bestTime;
+                        const sportData = spot.sportData?.find(sd => sd.sport === "surfing");
+                        const bestTime = sportData?.bestTime;
+                        const cd = sportData?.conditionData;
                         return (
-                        <div 
-                          key={spot.spotId} 
-                          className="border-b border-ink/10 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                        <div
+                          key={spot.spotId}
+                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onSpotClick) {
-                              onSpotClick("surfing", dayStr);
-                            } else if (onDayClick) {
-                              onDayClick(dayStr);
-                            }
+                            if (onSpotClick) onSpotClick("surfing", dayStr);
+                            else if (onDayClick) onDayClick(dayStr);
                           }}
                         >
-                          <div className="text-sm font-headline font-bold text-ink mb-2" title={spot.spotName}>
-                            {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
+                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
+                            </span>
+                            <ScoreDisplay score={sportData?.score} size="sm" />
                           </div>
-                          {spot.sportData && spot.sportData.length > 0 && (
-                            <div className="text-sm text-ink/70 space-y-1.5">
-                              {spot.sportData
-                                .filter(sd => sd.sport === "surfing")
-                                .map((sport) => (
-                                  <div key={sport.sport}>
-                                    {/* Wave data first for surfing */}
-                                    {sport.conditionData.waveHeight !== undefined && (
-                                      <div className="flex items-center gap-1.5">
-                                        <Waves size={12} className="text-ink/70" />
-                                        <span>
-                                          {sport.conditionData.waveHeight.toFixed(1)}m
-                                          {sport.conditionData.wavePeriod && ` (${sport.conditionData.wavePeriod}s)`}
-                                        </span>
-                                        {sport.conditionData.waveDirection !== undefined && sport.conditionData.waveDirection !== null && (
-                                          <>
-                                            <Arrow direction={sport.conditionData.waveDirection} />
-                                            <span>{getDisplayWindDirection(sport.conditionData.waveDirection)}</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    )}
-                                    {/* Wind data second for surfing */}
-                                    <div className="flex items-center gap-1.5">
-                                      <Wind size={12} className="text-ink/70" />
-                                      <span>
-                                        {Math.round(sport.conditionData.windSpeed)} kn
-                                        {sport.conditionData.windGust && ` (${Math.round(sport.conditionData.windGust)}*)`}
-                                      </span>
-                                      {sport.conditionData.windDirection !== undefined && sport.conditionData.windDirection !== null && (
-                                        <>
-                                          <Arrow direction={sport.conditionData.windDirection} />
-                                          <span>{getDisplayWindDirection(sport.conditionData.windDirection)}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
+                          {cd && (
+                            <ConditionLine
+                              speed={cd.windSpeed}
+                              gust={cd.windGust}
+                              direction={cd.windDirection}
+                              waveHeight={cd.waveHeight}
+                              wavePeriod={cd.wavePeriod}
+                              sport="surfing"
+                            />
                           )}
                         </div>
                         );

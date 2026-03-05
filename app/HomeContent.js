@@ -6,8 +6,6 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Header } from "../components/layout/Header";
-import { SportSelector } from "../components/layout/SportSelector";
-import { ShowFilter } from "../components/layout/ShowFilter";
 import { EmptyState } from "../components/common/EmptyState";
 import { Loader } from "../components/common/Loader";
 import { DaySection } from "../components/forecast/DaySection";
@@ -17,8 +15,11 @@ import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } f
 import { isDaylightSlot, isContextualSlot, isAfterSunset, isNighttimeSlot } from "../lib/daylight";
 import { usePersistedState } from "../lib/hooks/usePersistedState";
 import { useAuth, useUser } from "../components/auth/AuthProvider";
-import { ListFilter, SlidersHorizontal } from "lucide-react";
-import { ViewToggle } from "../components/layout/ViewToggle";
+import { PillToggle } from "../components/ui/PillToggle";
+import { FilterGroup } from "../components/ui/FilterGroup";
+import { FilterBar } from "../components/ui/FilterBar";
+import { Heading } from "../components/ui/Heading";
+import { Text } from "../components/ui/Text";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
 
@@ -99,7 +100,7 @@ export default function HomeContent() {
   const [loading, setLoading] = useState(true);
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] =
     useState(null);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
 
   // Fetch spots filtered by selected sports
   useEffect(() => {
@@ -318,19 +319,6 @@ export default function HomeContent() {
   // Only mark as ideal if the slot matches criteria (excludes contextual slots and slots after sunset)
   markIdealSlots(filteredGrouped, selectedSports, spotsMap);
 
-  // Handle view toggle - navigate to different views
-  const handleViewChange = (view) => {
-    if (view === "dashboard") {
-      router.push("/dashboard");
-    } else if (view === "calendar") {
-      router.push("/calendar");
-    } else if (view === "cams") {
-      router.push("/cams");
-    } else if (view === "sessions") {
-      router.push("/journal");
-    }
-  };
-
   // Scroll to highlighted day when it changes
   useEffect(() => {
     if (highlightedDay) {
@@ -360,44 +348,43 @@ export default function HomeContent() {
 
       <MainLayout>
         <Header />
-      {/* Tabs + filters bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 px-4">
-          {/* Tabs row with filter toggle on mobile */}
-          <div className="flex items-center justify-between md:justify-start overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-            <ViewToggle onChange={handleViewChange} />
-            {/* Mobile filter toggle button */}
-            <button
-              onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className={`md:hidden h-7 w-7 flex items-center justify-center rounded border border-ink/30 transition-colors ${
-                mobileFiltersOpen ? "bg-ink text-newsprint" : "bg-newsprint text-ink hover:bg-ink/5"
-              }`}
-              aria-label="Toggle filters"
-              aria-expanded={mobileFiltersOpen}
-            >
-              <SlidersHorizontal size={14} />
-            </button>
-          </div>
-          
-          {/* Filters row - hidden on mobile by default, shown when expanded */}
-          <div className={`${mobileFiltersOpen ? "flex" : "hidden"} md:flex items-center gap-2`}>
-            <ListFilter size={18} className="text-ink" />
-            <SportSelector
+
+        {/* Filters — "set and forget" */}
+        <FilterBar activeFilters={[
+          { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+          { best: "Best", all: "All" }[showFilter],
+        ].filter(Boolean)}>
+          <FilterGroup label="Sport">
+            <PillToggle
+              name="sport"
+              options={[
+                { id: "wingfoil", label: "Wing" },
+                { id: "kitesurfing", label: "Kite" },
+                { id: "surfing", label: "Surf" },
+              ]}
               value={selectedSport}
-              onSportsChange={handleSportChange}
+              onChange={handleSportChange}
             />
-            <ShowFilter value={showFilter} onFilterChange={setShowFilter} />
-          </div>
-        </div>
-      </div>
-      <div className="h-4" /> {/* Spacer below tabs */}
+          </FilterGroup>
+          <FilterGroup label="Conditions">
+            <PillToggle
+              name="show"
+              options={[
+                { id: "best", label: "Best" },
+                { id: "all", label: "All" },
+              ]}
+              value={showFilter}
+              onChange={setShowFilter}
+            />
+          </FilterGroup>
+        </FilterBar>
 
       {loading ? (
             <Loader />
           ) : sortedDays.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 mt-2">
               {sortedDays.map((day) => {
             const dayData = filteredGrouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
@@ -467,11 +454,13 @@ export default function HomeContent() {
 
               return (
                 <div key={day} className="mb-4">
-                  <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-3 pb-1 sticky top-[48px] md:top-[113px] pt-[13px] md:pt-[23px] bg-newsprint z-[9] text-ink pl-2">
-                    {getFormattedDay()}
+                  <div className="sticky top-0 md:top-[54px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
+                    <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
+                      {getFormattedDay()}
+                    </span>
                   </div>
-                  <div className="text-left py-8 font-headline text-xl text-ink ml-2">
-                    No conditions
+                  <div className="text-left py-8 ml-2">
+                    <Heading level={2}>No conditions</Heading>
                   </div>
                 </div>
               );
@@ -495,7 +484,7 @@ export default function HomeContent() {
             </div>
           )}
 
-        <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+        {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
       </MainLayout>
     </>
   );

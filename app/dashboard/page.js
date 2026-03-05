@@ -6,11 +6,20 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
-import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight } from "lucide-react";
+import { Loader } from "../../components/common/Loader";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
+import { Divider } from "../../components/ui/Divider";
+import { Section } from "../../components/ui/Section";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
-import { formatDate, formatTime } from "../../lib/utils";
+import { formatDate, formatTime, getCardinalDirection } from "../../lib/utils";
+import { ScoreCard } from "../../components/ui/ScoreCard";
+import { ScoreDisplay } from "../../components/ui/ScoreDisplay";
+import { SportBadge } from "../../components/ui/SportBadge";
+import { ConditionLine } from "../../components/ui/ConditionLine";
 import { enrichSlots, markIdealSlots, markContextualSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
@@ -190,18 +199,6 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [selectedSport, user, sessionToken]);
 
-  const handleViewChange = (view) => {
-    if (view === "list") {
-      router.push("/report");
-    } else if (view === "calendar") {
-      router.push("/calendar");
-    } else if (view === "cams") {
-      router.push("/cams");
-    } else if (view === "sessions") {
-      router.push("/journal");
-    }
-  };
-
   // Handle webcam click (open fullscreen)
   const handleWebcamClick = (webcam) => {
     setFocusedWebcam(webcam);
@@ -232,36 +229,22 @@ export default function DashboardPage() {
       <MainLayout>
         <Header />
 
-      {/* Tabs bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <ViewToggle onChange={handleViewChange} />
-        </div>
-      </div>
-
-      <div className="h-4" /> {/* Spacer */}
-
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-ink/60 animate-spin" />
-        </div>
+        <Loader />
       ) : (
-        <div className="px-4 pb-12 space-y-10">
+        <div className="pb-12 pt-4 space-y-10">
           {/* Today's Best Conditions */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-ink">Today's Best Conditions</h2>
-              <button
-                onClick={() => router.push("/report")}
-                className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
-              >
+          <Section
+            title="Today's Best Conditions"
+            action={
+              <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/report")}>
                 See All
-                <ArrowRight size={14} />
-              </button>
-            </div>
+              </Button>
+            }
+          >
 
             {todaySlots.length === 0 ? (
-              <p className="text-ink/60 text-sm py-4">No good conditions forecast for today</p>
+              <Text variant="muted" className="text-sm py-4">No good conditions forecast for today</Text>
             ) : (
               <div className="space-y-2">
                 {todaySlots.map((slot) => {
@@ -269,21 +252,33 @@ export default function DashboardPage() {
                   if (!spot) return null;
 
                   return (
-                    <button
+                    <ScoreCard
                       key={`${slot.spotId}-${slot.timestamp}`}
+                      score={slot.score?.value}
                       onClick={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
-                      className="w-full p-3 rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/5 transition-all text-left bg-newsprint"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="font-bold text-ink">{spot.name}</div>
-                          <div className="text-sm text-ink/60">{formatTime(new Date(slot.timestamp))}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <SportBadge sport={slot.sport} />
+                            <span className="font-bold text-ink truncate">{spot.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-ink/60">
+                            <span>{formatTime(new Date(slot.timestamp))}</span>
+                            <span className="text-ink/30">·</span>
+                            <ConditionLine
+                              speed={slot.speed}
+                              gust={slot.gust}
+                              direction={slot.direction}
+                              waveHeight={slot.waveHeight}
+                              wavePeriod={slot.wavePeriod}
+                              sport={slot.sport}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-2xl font-bold text-green-700">{slot.score?.value}</div>
-                        </div>
+                        <ScoreDisplay score={slot.score?.value} size="lg" />
                       </div>
-                    </button>
+                    </ScoreCard>
                   );
                 })}
               </div>
@@ -291,32 +286,29 @@ export default function DashboardPage() {
 
             {/* Log a Session button - only show for authenticated users */}
             {isAuthenticated && (
-              <button
+              <Button
+                variant="secondary"
+                icon={Plus}
+                fullWidth
                 onClick={() => router.push("/journal/new")}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 mt-4 bg-ink/5 text-ink rounded border border-ink/20 hover:border-ink/30 hover:bg-ink/10 transition-colors"
+                className="mt-4 justify-center font-bold uppercase"
               >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase">Log a Session</span>
-              </button>
+                Log a Session
+              </Button>
             )}
-          </section>
+          </Section>
 
           {/* Webcams Preview */}
           {webcams.length > 0 && (
-            <section>
-              {/* Visual separator */}
-              <div className="border-t border-ink/20 mb-6"></div>
-
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-ink">Live Webcams</h2>
-                <button
-                  onClick={() => router.push("/cams")}
-                  className="flex items-center gap-1 text-xs font-bold uppercase text-ink/60 hover:text-ink transition-colors"
-                >
+            <Section
+              title="Live Webcams"
+              divided
+              action={
+                <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/cams")}>
                   See All
-                  <ArrowRight size={14} />
-                </button>
-              </div>
+                </Button>
+              }
+            >
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {webcams.map((spot) => (
@@ -329,12 +321,12 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </Section>
           )}
         </div>
       )}
 
-      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+      {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
 
       {/* Fullscreen Webcam Viewer */}
       {focusedWebcam && (

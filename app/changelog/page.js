@@ -4,6 +4,9 @@ import ReactMarkdown from "react-markdown";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Divider } from "../../components/ui/Divider";
 
 export const metadata = {
     title: 'Waterman - Changelog',
@@ -28,16 +31,16 @@ export default async function ChangelogPage() {
           <ReactMarkdown
             components={{
               h1: ({ node, ...props }) => (
-                <h1 className="font-headline text-3xl font-bold text-ink mb-6 border-b-2 border-ink pb-2" {...props} />
+                <Heading level={1} className="mb-6 border-b-2 border-ink pb-2" {...props} />
               ),
               h2: ({ node, ...props }) => (
-                <h2 className="font-headline text-2xl font-bold text-ink mt-8 mb-4" {...props} />
+                <Heading level={2} className="mt-8 mb-4 text-2xl" {...props} />
               ),
               h3: ({ node, ...props }) => (
-                <h3 className="font-headline text-xl font-bold text-ink mt-6 mb-3" {...props} />
+                <Heading level={3} className="mt-6 mb-3" {...props} />
               ),
               p: ({ node, ...props }) => (
-                <p className="font-body text-ink mb-4 leading-relaxed" {...props} />
+                <Text className="mb-4 leading-relaxed" {...props} />
               ),
               ul: ({ node, ...props }) => (
                 <ul className="font-body text-ink mb-4 ml-6 list-disc" {...props} />
@@ -49,7 +52,7 @@ export default async function ChangelogPage() {
                 <strong className="font-bold text-ink" {...props} />
               ),
               hr: ({ node, ...props }) => (
-                <hr className="border-ink/30 my-8" {...props} />
+                <Divider className="my-8" {...props} />
               ),
             }}
           >

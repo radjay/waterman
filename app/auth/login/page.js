@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../components/auth/AuthProvider";
 import EmailLoginForm from "../../../components/auth/EmailLoginForm";
 import MagicLinkSent from "../../../components/auth/MagicLinkSent";
+import { Heading } from "../../../components/ui/Heading";
+import { Text } from "../../../components/ui/Text";
 
 export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth();
@@ -42,13 +44,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="font-headline text-4xl font-bold text-ink mb-2">
+          <Heading level={1} className="text-4xl mb-2">
             Waterman
-          </h1>
+          </Heading>
           {!showSent && (
-            <p className="text-ink/60 text-sm">
+            <Text variant="muted" className="text-sm">
               Sign in to personalize your experience
-            </p>
+            </Text>
           )}
         </div>
 

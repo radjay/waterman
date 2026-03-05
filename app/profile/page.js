@@ -10,6 +10,11 @@ import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 import Link from "next/link";
 import { Loader2, ArrowLeft, ChevronRight } from "lucide-react";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { Card } from "../../components/ui/Card";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -85,22 +90,16 @@ export default function ProfilePage() {
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Back to home button */}
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back to home</span>
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
+          Back to home
+        </Button>
         
-        <h1 className="text-3xl font-semibold text-ink mb-8">Profile</h1>
+        <Heading level={1} className="mb-8">Profile</Heading>
 
         <div className="space-y-8">
           {/* Email (read-only) */}
           <div>
-            <label className="block text-sm font-medium text-ink/70 mb-2">
-              Email
-            </label>
+            <Text variant="label" as="label" className="block mb-2">Email</Text>
             <div className="px-4 py-3 bg-ink/5 border-2 border-ink/20 rounded-md text-ink">
               {user.email}
             </div>
@@ -108,69 +107,41 @@ export default function ProfilePage() {
 
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-ink/70 mb-2">
-              Name (optional)
-            </label>
-            <input
+            <Text variant="label" as="label" htmlFor="name" className="block mb-2">Name (optional)</Text>
+            <Input
               id="name"
-              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 transition-colors"
             />
           </div>
 
           {/* Settings Link */}
-          <Link
-            href="/settings"
-            className="block p-4 border-2 border-ink/20 rounded-md hover:border-ink/30 transition-colors"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-ink">Preferences & Settings</h3>
-                <p className="text-sm text-ink/60">Manage sports, spots, and personalization</p>
+          <Link href="/settings">
+            <Card variant="interactive" className="border-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Heading level={3}>Preferences & Settings</Heading>
+                  <Text variant="muted" className="text-sm">Manage sports, spots, and personalization</Text>
+                </div>
+                <ChevronRight className="w-5 h-5 text-ink/60" />
               </div>
-              <ChevronRight className="w-5 h-5 text-ink/60" />
-            </div>
+            </Card>
           </Link>
 
           {/* Error/Success Messages */}
-          {error && (
-            <div className="text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="text-green-600 text-sm">
-              {success}
-            </div>
-          )}
+          {error && <Text className="text-red-600 text-sm">{error}</Text>}
+          {success && <Text className="text-green-600 text-sm">{success}</Text>}
 
           {/* Actions */}
           <div className="space-y-3 pt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
+            <Button variant="primary" size="lg" fullWidth loading={saving} onClick={handleSave}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
 
-            <button
-              onClick={handleLogout}
-              disabled={saving}
-              className="w-full border-2 border-ink/20 text-ink py-3 px-4 rounded-md hover:border-ink/30 transition-colors disabled:opacity-50"
-            >
+            <Button variant="secondary" size="lg" fullWidth disabled={saving} onClick={handleLogout} className="border-2">
               Log Out
-            </button>
+            </Button>
           </div>
         </div>
       </div>

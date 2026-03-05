@@ -6,8 +6,6 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
 import { MainLayout } from "../../../components/layout/MainLayout";
 import { Header } from "../../../components/layout/Header";
-import { SportSelector } from "../../../components/layout/SportSelector";
-import { ShowFilter } from "../../../components/layout/ShowFilter";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { Loader } from "../../../components/common/Loader";
 import { DaySection } from "../../../components/forecast/DaySection";
@@ -16,8 +14,10 @@ import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../../lib/daylight";
 import { useUser } from "../../../components/auth/AuthProvider";
-import { ListFilter, SlidersHorizontal } from "lucide-react";
-import { ViewToggle } from "../../../components/layout/ViewToggle";
+import { PillToggle } from "../../../components/ui/PillToggle";
+import { FilterGroup } from "../../../components/ui/FilterGroup";
+import { FilterBar } from "../../../components/ui/FilterBar";
+import { Heading } from "../../../components/ui/Heading";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -40,8 +40,6 @@ function SportFilterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useUser();
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  
   // Get highlighted day and slot from URL params
   const highlightedDay = searchParams?.get("day") || null;
   const highlightedSlot = searchParams?.get("slot") || null;
@@ -340,54 +338,39 @@ function SportFilterPageContent() {
     }
   }, [highlightedDay, highlightedSlot, loading, router, selectedSport, showFilter]);
 
-  // Handle view toggle - navigate to different views
-  const handleViewChange = (view) => {
-    if (view === "calendar") {
-      router.push("/calendar");
-    } else if (view === "cams") {
-      router.push("/cams");
-    } else if (view === "sessions") {
-      router.push("/journal");
-    } else {
-      // Navigate to report view (main page)
-      router.push("/");
-    }
-  };
-
   return (
     <MainLayout>
       <Header />
-      {/* Tabs + filters bar - sticky on mobile and desktop */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2">
-          {/* Tabs row with filter toggle on mobile */}
-          <div className="flex items-center justify-between md:justify-start">
-            <ViewToggle onChange={handleViewChange} />
-            {/* Mobile filter toggle button */}
-            <button
-              onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className={`md:hidden px-2 py-1 rounded border border-ink/30 transition-colors ${
-                mobileFiltersOpen ? "bg-ink text-newsprint" : "bg-newsprint text-ink hover:bg-ink/5"
-              }`}
-              aria-label="Toggle filters"
-              aria-expanded={mobileFiltersOpen}
-            >
-              <SlidersHorizontal size={16} />
-            </button>
-          </div>
-          
-          {/* Filters row - hidden on mobile by default, shown when expanded */}
-          <div className={`${mobileFiltersOpen ? "flex" : "hidden"} md:flex items-center gap-2`}>
-            <ListFilter size={18} className="text-ink" />
-            <SportSelector
-              value={selectedSport}
-              onSportsChange={handleSportChange}
-            />
-            <ShowFilter value={showFilter} onFilterChange={handleFilterChange} />
-          </div>
-        </div>
-      </div>
-      <div className="h-4" /> {/* Spacer below tabs */}
+
+      {/* Filters — "set and forget" */}
+      <FilterBar activeFilters={[
+        { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+        { best: "Best", all: "All" }[showFilter],
+      ].filter(Boolean)}>
+        <FilterGroup label="Sport">
+          <PillToggle
+            name="sport"
+            options={[
+              { id: "wingfoil", label: "Wing" },
+              { id: "kitesurfing", label: "Kite" },
+              { id: "surfing", label: "Surf" },
+            ]}
+            value={selectedSport}
+            onChange={handleSportChange}
+          />
+        </FilterGroup>
+        <FilterGroup label="Conditions">
+          <PillToggle
+            name="show"
+            options={[
+              { id: "best", label: "Best" },
+              { id: "all", label: "All" },
+            ]}
+            value={showFilter}
+            onChange={handleFilterChange}
+          />
+        </FilterGroup>
+      </FilterBar>
 
       {loading ? (
         <Loader />
@@ -464,11 +447,13 @@ function SportFilterPageContent() {
 
               return (
                 <div key={day} className="mb-4">
-                  <div className="font-headline text-[1.26rem] font-bold border-b-2 border-ink mb-3 pb-1 text-ink pl-2">
-                    {getFormattedDay()}
+                  <div className="flex items-center h-10 mb-2 pl-2 pt-2">
+                    <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
+                      {getFormattedDay()}
+                    </span>
                   </div>
-                  <div className="text-left py-8 font-headline text-xl text-ink ml-2">
-                    No conditions
+                  <div className="text-left py-8 ml-2">
+                    <Heading level={2}>No conditions</Heading>
                   </div>
                 </div>
               );
@@ -490,7 +475,7 @@ function SportFilterPageContent() {
           })}
         </div>
       )}
-      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+      {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
     </MainLayout>
   );
 }
@@ -500,10 +485,7 @@ export default function SportFilterPage() {
     <Suspense fallback={
       <MainLayout>
         <Header />
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader />
-        </div>
-        <Footer />
+        <Loader />
       </MainLayout>
     }>
       <SportFilterPageContent />

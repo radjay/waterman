@@ -8,7 +8,6 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { CalendarView } from "../../components/calendar/CalendarView";
 import { Loader } from "../../components/common/Loader";
-import { ViewToggle } from "../../components/layout/ViewToggle";
 import { Footer } from "../../components/layout/Footer";
 import { formatDate } from "../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../lib/slots";
@@ -213,44 +212,26 @@ export default function CalendarPage() {
     router.push(`/report?day=${encodeURIComponent(dayStr)}`);
   };
 
-  // Handle view toggle - navigate to different views
-  const handleViewChange = (view) => {
-    if (view === "dashboard") {
-      router.push("/dashboard");
-    } else if (view === "list") {
-      router.push("/report");
-    } else if (view === "cams") {
-      router.push("/cams");
-    } else if (view === "sessions") {
-      router.push("/journal");
-    }
-  };
-
   return (
     <MainLayout>
       <Header />
-      {/* Tabs bar - sticky, scrollable on mobile */}
-      <div className="sticky top-[57px] z-40 bg-newsprint py-3 md:py-4 before:absolute before:inset-x-0 before:-top-4 before:h-4 before:bg-newsprint before:-z-10">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <ViewToggle onChange={handleViewChange} />
-        </div>
+
+      <div className="pt-4">
+        {!loading ? (
+          <CalendarView
+            grouped={filteredGrouped}
+            sortedDays={sortedDays}
+            spotsMap={spotsMap}
+            selectedSports={selectedSports}
+            onSpotClick={handleSpotClick}
+            onDayClick={handleDayClick}
+          />
+        ) : (
+          <Loader />
+        )}
       </div>
-      <div className="h-4" /> {/* Spacer below tabs */}
 
-      {!loading ? (
-        <CalendarView
-          grouped={filteredGrouped}
-          sortedDays={sortedDays}
-          spotsMap={spotsMap}
-          selectedSports={selectedSports}
-          onSpotClick={handleSpotClick}
-          onDayClick={handleDayClick}
-        />
-      ) : (
-        <Loader />
-      )}
-
-      <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />
+      {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
     </MainLayout>
   );
 }

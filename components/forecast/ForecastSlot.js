@@ -1,32 +1,11 @@
 import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { TideDisplay } from "../tide/TideDisplay";
-import { Flame, ChevronRight, User } from "lucide-react";
+import { ChevronRight, User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
 import { Tooltip } from "../ui/Tooltip";
-
-/**
- * FlameRating - shows 1-3 flames based on score quality
- * 3 flames + "EPIC!" = score >= 90
- * 2 flames = score >= 75
- * 1 flame = score >= 60
- */
-function FlameRating({ score }) {
-  if (!score || score < 60) return null;
-  
-  const flameCount = score >= 90 ? 3 : score >= 75 ? 2 : 1;
-  const isEpic = score >= 90;
-  
-  return (
-    <div className="flex items-center gap-0.5 text-green-700">
-      {isEpic && <span className="mr-1 font-headline font-bold text-[0.65rem] uppercase tracking-wide">EPIC!</span>}
-      {Array.from({ length: flameCount }).map((_, i) => (
-        <Flame key={i} size={14} fill="currentColor" />
-      ))}
-    </div>
-  );
-}
+import { ScoreDisplay } from "../ui/ScoreDisplay";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -63,7 +42,7 @@ export function ForecastSlot({
           isSurfing
             ? "grid-cols-[80px_0.7fr_1.1fr_150px_120px] gap-2"
             : "grid-cols-[80px_1fr_1fr_120px] gap-2"
-        } items-stretch py-3 px-0 border-b border-ink/20 font-body text-[0.95rem] w-full group ${
+        } items-stretch py-3 px-0 border-b border-ink/20 font-data text-[0.95rem] w-full group ${
           showFilter === "all" &&
           slot.score &&
           slot.score.value >= 60 &&
@@ -72,7 +51,7 @@ export function ForecastSlot({
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"
               : "bg-transparent"
-        } ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
+        } ${slot.score?.value >= 90 ? "border-l-4 border-l-amber-500" : slot.score?.value >= 75 ? "border-l-4 border-l-green-600" : slot.score?.value >= 60 ? "border-l-4 border-l-green-400" : ""} ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
       >
         <div className="font-bold text-ink pl-2 flex items-center h-full">
           {slot.hour}
@@ -95,12 +74,16 @@ export function ForecastSlot({
         {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
         <div className="flex items-center justify-end mr-2 gap-2 min-w-[120px]">
-          {slot.score && <FlameRating score={slot.score.value} />}
+          {slot.score && (
+            <Tooltip content="60+ Good · 75+ Excellent · 90+ Epic" position="left">
+              <ScoreDisplay score={slot.score.value} />
+            </Tooltip>
+          )}
           {/* Personalized indicator + Score button */}
           {slot.score ? (
             <button
               onClick={() => setIsScoreModalOpen(true)}
-              className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink hover:text-ink/60 pointer-events-none group-hover:pointer-events-auto"
+              className="flex items-center justify-center gap-1 text-ink/30 hover:text-ink/60 transition-colors"
               aria-label="View score report"
             >
               {slot.score.isPersonalized && (
@@ -128,19 +111,23 @@ export function ForecastSlot({
             : slot.isIdeal
               ? "bg-[rgba(134,239,172,0.3)]"
               : "bg-newsprint"
-        } ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
+        } ${slot.score?.value >= 90 ? "border-l-4 border-l-amber-500" : slot.score?.value >= 75 ? "border-l-4 border-l-green-600" : slot.score?.value >= 60 ? "border-l-4 border-l-green-400" : ""} ${slot.isEpic ? "is-epic" : ""} ${slot.isContextual ? "opacity-50" : ""} ${className}`}
       >
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="font-bold text-ink text-lg">{slot.hour}</div>
+            <div className="font-bold text-ink text-lg flex items-center">
+              {slot.hour}
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {slot.score && <FlameRating score={slot.score.value} />}
+              {slot.score && (
+              <ScoreDisplay score={slot.score.value} size="lg" />
+            )}
             {/* Personalized indicator + Score button for mobile */}
             {slot.score && (
               <button
                 onClick={() => setIsScoreModalOpen(true)}
-                className="flex items-center justify-center gap-1 text-ink hover:text-ink/60 transition-colors"
+                className="flex items-center justify-center gap-1 text-ink/30 hover:text-ink/60 transition-colors"
                 aria-label="View score report"
               >
                 {slot.score.isPersonalized && (

@@ -5,20 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, MapPin } from "lucide-react";
+import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
 
-export function MobileMenu({ onOpenChange }) {
-  const [isOpen, setIsOpen] = useState(false);
+export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : internalOpen;
+  const setIsOpen = (val) => {
+    if (!isControlled) setInternalOpen(val);
+    onOpenChange?.(val);
+  };
   const { isAuthenticated, user, logout, loading } = useAuth();
   const router = useRouter();
   const menuRef = useRef(null);
-
-  // Notify parent when menu state changes
-  useEffect(() => {
-    if (onOpenChange) {
-      onOpenChange(isOpen);
-    }
-  }, [isOpen, onOpenChange]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -66,14 +65,14 @@ export function MobileMenu({ onOpenChange }) {
 
   return (
     <>
-      {/* Hamburger button */}
-      <motion.button
+      {/* Hamburger button — only rendered in uncontrolled mode */}
+      {!isControlled && <motion.button
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`p-1.5 rounded-md border border-ink/30 bg-newsprint hover:bg-ink/5 md:hidden ${
-          isOpen ? "fixed left-[17px] top-[12px] z-[201] pointer-events-auto" : "relative z-[200]"
+        className={`p-1.5 rounded-ui border border-ink/15 bg-newsprint hover:bg-warm-highlight transition-all duration-fast ease-smooth focus-ring ${
+          isOpen ? "fixed left-[17px] top-[10px] z-[201] pointer-events-auto" : "relative z-[200]"
         }`}
         aria-label="Menu"
         aria-expanded={isOpen}
@@ -88,7 +87,7 @@ export function MobileMenu({ onOpenChange }) {
               exit={{ rotate: 90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <ChevronLeft className="w-3 h-3 text-ink" />
+              <ChevronLeft className="w-4 h-4 text-ink" />
             </motion.div>
           ) : (
             <motion.div
@@ -98,11 +97,11 @@ export function MobileMenu({ onOpenChange }) {
               exit={{ rotate: -90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <Menu className="w-3 h-3 text-ink" />
+              <Menu className="w-4 h-4 text-ink" />
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.button>
+      </motion.button>}
 
       {/* Backdrop and Panel */}
       <AnimatePresence>
@@ -110,7 +109,7 @@ export function MobileMenu({ onOpenChange }) {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 bg-black/50 z-[190] md:hidden pointer-events-auto"
+              className="fixed inset-0 bg-black/40 z-[190] pointer-events-auto"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -121,7 +120,7 @@ export function MobileMenu({ onOpenChange }) {
             {/* Slide-out panel */}
             <motion.div
               ref={menuRef}
-              className="fixed top-0 left-0 h-full w-64 bg-newsprint border-r border-ink/20 shadow-xl z-[195] md:hidden pointer-events-auto"
+              className="fixed top-0 left-0 h-full w-64 bg-newsprint border-r border-ink/10 shadow-elevated z-[195] pointer-events-auto"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
@@ -146,7 +145,7 @@ export function MobileMenu({ onOpenChange }) {
 
                       <button
                         onClick={() => handleNavigation("/profile")}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                       >
                         <User className="w-4 h-4" />
                         Profile
@@ -155,7 +154,7 @@ export function MobileMenu({ onOpenChange }) {
                   ) : (
                     <button
                       onClick={() => handleNavigation("/auth/login")}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink border border-ink/30 rounded-md hover:bg-ink/5 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink border border-ink/15 rounded-ui hover:bg-warm-highlight transition-all duration-fast ease-smooth"
                     >
                       <LogIn className="w-4 h-4" />
                       Sign In
@@ -166,8 +165,16 @@ export function MobileMenu({ onOpenChange }) {
                 {/* Navigation links */}
                 <div className="flex-1 space-y-1">
                   <button
+                    onClick={() => handleNavigation("/calendar")}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Calendar
+                  </button>
+
+                  <button
                     onClick={() => handleNavigation("/request-spot")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                   >
                     <MapPin className="w-4 h-4" />
                     Request a Spot
@@ -175,15 +182,23 @@ export function MobileMenu({ onOpenChange }) {
 
                   <button
                     onClick={() => handleNavigation("/subscribe")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                   >
                     <Calendar className="w-4 h-4" />
                     Add to Calendar
                   </button>
 
                   <button
+                    onClick={() => handleNavigation("/settings")}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </button>
+
+                  <button
                     onClick={() => handleNavigation("/changelog")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                   >
                     <FileText className="w-4 h-4" />
                     Changelog
@@ -195,7 +210,7 @@ export function MobileMenu({ onOpenChange }) {
                   <div className="border-t border-ink/10 pt-4">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-ink/5 rounded-md transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out

@@ -9,6 +9,10 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 import { Loader2, CheckCircle, ArrowLeft, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
+import { Divider } from "../../components/ui/Divider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -190,22 +194,16 @@ export default function ProfilePage() {
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Back to home button */}
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back to home</span>
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
+          Back to home
+        </Button>
         
-        <h1 className="text-3xl font-semibold text-ink mb-8">Settings</h1>
+        <Heading level={1} className="mb-8">Settings</Heading>
 
         <div className="space-y-8">
           {/* Favorite Sports */}
           <div>
-            <label className="block text-sm font-medium text-ink/70 mb-3">
-              Favorite Sports
-            </label>
+            <Text variant="label" as="label" className="block mb-3">Favorite Sports</Text>
             <div className="space-y-2">
               {sports.map((sport) => (
                 <button
@@ -230,9 +228,7 @@ export default function ProfilePage() {
 
           {/* Favorite Spots */}
           <div>
-            <label className="block text-sm font-medium text-ink/70 mb-3">
-              Favorite Spots (optional)
-            </label>
+            <Text variant="label" as="label" className="block mb-3">Favorite Spots (optional)</Text>
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 text-ink/60 animate-spin" />
@@ -267,14 +263,15 @@ export default function ProfilePage() {
           </div>
 
           {/* Personalization Section */}
-          <div className="border-t-2 border-ink/10 pt-8">
+          <div className="pt-8">
+            <Divider weight="medium" className="mb-8" />
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-ink" />
-              <h2 className="text-lg font-semibold text-ink">Personalization</h2>
+              <Heading level={2}>Personalization</Heading>
             </div>
-            <p className="text-sm text-ink/60 mb-6">
+            <Text variant="muted" className="text-sm mb-6">
               Set up sport profiles to get condition scores personalized for your skill level and preferences.
-            </p>
+            </Text>
 
             {/* Sport Profiles */}
             <div className="space-y-3 mb-6">
@@ -374,33 +371,14 @@ export default function ProfilePage() {
           </div>
 
           {/* Error/Success Messages */}
-          {error && (
-            <div className="text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="text-green-600 text-sm">
-              {success}
-            </div>
-          )}
+          {error && <Text className="text-red-600 text-sm">{error}</Text>}
+          {success && <Text className="text-green-600 text-sm">{success}</Text>}
 
           {/* Actions */}
           <div className="pt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full bg-ink text-newsprint py-3 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
+            <Button variant="primary" size="lg" fullWidth loading={saving} onClick={handleSave}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </div>
       </div>

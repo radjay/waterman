@@ -8,6 +8,9 @@ import { useAuth } from "../../../components/auth/AuthProvider";
 import { MainLayout } from "../../../components/layout/MainLayout";
 import { Header } from "../../../components/layout/Header";
 import { Footer } from "../../../components/layout/Footer";
+import { Heading } from "../../../components/ui/Heading";
+import { Text } from "../../../components/ui/Text";
+import { Button } from "../../../components/ui/Button";
 import { Loader2, ArrowLeft, Check, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -135,19 +138,19 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
                 </label>
                 <div className="flex items-center gap-2">
                   {success[sport] && !scoring[sport] && !scoringResult[sport] && (
-                    <span className="text-xs text-green-600 flex items-center gap-1">
+                    <Text variant="caption" as="span" className="text-green-600 flex items-center gap-1">
                       <Check className="w-3 h-3" /> Saved
-                    </span>
+                    </Text>
                   )}
                   {scoring[sport] && (
-                    <span className="text-xs text-ink/60 flex items-center gap-1">
+                    <Text variant="caption" as="span" className="flex items-center gap-1">
                       <Loader2 className="w-3 h-3 animate-spin" /> Scoring...
-                    </span>
+                    </Text>
                   )}
                   {scoringResult[sport]?.slotsScored > 0 && (
-                    <span className="text-xs text-green-600">
-                      ✓ {scoringResult[sport].slotsScored} slots scored
-                    </span>
+                    <Text variant="caption" as="span" className="text-green-600">
+                      {scoringResult[sport].slotsScored} slots scored
+                    </Text>
                   )}
                 </div>
               </div>
@@ -184,20 +187,7 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
                   </span>
                 </label>
 
-                <button
-                  onClick={() => handleSave(sport)}
-                  disabled={saving[sport]}
-                  className="px-4 py-2 bg-ink text-newsprint text-sm rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {saving[sport] ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Saving...
-                    </span>
-                  ) : (
-                    "Save"
-                  )}
-                </button>
+                <Button variant="primary" size="sm" loading={saving[sport]} onClick={() => handleSave(sport)}>Save</Button>
               </div>
             </div>
           ))}
@@ -279,19 +269,13 @@ export default function SpotContextPage() {
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Back button */}
-        <button
-          onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 text-ink hover:text-ink/70 transition-colors mb-6 -ml-2"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">Back to profile</span>
-        </button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/settings")} className="mb-6 -ml-2">Back to settings</Button>
 
-        <h1 className="text-3xl font-semibold text-ink mb-2">Spot Notes</h1>
-        <p className="text-ink/60 mb-8">
+        <Heading level={1} className="mb-2">Spot Notes</Heading>
+        <Text variant="muted" className="mb-8">
           Add personal notes about what works (or doesn't) for you at each spot.
           These notes help us generate scores tailored to your experience.
-        </p>
+        </Text>
 
         {spots.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-ink/20 rounded-lg">

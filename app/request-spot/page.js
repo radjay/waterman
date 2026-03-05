@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Header } from "../../components/layout/Header";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Heading } from "../../components/ui/Heading";
+import { Text } from "../../components/ui/Text";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
 
 export default function RequestSpotPage() {
   const [step, setStep] = useState(1);
@@ -67,8 +71,8 @@ export default function RequestSpotPage() {
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <h2 className="font-headline font-black text-2xl mb-2">Request Submitted!</h2>
-            <p className="text-ink/60">We'll review your spot request and add it soon.</p>
+            <Heading level={2} className="mb-2">Request Submitted!</Heading>
+            <Text variant="muted">We'll review your spot request and add it soon.</Text>
           </div>
         </div>
       </div>
@@ -99,10 +103,10 @@ export default function RequestSpotPage() {
 
         {/* Form header */}
         <div className="text-center mb-8">
-          <h1 className="font-headline font-black text-3xl mb-2">Request a Spot</h1>
-          <p className="text-ink/60">
+          <Heading level={1} className="mb-2">Request a Spot</Heading>
+          <Text variant="muted">
             {step === 1 ? "Tell us about the spot" : "Add optional details"}
-          </p>
+          </Text>
         </div>
 
         {/* Step 1: Basic Info */}
@@ -113,12 +117,11 @@ export default function RequestSpotPage() {
               <label className="block font-bold text-sm mb-2">
                 Spot Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 placeholder="e.g., Marina de Cascais"
-                className="w-full px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
               />
             </div>
 
@@ -127,12 +130,11 @@ export default function RequestSpotPage() {
               <label className="block font-bold text-sm mb-2">
                 Country <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 value={formData.country}
                 onChange={(e) => updateField("country", e.target.value)}
                 placeholder="e.g., Portugal"
-                className="w-full px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
               />
             </div>
 
@@ -141,7 +143,7 @@ export default function RequestSpotPage() {
               <label className="block font-bold text-sm mb-2">
                 Sports <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-ink/60 mb-3">Select all that apply</p>
+              <Text variant="caption" className="mb-3">Select all that apply</Text>
               <div className="flex flex-wrap gap-2">
                 {["wingfoil", "kitesurfing", "surfing"].map((sport) => (
                   <button
@@ -161,18 +163,16 @@ export default function RequestSpotPage() {
             </div>
 
             {/* Next button */}
-            <button
+            <Button
+              variant="primary"
+              icon={ChevronRight}
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className={`w-full py-3 rounded font-bold flex items-center justify-center gap-2 transition-colors ${
-                canProceedStep1
-                  ? "bg-ink text-newsprint hover:bg-ink/90"
-                  : "bg-ink/20 text-ink/40 cursor-not-allowed"
-              }`}
+              fullWidth
+              size="lg"
             >
               Next
-              <ChevronRight size={20} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -184,12 +184,11 @@ export default function RequestSpotPage() {
               <label className="block font-bold text-sm mb-2">
                 Webcam URL <span className="text-ink/40 font-normal">(optional)</span>
               </label>
-              <input
+              <Input
                 type="url"
                 value={formData.webcamUrl}
                 onChange={(e) => updateField("webcamUrl", e.target.value)}
                 placeholder="https://..."
-                className="w-full px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
               />
             </div>
 
@@ -198,12 +197,11 @@ export default function RequestSpotPage() {
               <label className="block font-bold text-sm mb-2">
                 Windguru Live Report URL <span className="text-ink/40 font-normal">(optional)</span>
               </label>
-              <input
+              <Input
                 type="url"
                 value={formData.windguruUrl}
                 onChange={(e) => updateField("windguruUrl", e.target.value)}
                 placeholder="https://windguru.cz/..."
-                className="w-full px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
               />
             </div>
 
@@ -213,38 +211,40 @@ export default function RequestSpotPage() {
                 Coordinates <span className="text-ink/40 font-normal">(optional)</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <input
+                <Input
                   type="text"
                   value={formData.latitude}
                   onChange={(e) => updateField("latitude", e.target.value)}
                   placeholder="Latitude"
-                  className="px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
                 />
-                <input
+                <Input
                   type="text"
                   value={formData.longitude}
                   onChange={(e) => updateField("longitude", e.target.value)}
                   placeholder="Longitude"
-                  className="px-4 py-3 border border-ink/30 rounded bg-newsprint focus:outline-none focus:border-ink"
                 />
               </div>
             </div>
 
             {/* Action buttons */}
             <div className="flex gap-3">
-              <button
+              <Button
+                variant="secondary"
+                icon={ChevronLeft}
                 onClick={() => setStep(1)}
-                className="flex-1 py-3 rounded font-bold flex items-center justify-center gap-2 border border-ink/30 bg-newsprint text-ink hover:bg-ink/5 transition-colors"
+                fullWidth
+                size="lg"
               >
-                <ChevronLeft size={20} />
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSubmit}
-                className="flex-1 py-3 rounded font-bold flex items-center justify-center gap-2 bg-ink text-newsprint hover:bg-ink/90 transition-colors"
+                fullWidth
+                size="lg"
               >
                 Submit Request
-              </button>
+              </Button>
             </div>
           </div>
         )}

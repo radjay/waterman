@@ -8,6 +8,10 @@ import { useAuth } from "../../../components/auth/AuthProvider";
 import VerifyingMagicLink from "../../../components/auth/VerifyingMagicLink";
 import OnboardingFlow from "../../../components/auth/OnboardingFlow";
 import { XCircle } from "lucide-react";
+import { Heading } from "../../../components/ui/Heading";
+import { Text } from "../../../components/ui/Text";
+import { Button } from "../../../components/ui/Button";
+import { Card } from "../../../components/ui/Card";
 
 function VerifyContent() {
   const router = useRouter();
@@ -77,13 +81,13 @@ function VerifyContent() {
   return (
     <>
       {status === "verifying" && (
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <Card variant="elevated" className="bg-white p-8">
           <VerifyingMagicLink />
-        </div>
+        </Card>
       )}
 
       {status === "success" && (
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <Card variant="elevated" className="bg-white p-8 text-center">
           <div className="text-green-600 mb-4">
             <svg
               className="w-16 h-16 mx-auto"
@@ -99,54 +103,58 @@ function VerifyContent() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-ink mb-2">
+          <Heading level={2} className="text-2xl mb-2">
             Successfully signed in!
-          </h2>
-          <p className="text-ink/70">Redirecting you to the app...</p>
-        </div>
+          </Heading>
+          <Text variant="muted">Redirecting you to the app...</Text>
+        </Card>
       )}
 
       {status === "onboarding" && (
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <Card variant="elevated" className="bg-white p-8">
           <OnboardingFlow onComplete={handleOnboardingComplete} />
-        </div>
+        </Card>
       )}
 
       {status === "error" && (
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <Card variant="elevated" className="bg-white p-8">
           <div className="text-center space-y-6">
             <div className="flex justify-center">
               <XCircle className="w-16 h-16 text-red-600" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-ink">
+              <Heading level={2} className="text-2xl">
                 Verification Failed
-              </h2>
-              <p className="text-red-600">{error}</p>
+              </Heading>
+              <Text className="text-red-600">{error}</Text>
             </div>
 
             <div className="space-y-3">
-              <p className="text-ink/70 text-sm">
+              <Text variant="muted" className="text-sm">
                 This magic link may have expired or already been used.
-              </p>
+              </Text>
 
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
                 onClick={() => router.push("/auth/login")}
-                className="w-full bg-ink text-newsprint py-3 px-6 rounded-md hover:bg-ink/90 transition-colors font-medium"
               >
                 Request a New Magic Link
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
                 onClick={() => router.push("/")}
-                className="w-full border border-ink/30 text-ink py-3 px-6 rounded-md hover:bg-ink/5 transition-colors font-medium"
               >
                 Go to Home
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </>
   );
@@ -157,9 +165,9 @@ export default function VerifyPage() {
     <div className="min-h-screen flex items-center justify-center bg-newsprint px-4">
       <div className="w-full max-w-3xl">
         <Suspense fallback={
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <Card variant="elevated" className="bg-white p-8">
             <VerifyingMagicLink />
-          </div>
+          </Card>
         }>
           <VerifyContent />
         </Suspense>

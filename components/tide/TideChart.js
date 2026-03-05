@@ -169,7 +169,7 @@ export function TideChart({ tides, className = "" }) {
                 x={x}
                 y={y - 12}
                 textAnchor="middle"
-                className="font-body fill-ink"
+                className="font-data fill-ink"
                 style={{ fontSize: '11px', fontWeight: 'bold' }}
               >
                 {tide.height !== null ? `${tide.height.toFixed(1)}m` : ''}
@@ -180,7 +180,7 @@ export function TideChart({ tides, className = "" }) {
                 x={x}
                 y={chartHeight - paddingBottom + 18}
                 textAnchor="middle"
-                className="font-body fill-ink"
+                className="font-data fill-ink"
                 style={{ fontSize: '12px', fontWeight: '500' }}
               >
                 {tide.timeStr}

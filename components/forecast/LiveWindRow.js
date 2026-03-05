@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { Wind } from "lucide-react";
 
 /**
- * LiveWindRow component displays real-time wind data as a forecast-like row.
- * Shows wind speed, gusts, and direction in the same style as forecast slots.
+ * LiveWindRow component displays real-time wind data as a compact pill.
+ * Shows wind speed, gusts, and direction inline with forecast data.
  *
  * @param {string} stationId - Windguru station ID
  * @param {string} className - Additional CSS classes
@@ -68,46 +68,45 @@ export function LiveWindRow({ stationId, className = "" }) {
   return (
     <div className="py-1.5 px-2">
       <div
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded border ${
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${
           isStale
-            ? "border-ink/20 bg-ink/5"
-            : "border-green-500 bg-gradient-to-r from-green-50 to-green-100"
+            ? "bg-ink/[0.04] text-faded-ink"
+            : "bg-green-50 text-green-800"
         } ${className}`}
       >
-        {/* Live indicator with pulsing dot */}
-        <div className="flex items-center gap-1.5">
-          {!isStale && (
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-600 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
-            </span>
-          )}
-          <span className={`text-xs font-bold uppercase tracking-wide ${isStale ? "text-ink/60" : "text-green-700"}`}>
-            Live
+        {/* Pulsing dot */}
+        {!isStale && (
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
           </span>
-        </div>
+        )}
 
-        {/* Wind icon and data - compact */}
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/60">
-          <Wind size={14} className={isStale ? "text-ink/40" : "text-green-700"} />
-          <span className={`text-base font-bold tabular-nums ${isStale ? "text-ink/60" : "text-green-900"}`}>
-            {Math.round(liveWind.windSpeedKnots)}
+        <span className={`text-[0.65rem] font-bold uppercase tracking-wider ${isStale ? "text-faded-ink" : "text-green-700"}`}>
+          Live
+        </span>
+
+        <Wind size={12} className={isStale ? "text-faded-ink/50" : "text-green-600"} />
+
+        <span className={`text-sm font-bold tabular-nums ${isStale ? "text-faded-ink" : "text-green-900"}`}>
+          {Math.round(liveWind.windSpeedKnots)}
+        </span>
+
+        <span className={`text-[0.65rem] font-medium ${isStale ? "text-faded-ink/70" : "text-green-700"}`}>
+          kn
+        </span>
+
+        {liveWind.windGustKnots !== null && (
+          <span className={`text-[0.65rem] tabular-nums ${isStale ? "text-faded-ink/50" : "text-green-600"}`}>
+            ({Math.round(liveWind.windGustKnots)})
           </span>
-          <span className={`text-xs font-medium ${isStale ? "text-ink/50" : "text-green-800"}`}>
-            kn
-          </span>
-          {liveWind.windGustKnots !== null && (
-            <span className={`text-xs tabular-nums ${isStale ? "text-ink/40" : "text-green-700"}`}>
-              ({Math.round(liveWind.windGustKnots)})
-            </span>
-          )}
-        </div>
+        )}
 
         {/* Age indicator */}
         {ageMinutes > 0 && (
-          <div className={`text-xs ${isStale ? "text-ink/40" : "text-green-700/70"}`}>
+          <span className={`text-[0.6rem] ${isStale ? "text-faded-ink/40" : "text-green-600/70"}`}>
             {ageMinutes}m
-          </div>
+          </span>
         )}
       </div>
     </div>

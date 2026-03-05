@@ -3,81 +3,151 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { LogIn } from "lucide-react";
 import { formatFullDate } from "../../lib/utils";
-import { MobileMenu } from "./MobileMenu";
+import { ViewToggle } from "./ViewToggle";
+import { useAuth } from "../auth/AuthProvider";
+import UserMenu from "../auth/UserMenu";
+import { useRouter, usePathname } from "next/navigation";
 
+/**
+ * Header — clean sticky header.
+ *
+ * Mobile: masthead only (title + date). Nav is handled by BottomNav.
+ * Desktop: masthead (container-width) + full-width nav bar with auth inside.
+ * Collapses on scroll with smooth Framer Motion animation.
+ */
 export function Header({ className = "" }) {
   const todayStr = formatFullDate(new Date());
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const isHome = pathname === "/dashboard";
 
-  // Check scroll position before paint to avoid layout shift
   useLayoutEffect(() => {
-    // Set initial scroll state synchronously before first paint
     setIsScrolled(window.scrollY > 20);
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Animation duration - 0 on mount, normal after
-  const animationDuration = hasMounted ? 0.15 : 0;
+  const authContent = (
+    <AuthButton
+      isAuthenticated={isAuthenticated}
+      authLoading={authLoading}
+      router={router}
+    />
+  );
 
   return (
-    <header className={`sticky top-0 z-50 bg-newsprint relative ${className}`}>
-      {/* Mobile menu - always render, but hide wrapper positioning when menu is open */}
-      <div 
-        className={`md:hidden ${isMenuOpen ? "pointer-events-none" : "absolute z-[60]"}`}
-        style={isMenuOpen ? {} : { left: 0, top: 12 }}
-      >
-        <MobileMenu onOpenChange={setIsMenuOpen} />
-      </div>
-
-      {/* Main header content */}
-      <motion.div 
+    <header
+      className={`sticky top-0 z-50 -mx-4 md:-mx-8 transition-colors duration-300 ease-smooth ${
+        isScrolled
+          ? "bg-newsprint/80 backdrop-blur-xl shadow-card"
+          : ""
+      } ${className}`}
+    >
+      {/* ── Masthead: title + date — smooth collapse on scroll ── */}
+      {/* On mobile, only show on home/dashboard tab */}
+      <motion.div
         initial={false}
-        animate={{ paddingTop: isScrolled ? 12 : 12, paddingBottom: isScrolled ? 12 : 16 }}
-        transition={{ duration: animationDuration, ease: "easeOut" }}
+        animate={isScrolled ? "collapsed" : "expanded"}
+        variants={{
+          expanded: { height: "auto", opacity: 1 },
+          collapsed: { height: 0, opacity: 0 },
+        }}
+        transition={
+          hasMounted
+            ? {
+                height: { duration: 0.3, ease: [0.32, 0.72, 0, 1] },
+                opacity: { duration: 0.2, ease: "easeOut" },
+              }
+            : { duration: 0 }
+        }
+        className={`overflow-hidden ${!isHome ? "hidden md:block" : ""}`}
       >
-        {/* Title - centered */}
-        <div className="flex items-center justify-center">
-          <motion.h1 
-            className="font-headline font-black uppercase tracking-[-1px] leading-none text-ink"
-            initial={false}
-            animate={{ 
-              fontSize: isScrolled ? "clamp(1.44rem, 4vw, 2rem)" : "clamp(1.44rem, 5vw, 2.4rem)"
-            }}
-            transition={{ duration: animationDuration, ease: "easeOut" }}
-          >
-            <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+        <div className="px-4 md:px-8 pt-3 md:pt-4 pb-5 md:pb-6">
+          {/* Centered title */}
+          <div className="flex items-center justify-center">
+            <Link
+              href="/"
+              className="font-headline font-black uppercase tracking-[-0.5px] leading-none text-ink text-[1.35rem] sm:text-[1.75rem] md:text-[2rem] hover:opacity-80 transition-opacity text-center"
+            >
               The Waterman Report
             </Link>
-          </motion.h1>
-        </div>
+          </div>
 
-        {/* Date - only visible when NOT scrolled */}
+          {/* Date */}
+          <div className="flex justify-center mt-2">
+            <span className="font-headline font-bold uppercase text-[0.7rem] md:text-xs text-ink/50 tracking-wide">
+              {todayStr}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}
+      {/* Mobile nav is handled by BottomNav */}
+      <div className="hidden md:flex items-center gap-3 px-4 md:px-8 py-2">
+        {/* Scrolled-only: compact brand */}
         <AnimatePresence initial={false}>
-          {!isScrolled && (
-            <motion.div 
-              className="flex justify-center font-headline font-bold uppercase text-[0.9rem] text-ink/60 mt-2"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: animationDuration, ease: "easeOut" }}
+          {isScrolled && (
+            <motion.div
+              key="brand-group"
+              initial={{ opacity: 0, x: -12, width: 0 }}
+              animate={{ opacity: 1, x: 0, width: "auto" }}
+              exit={{ opacity: 0, x: -12, width: 0 }}
+              transition={{
+                duration: hasMounted ? 0.25 : 0,
+                ease: [0.32, 0.72, 0, 1],
+              }}
+              className="shrink-0 overflow-hidden"
             >
-              <span>{todayStr}</span>
+              <Link
+                href="/"
+                className="font-headline font-black uppercase text-sm tracking-tight text-ink hover:opacity-70 transition-opacity leading-none whitespace-nowrap"
+              >
+                Waterman
+              </Link>
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+
+        {/* Full-width nav bar with Sign In inside */}
+        <ViewToggle
+          compact={isScrolled}
+          rightContent={authContent}
+          className="flex-1"
+        />
+      </div>
+
     </header>
+  );
+}
+
+/**
+ * AuthButton — Sign In or UserMenu, rendered inside the nav bar.
+ */
+function AuthButton({ isAuthenticated, authLoading, router }) {
+  if (authLoading) return <div className="w-20 h-8" />;
+
+  if (isAuthenticated) {
+    return <UserMenu />;
+  }
+
+  return (
+    <button
+      onClick={() => router.push("/auth/login")}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint border border-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+    >
+      <LogIn className="w-3.5 h-3.5" />
+      <span>Sign In</span>
+    </button>
   );
 }
