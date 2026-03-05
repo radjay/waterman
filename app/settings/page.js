@@ -35,6 +35,7 @@ export default function ProfilePage() {
 
   const sports = [
     { id: "wingfoil", label: "Wing", fullLabel: "Wingfoiling" },
+    { id: "kitesurfing", label: "Kite", fullLabel: "Kitesurfing" },
     { id: "surfing", label: "Surf", fullLabel: "Surfing" },
   ];
 
@@ -192,7 +193,7 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="py-12">
         {/* Back to home button */}
         <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
           Back to home

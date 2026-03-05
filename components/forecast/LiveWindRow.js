@@ -10,7 +10,7 @@ import { Wind } from "lucide-react";
  * @param {string} stationId - Windguru station ID
  * @param {string} className - Additional CSS classes
  */
-export function LiveWindRow({ stationId, className = "" }) {
+export function LiveWindRow({ stationId, href, className = "" }) {
   const [liveWind, setLiveWind] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -65,15 +65,14 @@ export function LiveWindRow({ stationId, className = "" }) {
   const ageMinutes = Math.floor((Date.now() - liveWind.timestamp) / (60 * 1000));
   const isStale = ageMinutes > 15; // Consider stale if older than 15 minutes
 
-  return (
-    <div className="py-1.5 px-2">
-      <div
-        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${
-          isStale
-            ? "bg-ink/[0.04] text-faded-ink"
-            : "bg-green-50 text-green-800"
-        } ${className}`}
-      >
+  const pill = (
+    <div
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${
+        isStale
+          ? "bg-ink/[0.04] text-faded-ink"
+          : "bg-green-50 text-green-800"
+      } ${href ? "cursor-pointer hover:brightness-95 transition-all" : ""} ${className}`}
+    >
         {/* Pulsing dot */}
         {!isStale && (
           <span className="relative flex h-1.5 w-1.5">
@@ -109,6 +108,17 @@ export function LiveWindRow({ stationId, className = "" }) {
           </span>
         )}
       </div>
+  );
+
+  return (
+    <div className="pt-3 pb-1">
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {pill}
+        </a>
+      ) : (
+        pill
+      )}
     </div>
   );
 }

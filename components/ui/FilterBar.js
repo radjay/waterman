@@ -66,43 +66,58 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
         <div className="pb-4 pt-2">
           <motion.div
             layoutId="filter-morph"
-            className="rounded-xl bg-ink/[0.04] px-4 py-3 overflow-hidden"
+            className="rounded-xl bg-ink/[0.04] px-4 md:-mx-2 py-3 overflow-hidden"
             transition={MORPH_TRANSITION}
           >
-            {/* Header row */}
-            <motion.div layout="position" className="flex items-center gap-2">
-              <button
-                onClick={toggle}
-                className="flex items-center gap-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-                aria-expanded={true}
+            {/* Single flex container: column on mobile, row on desktop */}
+            <div className="flex flex-col md:flex-row md:items-center md:gap-3">
+
+              {/* Filters label — full-width row on mobile, left item on desktop */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={toggle}
+                  className="flex items-center gap-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
+                  aria-expanded={true}
+                >
+                  <SlidersHorizontal size={14} strokeWidth={2} />
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    Filters
+                  </span>
+                </button>
+                {/* Mobile-only: spacer + X */}
+                <div className="flex-1 md:hidden" />
+                <button
+                  onClick={toggle}
+                  className="md:hidden p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
+                  aria-label="Close filters"
+                >
+                  <X size={14} strokeWidth={2} />
+                </button>
+              </div>
+
+              {/* Desktop-only vertical divider */}
+              <div className="hidden md:block w-px h-4 bg-ink/20 shrink-0" />
+
+              {/* Filter selectors — stacked on mobile (with border-t), inline on desktop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.08, duration: 0.2 }}
+                className="flex flex-col md:flex-row md:items-center gap-3 mt-3 pt-3 border-t border-ink/[0.06] md:mt-0 md:pt-0 md:border-0 flex-1"
               >
-                <SlidersHorizontal size={14} strokeWidth={2} />
-                <span className="text-xs font-semibold uppercase tracking-wider">
-                  Filters
-                </span>
-              </button>
+                {children}
+              </motion.div>
 
-              <div className="flex-1" />
-
+              {/* Desktop-only X button, far right */}
               <button
                 onClick={toggle}
-                className="p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
+                className="hidden md:flex p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
                 aria-label="Close filters"
               >
                 <X size={14} strokeWidth={2} />
               </button>
-            </motion.div>
 
-            {/* Filter content — fades in after morph starts */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.08, duration: 0.2 }}
-            >
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mt-3 pt-3 border-t border-ink/[0.06]">
-                {children}
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -121,7 +136,7 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
           {actions}
         </div>
       )}
-      <div className="sticky top-0 md:top-[54px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
+      <div className="sticky top-0 md:top-[50px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
         <motion.div
           layoutId="filter-morph"
           className="rounded-full bg-ink/[0.05] overflow-hidden pointer-events-auto"

@@ -155,7 +155,7 @@ export default function SportProfilePage({ params }) {
     return (
       <MainLayout>
         <Header />
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="py-12">
           <Heading level={1} className="mb-4">Invalid Sport</Heading>
           <Text variant="muted" className="mb-6">
             The sport "{sport}" is not recognized. Please choose wingfoil, kitesurfing, or surfing.
@@ -182,7 +182,7 @@ export default function SportProfilePage({ params }) {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="py-12">
         {/* Back button */}
         <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/settings")} className="mb-6 -ml-2">Back to settings</Button>
 

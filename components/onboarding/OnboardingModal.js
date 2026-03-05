@@ -1,16 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Check } from "lucide-react";
+import { Check } from "lucide-react";
+import { SportBadge } from "../ui/SportBadge";
+import { Modal } from "../ui/Modal";
+import { Button } from "../ui/Button";
+import { Heading } from "../ui/Heading";
+import { Text } from "../ui/Text";
+import { Divider } from "../ui/Divider";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 const SPORTS = [
-  { id: "wingfoil", name: "Wingfoiling", emoji: "🪁" },
-  { id: "kitesurfing", name: "Kitesurfing", emoji: "🪂" },
-  { id: "surfing", name: "Surfing", emoji: "🏄" },
+  { id: "wingfoil", name: "Wingfoiling" },
+  { id: "kitesurfing", name: "Kitesurfing" },
+  { id: "surfing", name: "Surfing" },
 ];
 
 export function OnboardingModal({ onComplete, onDismiss, isDismissible = true }) {
@@ -22,15 +28,12 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
   const [selectedSpots, setSelectedSpots] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch countries on mount
   useEffect(() => {
     async function fetchCountries() {
       try {
         const allSpots = await client.query(api.spots.list, {});
         const uniqueCountries = [...new Set(
-          allSpots
-            .map(spot => spot.country)
-            .filter(country => country && country.trim())
+          allSpots.map(spot => spot.country).filter(c => c && c.trim())
         )].sort();
         setCountries(uniqueCountries);
       } catch (error) {
@@ -40,19 +43,13 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
     fetchCountries();
   }, []);
 
-  // Fetch spots when country and sports are selected
   useEffect(() => {
     if (selectedCountry && selectedSports.length > 0) {
       async function fetchSpots() {
         setLoading(true);
         try {
-          const allSpots = await client.query(api.spots.list, {
-            sports: selectedSports,
-          });
-          const filteredSpots = allSpots.filter(
-            spot => spot.country === selectedCountry
-          );
-          setSpots(filteredSpots);
+          const allSpots = await client.query(api.spots.list, { sports: selectedSports });
+          setSpots(allSpots.filter(spot => spot.country === selectedCountry));
         } catch (error) {
           console.error("Error fetching spots:", error);
         } finally {
@@ -65,32 +62,23 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
 
   const handleSportToggle = (sportId) => {
     setSelectedSports(prev =>
-      prev.includes(sportId)
-        ? prev.filter(id => id !== sportId)
-        : [...prev, sportId]
+      prev.includes(sportId) ? prev.filter(id => id !== sportId) : [...prev, sportId]
     );
   };
 
   const handleSpotToggle = (spotId) => {
     setSelectedSpots(prev =>
-      prev.includes(spotId)
-        ? prev.filter(id => id !== spotId)
-        : [...prev, spotId]
+      prev.includes(spotId) ? prev.filter(id => id !== spotId) : [...prev, spotId]
     );
   };
 
   const handleNext = () => {
-    if (step === 1 && selectedSports.length > 0) {
-      setStep(2);
-    } else if (step === 2 && selectedCountry) {
-      setStep(3);
-    } else if (step === 3) {
-      setStep(4);
-    }
+    if (step === 1 && selectedSports.length > 0) setStep(2);
+    else if (step === 2 && selectedCountry) setStep(3);
+    else if (step === 3) setStep(4);
   };
 
   const handleComplete = () => {
-    // Save to localStorage
     const preferences = {
       sports: selectedSports,
       country: selectedCountry,
@@ -103,291 +91,196 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
   };
 
   const handleSkip = () => {
-    // Mark as completed but with no preferences
-    const preferences = {
-      onboardingCompleted: true,
-      skipped: true,
-      completedAt: Date.now(),
-    };
+    const preferences = { onboardingCompleted: true, skipped: true, completedAt: Date.now() };
     localStorage.setItem("waterman_preferences", JSON.stringify(preferences));
-    if (onDismiss) {
-      onDismiss();
-    } else {
-      onComplete(preferences);
-    }
+    if (onDismiss) onDismiss();
+    else onComplete(preferences);
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/95 backdrop-blur-sm">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-newsprint border-4 border-ink shadow-2xl">
-        {/* Close button (only if dismissible) */}
-        {isDismissible && (
-          <button
-            onClick={handleSkip}
-            className="absolute top-4 right-4 p-2 hover:bg-ink/5 rounded transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-6 h-6" />
-          </button>
+    <Modal isOpen onClose={isDismissible ? handleSkip : undefined} size="sm">
+      <div className="p-7">
+
+        {/* Step 1: Select Sports */}
+        {step === 1 && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="font-headline text-2xl font-bold text-ink tracking-tight">Welcome to Waterman</h2>
+              <Text variant="muted" className="mt-1">Which sports do you practice?</Text>
+            </div>
+
+            <div className="space-y-2">
+              {SPORTS.map(sport => {
+                const selected = selectedSports.includes(sport.id);
+                return (
+                  <button
+                    key={sport.id}
+                    onClick={() => handleSportToggle(sport.id)}
+                    className={`w-full px-4 py-3 border rounded-ui text-left transition-all duration-fast flex items-center justify-between group ${
+                      selected
+                        ? "border-ink/40 bg-warm-highlight"
+                        : "border-ink/10 hover:border-ink/25 hover:bg-warm-highlight/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <SportBadge sport={sport.id} size={28} className={selected ? "text-ink/60" : "text-ink/30 group-hover:text-ink/50"} />
+                      <Text className="font-medium">{sport.name}</Text>
+                    </div>
+                    {selected && <Check className="w-4 h-4 text-ink/50 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                variant="primary"
+                onClick={handleNext}
+                disabled={selectedSports.length === 0}
+                fullWidth
+              >
+                Continue
+              </Button>
+              {isDismissible && (
+                <Button variant="ghost" onClick={handleSkip}>Skip</Button>
+              )}
+            </div>
+          </div>
         )}
 
-        {/* Content */}
-        <div className="p-8 md:p-12">
-          {/* Step 1: Select Sports */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-4xl font-black text-ink mb-2">Welcome to Waterman</h1>
-                <p className="text-lg text-ink/70">
-                  Let's personalize your forecast experience
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-sm font-bold uppercase text-ink">
-                  What sports do you practice?
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  {SPORTS.map(sport => (
-                    <button
-                      key={sport.id}
-                      onClick={() => handleSportToggle(sport.id)}
-                      className={`p-4 border-2 rounded-lg text-left transition-all ${
-                        selectedSports.includes(sport.id)
-                          ? "border-ink bg-ink text-newsprint"
-                          : "border-ink/30 hover:border-ink/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{sport.emoji}</span>
-                          <span className="font-bold">{sport.name}</span>
-                        </div>
-                        {selectedSports.includes(sport.id) && (
-                          <Check className="w-5 h-5" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleNext}
-                  disabled={selectedSports.length === 0}
-                  className="flex-1 px-6 py-3 bg-ink text-newsprint font-bold uppercase rounded-lg hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                </button>
-                {isDismissible && (
-                  <button
-                    onClick={handleSkip}
-                    className="px-6 py-3 border-2 border-ink/30 text-ink font-bold uppercase rounded-lg hover:border-ink/50 transition-colors"
-                  >
-                    Skip
-                  </button>
-                )}
-              </div>
+        {/* Step 2: Select Country */}
+        {step === 2 && (
+          <div className="space-y-5">
+            <div>
+              <Heading level={3}>Where do you ride?</Heading>
+              <Text variant="muted" className="mt-1">Select your country to see local spots.</Text>
             </div>
-          )}
 
-          {/* Step 2: Select Country */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-black text-ink mb-2">Where do you ride?</h2>
-                <p className="text-lg text-ink/70">
-                  Select your country to see local spots
-                </p>
-              </div>
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              className="w-full px-3 py-2.5 border border-ink/15 rounded-ui text-sm font-medium bg-newsprint focus:border-ink/40 focus:outline-none transition-colors"
+            >
+              <option value="">Select a country</option>
+              {countries.map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
 
-              <div className="space-y-3">
-                <label className="block text-sm font-bold uppercase text-ink">
-                  Country
-                </label>
-                <select
-                  value={selectedCountry}
-                  onChange={(e) => setSelectedCountry(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-ink/30 rounded-lg font-medium focus:border-ink focus:outline-none"
-                >
-                  <option value="">Select a country</option>
-                  {countries.map(country => (
-                    <option key={country} value={country}>
-                      {country}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-6 py-3 border-2 border-ink/30 text-ink font-bold uppercase rounded-lg hover:border-ink/50 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleNext}
-                  disabled={!selectedCountry}
-                  className="flex-1 px-6 py-3 bg-ink text-newsprint font-bold uppercase rounded-lg hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                </button>
-              </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
+              <Button
+                variant="primary"
+                onClick={handleNext}
+                disabled={!selectedCountry}
+                fullWidth
+              >
+                Continue
+              </Button>
             </div>
-          )}
-
-          {/* Step 3: Select Favorite Spots */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-black text-ink mb-2">Pick your favorite spots</h2>
-                <p className="text-lg text-ink/70">
-                  We'll prioritize forecasts for these locations
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-sm font-bold uppercase text-ink">
-                  Favorite Spots {selectedSpots.length > 0 && `(${selectedSpots.length} selected)`}
-                </label>
-                {loading ? (
-                  <div className="text-center py-8 text-ink/60">Loading spots...</div>
-                ) : spots.length === 0 ? (
-                  <div className="text-center py-8 text-ink/60">
-                    No spots found for {selectedCountry}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-                    {spots.map(spot => (
-                      <button
-                        key={spot._id}
-                        onClick={() => handleSpotToggle(spot._id)}
-                        className={`p-3 border-2 rounded text-left transition-all ${
-                          selectedSpots.includes(spot._id)
-                            ? "border-ink bg-ink/5"
-                            : "border-ink/20 hover:border-ink/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-bold">{spot.name}</div>
-                            {spot.town && (
-                              <div className="text-sm text-ink/60">{spot.town}</div>
-                            )}
-                          </div>
-                          {selectedSpots.includes(spot._id) && (
-                            <Check className="w-5 h-5" />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Request a Spot link */}
-              <div className="text-center pt-4 border-t border-ink/10">
-                <p className="text-sm text-ink/60">
-                  Don't see your spot?{" "}
-                  <a
-                    href="/request-spot"
-                    className="text-ink font-bold underline hover:text-ink/80 transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Request it here
-                  </a>
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(2)}
-                  className="px-6 py-3 border-2 border-ink/30 text-ink font-bold uppercase rounded-lg hover:border-ink/50 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="flex-1 px-6 py-3 bg-ink text-newsprint font-bold uppercase rounded-lg hover:bg-ink/90 transition-colors"
-                >
-                  {selectedSpots.length > 0 ? "Continue" : "Skip for now"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Account Creation Promotion */}
-          {step === 4 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-3xl font-black text-ink mb-2">You're all set!</h2>
-                <p className="text-lg text-ink/70">
-                  Your preferences have been saved locally
-                </p>
-              </div>
-
-              <div className="p-6 border-2 border-ink/20 rounded-lg bg-ink/5">
-                <h3 className="text-xl font-bold text-ink mb-2">Create an account?</h3>
-                <p className="text-ink/70 mb-4">
-                  Save your preferences across devices and get personalized condition scores
-                  based on your skill level and riding style.
-                </p>
-                <ul className="space-y-2 text-sm text-ink/70">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Personalized forecast scores</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Calendar subscriptions</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>Session logging</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={handleComplete}
-                  className="flex-1 px-6 py-3 border-2 border-ink/30 text-ink font-bold uppercase rounded-lg hover:border-ink/50 transition-colors"
-                >
-                  Maybe Later
-                </button>
-                <button
-                  onClick={() => {
-                    handleComplete();
-                    window.location.href = "/auth/login";
-                  }}
-                  className="flex-1 px-6 py-3 bg-ink text-newsprint font-bold uppercase rounded-lg hover:bg-ink/90 transition-colors"
-                >
-                  Create Account
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Progress indicator */}
-          <div className="mt-8 flex items-center justify-center gap-2">
-            {[1, 2, 3, 4].map(num => (
-              <div
-                key={num}
-                className={`h-2 rounded-full transition-all ${
-                  num === step
-                    ? "w-8 bg-ink"
-                    : num < step
-                    ? "w-2 bg-ink/50"
-                    : "w-2 bg-ink/20"
-                }`}
-              />
-            ))}
           </div>
+        )}
+
+        {/* Step 3: Favorite Spots */}
+        {step === 3 && (
+          <div className="space-y-5">
+            <div>
+              <Heading level={3}>Your favorite spots</Heading>
+              <Text variant="muted" className="mt-1">
+                We'll prioritize forecasts for these.{selectedSpots.length > 0 && ` (${selectedSpots.length} selected)`}
+              </Text>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1.5">
+              {loading ? (
+                <Text variant="muted" className="py-6 text-center">Loading spots…</Text>
+              ) : spots.length === 0 ? (
+                <Text variant="muted" className="py-6 text-center">No spots found for {selectedCountry}.</Text>
+              ) : spots.map(spot => {
+                const selected = selectedSpots.includes(spot._id);
+                return (
+                  <button
+                    key={spot._id}
+                    onClick={() => handleSpotToggle(spot._id)}
+                    className={`w-full px-4 py-2.5 border rounded-ui text-left transition-all duration-fast flex items-center justify-between ${
+                      selected
+                        ? "border-ink/40 bg-warm-highlight"
+                        : "border-ink/10 hover:border-ink/25 hover:bg-warm-highlight/50"
+                    }`}
+                  >
+                    <div>
+                      <Text className="font-medium">{spot.name}</Text>
+                      {spot.town && <Text variant="caption">{spot.town}</Text>}
+                    </div>
+                    {selected && <Check className="w-4 h-4 text-ink/50 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Divider weight="light" />
+            <Text variant="caption" className="text-center">
+              Don't see your spot?{" "}
+              <a href="/request-spot" className="underline decoration-dotted underline-offset-2 hover:text-ink transition-colors" target="_blank" rel="noopener noreferrer">
+                Request it here
+              </a>
+            </Text>
+
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="primary" onClick={handleNext} fullWidth>
+                {selectedSpots.length > 0 ? "Continue" : "Skip for now"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Account Prompt */}
+        {step === 4 && (
+          <div className="space-y-5">
+            <div>
+              <Heading level={3}>You're all set</Heading>
+              <Text variant="muted" className="mt-1">Preferences saved locally.</Text>
+            </div>
+
+            <div className="space-y-2 py-1">
+              {["Personalized forecast scores", "Calendar subscriptions", "Session logging"].map(item => (
+                <div key={item} className="flex items-center gap-2.5">
+                  <Check className="w-3.5 h-3.5 text-ink/40 flex-shrink-0" />
+                  <Text variant="muted">{item}</Text>
+                </div>
+              ))}
+            </div>
+
+            <Text variant="caption" className="text-center">
+              Create an account to sync preferences across devices.
+            </Text>
+
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleComplete} fullWidth>Maybe later</Button>
+              <Button
+                variant="primary"
+                onClick={() => { handleComplete(); window.location.href = "/auth/login"; }}
+                fullWidth
+              >
+                Create account
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Progress dots */}
+        <div className="mt-6 flex items-center justify-center gap-1.5">
+          {[1, 2, 3, 4].map(num => (
+            <div
+              key={num}
+              className={`rounded-full transition-all duration-base ${
+                num === step ? "w-5 h-1.5 bg-ink/50" : num < step ? "w-1.5 h-1.5 bg-ink/30" : "w-1.5 h-1.5 bg-ink/15"
+              }`}
+            />
+          ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

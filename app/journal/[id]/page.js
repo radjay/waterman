@@ -191,7 +191,7 @@ export default function JournalEntryDetailPage() {
     return (
       <MainLayout>
         <Header />
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="py-12">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
           </div>
@@ -222,7 +222,7 @@ export default function JournalEntryDetailPage() {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="py-12">
         <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/journal")} className="mb-4">Back</Button>
 
         <div className="flex items-center justify-between mb-8">

@@ -454,7 +454,7 @@ export default function HomeContent() {
 
               return (
                 <div key={day} className="mb-4">
-                  <div className="sticky top-0 md:top-[54px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
+                  <div className="sticky top-0 md:top-[50px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
                     <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
                       {getFormattedDay()}
                     </span>

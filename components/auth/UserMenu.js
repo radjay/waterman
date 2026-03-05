@@ -62,19 +62,19 @@ export default function UserMenu() {
     <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-ink/30 bg-newsprint hover:bg-newsprint hover:border-ink/50 transition-colors"
+        className="flex items-center gap-1.5 h-[27px] px-2 rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className="w-7 h-7 rounded-full bg-ink text-newsprint flex items-center justify-center text-xs font-medium">
+        <div className="w-[19px] h-[19px] rounded-full bg-ink text-newsprint flex items-center justify-center text-[9px] font-medium leading-none flex-shrink-0">
           {getInitials()}
         </div>
-        <span className="hidden sm:block text-xs text-ink max-w-[70px] truncate">
+        <span className="hidden sm:block text-xs text-ink font-semibold uppercase tracking-wider leading-none max-w-[70px] truncate">
           {getDisplayName()}
         </span>
         <ChevronDown
-          className={`hidden sm:block w-4 h-4 text-ink transition-transform ${
-            isOpen ? "transform rotate-180" : ""
+          className={`hidden sm:block w-3 h-3 text-ink/50 transition-transform flex-shrink-0 ${
+            isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
