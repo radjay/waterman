@@ -300,10 +300,10 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <SportBadge sport={slot.sport} />
+                              <SportBadge sport={slot.sport} size={22} />
                               <span className="font-bold text-ink truncate">{spot.name}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-ink/60">
+                            <div className="flex items-center gap-2 text-sm text-ink/60 whitespace-nowrap overflow-hidden">
                               <span>{formatTime(new Date(slot.timestamp))}</span>
                               <span className="text-ink/30">&middot;</span>
                               <ConditionLine
@@ -328,9 +328,8 @@ export default function DashboardPage() {
                 <Button
                   variant="secondary"
                   icon={Plus}
-                  fullWidth
                   onClick={() => router.push("/journal/new")}
-                  className="mt-4 justify-center font-bold uppercase"
+                  className="mt-4 font-bold uppercase text-xs"
                 >
                   Log a Session
                 </Button>
@@ -341,7 +340,6 @@ export default function DashboardPage() {
             {comingUpGroups.length > 0 && (
               <Section
                 title="Coming Up"
-                divided
                 action={
                   <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/report")}>
                     Full Report
@@ -369,10 +367,10 @@ export default function DashboardPage() {
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-0.5">
-                                    <SportBadge sport={slot.sport} />
+                                    <SportBadge sport={slot.sport} size={22} />
                                     <span className="font-bold text-ink truncate">{spot.name}</span>
                                   </div>
-                                  <div className="flex items-center gap-2 text-sm text-ink/60">
+                                  <div className="flex items-center gap-2 text-sm text-ink/60 whitespace-nowrap overflow-hidden">
                                     <span>{formatTime(new Date(slot.timestamp))}</span>
                                     <span className="text-ink/30">&middot;</span>
                                     <ConditionLine
@@ -401,7 +399,6 @@ export default function DashboardPage() {
             {orderedWebcams.length > 0 && (
               <Section
                 title="Live Webcams"
-                divided
                 action={
                   <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/cams")}>
                     See All

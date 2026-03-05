@@ -9,7 +9,7 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 import Link from "next/link";
-import { Loader2, ArrowLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
 import { Button } from "../../components/ui/Button";
@@ -88,12 +88,7 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="py-12">
-        {/* Back to home button */}
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
-          Back to home
-        </Button>
-        
+      <div className="pt-2 pb-24">
         <Heading level={1} className="mb-8">Profile</Heading>
 
         <div className="space-y-8">
@@ -133,16 +128,19 @@ export default function ProfilePage() {
           {error && <Text className="text-red-600 text-sm">{error}</Text>}
           {success && <Text className="text-green-600 text-sm">{success}</Text>}
 
-          {/* Actions */}
-          <div className="space-y-3 pt-4">
-            <Button variant="primary" size="lg" fullWidth loading={saving} onClick={handleSave}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-
+          {/* Log Out */}
+          <div className="pt-4">
             <Button variant="secondary" size="lg" fullWidth disabled={saving} onClick={handleLogout} className="border-2">
               Log Out
             </Button>
           </div>
+        </div>
+
+        {/* Floating Save Button */}
+        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 p-4 md:p-0 bg-newsprint/90 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t border-ink/10 md:border-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+          <Button variant="primary" size="lg" fullWidth className="md:w-auto md:px-8" loading={saving} onClick={handleSave}>
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
       </div>
       <Footer />

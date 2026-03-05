@@ -25,9 +25,9 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
   const tabs = [
     { id: "dashboard", label: "Home", icon: Home, active: isDashboard, path: "/dashboard" },
     { id: "report", label: "Report", icon: List, active: isReport, path: "/report" },
-    { id: "calendar", label: "Calendar", icon: Calendar, active: isCalendar, path: "/calendar" },
     { id: "cams", label: "Cams", icon: Video, active: isCams, path: "/cams" },
     { id: "journal", label: "Journal", icon: BookOpen, active: isJournal, path: "/journal" },
+    { id: "calendar", label: "Calendar", icon: Calendar, active: isCalendar, path: "/calendar" },
   ];
 
   return (

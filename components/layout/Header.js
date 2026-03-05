@@ -77,7 +77,7 @@ export function Header({ className = "" }) {
           <div className="flex items-center justify-center">
             <Link
               href="/"
-              className="font-headline font-black uppercase tracking-[-0.5px] leading-none text-ink text-[1.75rem] sm:text-[1.75rem] md:text-[2rem] hover:opacity-80 transition-opacity text-center"
+              className="font-headline font-black uppercase tracking-[-0.5px] leading-none text-ink text-[1.5rem] sm:text-[1.75rem] md:text-[2rem] hover:opacity-80 transition-opacity text-center"
             >
               The Waterman Report
             </Link>

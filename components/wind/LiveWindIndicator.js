@@ -59,7 +59,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
     };
   }, [stationId]);
 
-  if (loading || error || !liveWind || liveWind.windSpeedKnots === null) {
+  if (loading || error || !liveWind || !Number.isFinite(liveWind.windSpeedKnots)) {
     return null;
   }
 
@@ -80,12 +80,12 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
         <span className="font-bold tabular-nums">
           {Math.round(liveWind.windSpeedKnots)}
         </span>
-        {liveWind.windGustKnots !== null && (
+        {Number.isFinite(liveWind.windGustKnots) && (
           <span className="opacity-70 tabular-nums">
             ({Math.round(liveWind.windGustKnots)})
           </span>
         )}
-        {liveWind.windDirection !== null && (
+        {Number.isFinite(liveWind.windDirection) && (
           <Arrow direction={(liveWind.windDirection + 180) % 360} size={8} />
         )}
       </div>
@@ -113,7 +113,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       >
         {Math.round(liveWind.windSpeedKnots)}
       </span>
-      {liveWind.windGustKnots !== null && (
+      {Number.isFinite(liveWind.windGustKnots) && (
         <span
           className={`opacity-70 tabular-nums ${
             isStale ? "text-ink/50" : "text-green-800"
@@ -122,7 +122,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
           ({Math.round(liveWind.windGustKnots)})
         </span>
       )}
-      {liveWind.windDirection !== null && (
+      {Number.isFinite(liveWind.windDirection) && (
         <Arrow
           direction={(liveWind.windDirection + 180) % 360}
           size={10}

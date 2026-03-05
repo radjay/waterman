@@ -9,7 +9,7 @@ export function WindGroup({ speed, gust, direction, showGust = true, className =
       gap="gap-3"
       className={className}
     >
-      {Math.round(speed)} kn {showGust && <span>({Math.round(gust)}*)</span>}
+      {Number.isFinite(speed) ? Math.round(speed) : "—"} kn {showGust && Number.isFinite(gust) && <span>({Math.round(gust)}*)</span>}
     </DataGroup>
   );
 }
