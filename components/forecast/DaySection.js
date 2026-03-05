@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ForecastSlot } from "./ForecastSlot";
 import { WebcamModal } from "../common/WebcamModal";
@@ -48,6 +48,19 @@ export function DaySection({
 }) {
   const router = useRouter();
   const [selectedWebcam, setSelectedWebcam] = useState(null);
+  const sentinelRef = useRef(null);
+  const [isStuck, setIsStuck] = useState(false);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsStuck(!entry.isIntersecting),
+      { rootMargin: "-50px 0px 0px 0px", threshold: [0] }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
   // Support both old format (slots array) and new format (spotsData object)
   const spots = spotsData || {};
 
@@ -155,7 +168,9 @@ export function DaySection({
       className={`mb-4 ${isHighlighted ? "bg-yellow-50" : ""} ${className}`}
       style={isHighlighted ? { scrollMarginTop: "80px" } : {}}
     >
-      <div className="sticky top-0 md:top-[54px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
+      {/* Sentinel: exits viewport right when header becomes stuck */}
+      <div ref={sentinelRef} className="h-px" aria-hidden="true" />
+      <div className={`sticky top-0 md:top-[50px] bg-newsprint z-[9] flex items-center h-12 md:h-auto md:py-3 pl-2 transition-colors ${isStuck ? "border-b border-ink/10" : ""}`}>
         <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
           {getFormattedDay()}
         </span>
@@ -272,7 +287,7 @@ export function DaySection({
                 <div className="flex flex-col border-t border-ink/20">
                   {/* Live wind row for wind sports on today only */}
                   {liveReportUrl && isWindSport && isToday() && extractWindguruStationId(liveReportUrl) && (
-                    <LiveWindRow stationId={extractWindguruStationId(liveReportUrl)} />
+                    <LiveWindRow stationId={extractWindguruStationId(liveReportUrl)} href={liveReportUrl} />
                   )}
 
                   {(() => {

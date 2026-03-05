@@ -94,7 +94,7 @@ export function Header({ className = "" }) {
 
       {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}
       {/* Mobile nav is handled by BottomNav */}
-      <div className="hidden md:flex items-center gap-3 px-4 md:px-8 py-2">
+      <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2">
         {/* Scrolled-only: compact brand */}
         <AnimatePresence initial={false}>
           {isScrolled && (
@@ -144,9 +144,9 @@ function AuthButton({ isAuthenticated, authLoading, router }) {
   return (
     <button
       onClick={() => router.push("/auth/login")}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint border border-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint ring-1 ring-inset ring-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
     >
-      <LogIn className="w-3.5 h-3.5" />
+      <LogIn className="w-[15px] h-[15px]" />
       <span>Sign In</span>
     </button>
   );

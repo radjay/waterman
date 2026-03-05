@@ -65,7 +65,7 @@ function CalendarPreviewContent() {
     return (
       <MainLayout>
         <Header />
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="py-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <Heading level={2} className="text-red-800 mb-2">Error</Heading>
             <Text className="text-red-600">{error}</Text>
@@ -95,7 +95,7 @@ function CalendarPreviewContent() {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="py-8">
         {/* Back button */}
         <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/subscribe")} className="mb-6">Back to Subscribe</Button>
 

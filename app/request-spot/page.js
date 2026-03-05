@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
+import { Footer } from "../../components/layout/Footer";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
@@ -64,10 +66,10 @@ export default function RequestSpotPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-newsprint">
+      <MainLayout>
         <Header />
-        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-          <div className="text-center max-w-md mx-auto px-4">
+        <div className="flex items-center justify-center py-24">
+          <div className="text-center max-w-md mx-auto">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-10 h-10 text-white" />
             </div>
@@ -75,15 +77,16 @@ export default function RequestSpotPage() {
             <Text variant="muted">We'll review your spot request and add it soon.</Text>
           </div>
         </div>
-      </div>
+        <Footer />
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-newsprint">
+    <MainLayout>
       <Header />
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="py-8 max-w-md mx-auto">
         {/* Progress indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center gap-2">
@@ -249,6 +252,7 @@ export default function RequestSpotPage() {
           </div>
         )}
       </div>
-    </div>
+      <Footer />
+    </MainLayout>
   );
 }

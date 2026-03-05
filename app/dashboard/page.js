@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const { needsOnboarding, showFooter, isLoading: onboardingLoading, markOnboardingComplete, dismissFooter } = useOnboarding(user);
 
   const [loading, setLoading] = useState(true);
+  const [dataVersion, setDataVersion] = useState(0); // incremented after onboarding to trigger refetch
   const [todaySlots, setTodaySlots] = useState([]);
   const [webcams, setWebcams] = useState([]);
   const [spotsMap, setSpotsMap] = useState({});
@@ -66,11 +67,13 @@ export default function DashboardPage() {
         // Use database preferences for authenticated users, localStorage for anonymous users
         let relevantSpots = fetchedSpots;
         let favoriteSpotIds = new Set();
+        let userSelectedSports = null; // null = show all sports
 
         if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
           // Authenticated user with favorites in database
           favoriteSpotIds = new Set(user.favoriteSpots);
           relevantSpots = fetchedSpots.filter((spot) => favoriteSpotIds.has(spot._id));
+          if (user.selectedSport) userSelectedSports = [user.selectedSport];
         } else if (!user) {
           // Anonymous user - check localStorage for onboarding preferences
           const preferencesStr = localStorage.getItem("waterman_preferences");
@@ -83,6 +86,9 @@ export default function DashboardPage() {
               } else {
                 // No favorite spots in localStorage - show top 10
                 relevantSpots = fetchedSpots.slice(0, 10);
+              }
+              if (preferences.sports && preferences.sports.length > 0) {
+                userSelectedSports = preferences.sports;
               }
             } catch (e) {
               console.error("Error parsing localStorage preferences:", e);
@@ -97,11 +103,13 @@ export default function DashboardPage() {
           relevantSpots = fetchedSpots.slice(0, 10);
         }
 
-        // Fetch today's slots for these spots (ALL sports, not just selected)
+        // Fetch today's slots for these spots, filtered by the user's selected sports
         const slotsPromises = relevantSpots.map(async (spot) => {
           const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-          // Show all sports instead of filtering by selectedSport
-          const relevantSports = spotSports;
+          const relevantSports = userSelectedSports
+            ? spotSports.filter((s) => userSelectedSports.includes(s))
+            : spotSports;
+          if (relevantSports.length === 0) return [];
 
           const configPromises = relevantSports.map((sport) =>
             client.query(api.spots.getSpotConfig, { spotId: spot._id, sport })
@@ -197,7 +205,13 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData();
-  }, [selectedSport, user, sessionToken]);
+  }, [selectedSport, user, sessionToken, dataVersion]);
+
+  // After onboarding, mark complete AND re-fetch dashboard data with new preferences
+  const handleOnboardingComplete = (preferences) => {
+    markOnboardingComplete(preferences);
+    setDataVersion((v) => v + 1);
+  };
 
   // Handle webcam click (open fullscreen)
   const handleWebcamClick = (webcam) => {
@@ -220,7 +234,7 @@ export default function DashboardPage() {
           Wait for both auth and onboarding state to be loaded to prevent flash */}
       {!authLoading && !onboardingLoading && needsOnboarding && (
         <OnboardingModal
-          onComplete={markOnboardingComplete}
+          onComplete={handleOnboardingComplete}
           onDismiss={markOnboardingComplete}
           isDismissible={true}
         />
