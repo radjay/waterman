@@ -15,9 +15,9 @@ const tabs = [
 ];
 
 /**
- * BottomNav — native-app-style bottom tab bar for mobile.
+ * BottomNav — floating pill-shaped bottom tab bar for mobile.
+ * Matches the desktop ViewToggle pill aesthetic.
  * Hidden on md+ (desktop uses ViewToggle in the header).
- * Calendar + account/settings are folded into the "More" menu.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -60,39 +60,40 @@ export function BottomNav() {
       <MobileMenu isOpen={menuOpen} onOpenChange={setMenuOpen} />
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-newsprint border-t border-ink/8"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
       >
-        <div className="flex items-stretch justify-around">
+        <div className="flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabPress(tab)}
-                className="relative flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 transition-colors duration-fast ease-smooth"
+                className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors duration-fast ease-smooth"
                 aria-label={tab.label}
                 aria-current={isActive ? "page" : undefined}
               >
-                {/* Active indicator bar */}
                 {isActive && (
                   <motion.div
-                    layoutId="bottom-nav-indicator"
-                    className="absolute top-0 left-3 right-3 h-[2px] bg-ink rounded-full"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    layoutId="bottom-nav-pill"
+                    className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                   />
                 )}
-                <tab.icon
-                  size={20}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                  className={isActive ? "text-ink" : "text-faded-ink"}
-                />
-                <span
-                  className={`text-[0.6rem] font-semibold uppercase tracking-wider leading-none ${
-                    isActive ? "text-ink" : "text-faded-ink"
-                  }`}
-                >
-                  {tab.label}
+                <span className="relative z-10 flex flex-col items-center gap-0.5">
+                  <tab.icon
+                    size={18}
+                    strokeWidth={isActive ? 2.5 : 1.5}
+                    className={isActive ? "text-ink" : "text-faded-ink"}
+                  />
+                  <span
+                    className={`text-[0.55rem] font-semibold uppercase tracking-wider leading-none ${
+                      isActive ? "text-ink" : "text-faded-ink"
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
                 </span>
               </button>
             );

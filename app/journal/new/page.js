@@ -149,7 +149,7 @@ export default function NewJournalEntryPage() {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="py-12">
         <Button variant="ghost" icon={ArrowLeft} onClick={() => router.back()} className="mb-4">Back</Button>
 
         <Heading level={1} className="mb-6">Log Session</Heading>

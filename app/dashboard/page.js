@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const { needsOnboarding, showFooter, isLoading: onboardingLoading, markOnboardingComplete, dismissFooter } = useOnboarding(user);
 
   const [loading, setLoading] = useState(true);
+  const [dataVersion, setDataVersion] = useState(0); // incremented after onboarding to trigger refetch
   const [allEnrichedSlots, setAllEnrichedSlots] = useState([]);
   const [webcamSpots, setWebcamSpots] = useState([]);
   const [spotsMap, setSpotsMap] = useState({});
@@ -76,6 +77,7 @@ export default function DashboardPage() {
               } else {
                 relevantSpots = fetchedSpots.slice(0, 10);
               }
+              // Sports preferences from localStorage are handled via userSports below
             } catch (e) {
               relevantSpots = fetchedSpots.slice(0, 10);
             }
@@ -140,7 +142,13 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData();
-  }, [selectedSport, user, sessionToken]);
+  }, [selectedSport, user, sessionToken, dataVersion]);
+
+  // After onboarding, mark complete AND re-fetch dashboard data with new preferences
+  const handleOnboardingComplete = (preferences) => {
+    markOnboardingComplete(preferences);
+    setDataVersion((v) => v + 1);
+  };
 
   // Derive "Right Now", "Coming Up", and webcam ordering from enriched slots
   const { rightNowSlots, comingUpGroups, orderedWebcams } = useMemo(() => {
@@ -253,7 +261,7 @@ export default function DashboardPage() {
     <>
       {!authLoading && !onboardingLoading && needsOnboarding && (
         <OnboardingModal
-          onComplete={markOnboardingComplete}
+          onComplete={handleOnboardingComplete}
           onDismiss={markOnboardingComplete}
           isDismissible={true}
         />

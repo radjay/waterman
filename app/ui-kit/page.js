@@ -14,6 +14,7 @@ import { Card } from "../../components/ui/Card";
 import { ScoreCard } from "../../components/ui/ScoreCard";
 import { ConditionLine } from "../../components/ui/ConditionLine";
 import { Tooltip } from "../../components/ui/Tooltip";
+import { Modal } from "../../components/ui/Modal";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { WindGroup } from "../../components/forecast/WindGroup";
@@ -61,6 +62,8 @@ export default function UIKitPage() {
   const [selectedSport, setSelectedSport] = useState("wingfoil");
   const [selectedFilter, setSelectedFilter] = useState("best");
   const [inputValue, setInputValue] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalSize, setModalSize] = useState("md");
 
   return (
     <div className="max-w-[900px] mx-auto px-6 py-12 bg-newsprint min-h-screen">
@@ -484,6 +487,45 @@ export default function UIKitPage() {
             <EmptyState />
           </div>
         </ComponentRow>
+      </KitSection>
+
+      {/* ============ MODALS & OVERLAYS ============ */}
+      <KitSection title="Modals & Overlays">
+        <ComponentRow label="Modal sizes" importPath="components/ui/Modal">
+          <div className="flex items-center gap-3">
+            {["sm", "md", "lg"].map((size) => (
+              <Button
+                key={size}
+                variant="secondary"
+                onClick={() => { setModalSize(size); setModalOpen(true); }}
+              >
+                {size.toUpperCase()} Modal
+              </Button>
+            ))}
+          </div>
+        </ComponentRow>
+
+        <ComponentRow label="Styling">
+          <div className="space-y-1">
+            <Text variant="caption">Backdrop: bg-black/60 backdrop-blur-sm</Text>
+            <Text variant="caption">Panel: bg-newsprint rounded-2xl shadow-elevated border-ink/10</Text>
+            <Text variant="caption">Sizes: sm (420px) · md (560px) · lg (672px)</Text>
+          </div>
+        </ComponentRow>
+
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size={modalSize}>
+          <div className="p-8">
+            <Heading level={3}>Example Modal ({modalSize.toUpperCase()})</Heading>
+            <Text variant="muted" className="mt-2">
+              A lightweight, composable modal with click-outside dismiss, close button,
+              body scroll lock, and three size presets.
+            </Text>
+            <div className="mt-6 flex gap-3">
+              <Button variant="primary" onClick={() => setModalOpen(false)}>Got it</Button>
+              <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        </Modal>
       </KitSection>
 
       {/* ============ COLOR PALETTE ============ */}
