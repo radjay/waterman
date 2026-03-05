@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Menu, ChevronLeft, LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
+import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
 
 export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -17,21 +16,13 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
   };
   const { isAuthenticated, user, logout, loading } = useAuth();
   const router = useRouter();
-  const menuRef = useRef(null);
+  const sheetRef = useRef(null);
 
-  // Close menu when clicking outside
+  // Lock body scroll when open
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
       document.body.style.overflow = "hidden";
       return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
         document.body.style.overflow = "unset";
       };
     }
@@ -64,164 +55,137 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
   if (loading) return null;
 
   return (
-    <>
-      {/* Hamburger button — only rendered in uncontrolled mode */}
-      {!isControlled && <motion.button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        className={`p-1.5 rounded-ui border border-ink/15 bg-newsprint hover:bg-warm-highlight transition-all duration-fast ease-smooth focus-ring ${
-          isOpen ? "fixed left-[17px] top-[10px] z-[201] pointer-events-auto" : "relative z-[200]"
-        }`}
-        aria-label="Menu"
-        aria-expanded={isOpen}
-        whileTap={{ scale: 0.95 }}
-      >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <ChevronLeft className="w-4 h-4 text-ink" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="menu"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Menu className="w-4 h-4 text-ink" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 bg-black/40 z-[190] pointer-events-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsOpen(false)}
+          />
 
-      {/* Backdrop and Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="fixed inset-0 bg-black/40 z-[190] pointer-events-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setIsOpen(false)}
-            />
+          {/* Bottom sheet */}
+          <motion.div
+            ref={sheetRef}
+            className="fixed bottom-0 left-0 right-0 bg-newsprint rounded-t-2xl shadow-elevated z-[195] pointer-events-auto"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.1}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 80 || info.velocity.y > 300) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-ink/20" />
+            </div>
 
-            {/* Slide-out panel */}
-            <motion.div
-              ref={menuRef}
-              className="fixed top-0 left-0 h-full w-64 bg-newsprint border-r border-ink/10 shadow-elevated z-[195] pointer-events-auto"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            >
-              <div className="flex flex-col h-full pt-20 px-4 pb-6">
-                {/* Account section */}
-                <div className="border-b border-ink/10 pb-4 mb-4">
-                  {isAuthenticated ? (
-                    <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
-                          {getInitials()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-ink truncate">
-                            {user?.name || "Account"}
-                          </p>
-                          <p className="text-xs text-ink/60 truncate">{user?.email}</p>
-                        </div>
+            <div className="px-4 pb-4">
+              {/* Account section */}
+              <div className="border-b border-ink/10 pb-4 mb-3">
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
+                        {getInitials()}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ink truncate">
+                          {user?.name || "Account"}
+                        </p>
+                        <p className="text-xs text-ink/60 truncate">{user?.email}</p>
+                      </div>
+                    </div>
 
-                      <button
-                        onClick={() => handleNavigation("/profile")}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                      >
-                        <User className="w-4 h-4" />
-                        Profile
-                      </button>
-                    </>
-                  ) : (
                     <button
-                      onClick={() => handleNavigation("/auth/login")}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink border border-ink/15 rounded-ui hover:bg-warm-highlight transition-all duration-fast ease-smooth"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      Sign In
-                    </button>
-                  )}
-                </div>
-
-                {/* Navigation links */}
-                <div className="flex-1 space-y-1">
-                  <button
-                    onClick={() => handleNavigation("/calendar")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    Calendar
-                  </button>
-
-                  <button
-                    onClick={() => handleNavigation("/request-spot")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    Request a Spot
-                  </button>
-
-                  <button
-                    onClick={() => handleNavigation("/subscribe")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    Add to Calendar
-                  </button>
-
-                  <button
-                    onClick={() => handleNavigation("/settings")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </button>
-
-                  <button
-                    onClick={() => handleNavigation("/changelog")}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Changelog
-                  </button>
-                </div>
-
-                {/* Sign out button at bottom */}
-                {isAuthenticated && (
-                  <div className="border-t border-ink/10 pt-4">
-                    <button
-                      onClick={handleLogout}
+                      onClick={() => handleNavigation("/profile")}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                     >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
+                      <User className="w-4 h-4" />
+                      Profile
                     </button>
-                  </div>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleNavigation("/auth/login")}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink border border-ink/15 rounded-ui hover:bg-warm-highlight transition-all duration-fast ease-smooth"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </button>
                 )}
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+
+              {/* Navigation links — ordered by importance: Settings first, Changelog last */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => handleNavigation("/settings")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </button>
+
+                <button
+                  onClick={() => handleNavigation("/calendar")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Calendar
+                </button>
+
+                <button
+                  onClick={() => handleNavigation("/subscribe")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Add to Calendar
+                </button>
+
+                <button
+                  onClick={() => handleNavigation("/request-spot")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Request a Spot
+                </button>
+
+                <button
+                  onClick={() => handleNavigation("/changelog")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <FileText className="w-4 h-4" />
+                  Changelog
+                </button>
+              </div>
+
+              {/* Sign out at bottom */}
+              {isAuthenticated && (
+                <div className="border-t border-ink/10 pt-3 mt-3">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

@@ -58,7 +58,7 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
     return (
       <div className={className}>
         {actions && (
-          <div className="flex items-center gap-3 pt-3 pb-2">
+          <div className="flex items-center justify-end gap-3 pt-3 pb-2">
             {actions}
           </div>
         )}
@@ -117,7 +117,7 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
   return (
     <>
       {actions && (
-        <div className={`flex items-center gap-3 pt-3 pb-2 ${className}`}>
+        <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
           {actions}
         </div>
       )}

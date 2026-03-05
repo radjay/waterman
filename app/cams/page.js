@@ -114,10 +114,10 @@ function CamsContent() {
           <>
             <Link
               href="/request-spot"
-              className="flex items-center gap-2 px-3 py-1.5 text-faded-ink hover:text-ink transition-all duration-fast ease-smooth flex-shrink-0"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-ink/[0.04] text-faded-ink hover:text-ink hover:bg-ink/[0.08] transition-all duration-fast ease-smooth flex-shrink-0"
             >
               <MapPin size={16} />
-              <span className="hidden sm:inline text-xs font-semibold uppercase tracking-wider leading-none">Request a Spot</span>
+              <span className="text-xs font-semibold uppercase tracking-wider leading-none">Request a Spot</span>
             </Link>
             <button
               onClick={() => setTvMode(true)}

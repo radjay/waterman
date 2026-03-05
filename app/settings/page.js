@@ -192,9 +192,9 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* Back to home button */}
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
+      <div className="max-w-2xl mx-auto px-4 pt-2 pb-12">
+        {/* Back to home button — hidden on mobile (BottomNav handles navigation) */}
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="hidden md:flex mb-6 -ml-2">
           Back to home
         </Button>
         
