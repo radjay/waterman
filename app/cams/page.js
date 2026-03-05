@@ -250,7 +250,6 @@ export default function CamsPage() {
           <div className="flex items-center justify-center min-h-screen">
             <Loader />
           </div>
-          <Footer />
         </MainLayout>
       }
     >

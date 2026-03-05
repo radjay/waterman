@@ -170,7 +170,7 @@ export function DaySection({
     >
       {/* Sentinel: exits viewport right when header becomes stuck */}
       <div ref={sentinelRef} className="h-px" aria-hidden="true" />
-      <div className={`sticky top-0 md:top-[50px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2 transition-colors ${isStuck ? "border-b border-ink/10" : ""}`}>
+      <div className={`sticky top-0 md:top-[50px] bg-newsprint z-[9] flex items-center h-12 md:h-auto md:py-3 pl-2 transition-colors ${isStuck ? "border-b border-ink/10" : ""}`}>
         <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
           {getFormattedDay()}
         </span>

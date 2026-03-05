@@ -384,7 +384,7 @@ export default function HomeContent() {
           ) : sortedDays.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="flex flex-col gap-8 mt-2">
+            <div className="flex flex-col gap-8 md:mt-2">
               {sortedDays.map((day) => {
             const dayData = filteredGrouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
