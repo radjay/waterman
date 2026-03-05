@@ -377,8 +377,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Floating Save Button */}
-      <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 p-4 md:p-0 bg-newsprint/90 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t border-ink/10 md:border-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+      {/* Floating Save Button — sits above the pill nav bar on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 px-4 pt-3 pb-24 md:p-0 bg-newsprint md:bg-transparent border-t border-ink/10 md:border-0">
         <Button variant="primary" size="lg" fullWidth className="md:w-auto md:px-8" loading={saving} onClick={handleSave}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>

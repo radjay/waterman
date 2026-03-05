@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
@@ -95,27 +95,17 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
               {/* Account section */}
               <div className="border-b border-ink/10 pb-4 mb-3">
                 {isAuthenticated ? (
-                  <>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
-                        {getInitials()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink truncate">
-                          {user?.name || "Account"}
-                        </p>
-                        <p className="text-xs text-ink/60 truncate">{user?.email}</p>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-ink text-newsprint flex items-center justify-center text-sm font-medium">
+                      {getInitials()}
                     </div>
-
-                    <button
-                      onClick={() => handleNavigation("/profile")}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
-                    >
-                      <User className="w-4 h-4" />
-                      Profile
-                    </button>
-                  </>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">
+                        {user?.name || "Account"}
+                      </p>
+                      <p className="text-xs text-ink/60 truncate">{user?.email}</p>
+                    </div>
+                  </div>
                 ) : (
                   <button
                     onClick={() => handleNavigation("/auth/login")}
@@ -127,7 +117,7 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                 )}
               </div>
 
-              {/* Navigation links — ordered by importance: Settings first, Changelog last */}
+              {/* Navigation links */}
               <div className="space-y-1">
                 <button
                   onClick={() => handleNavigation("/settings")}
@@ -138,11 +128,21 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                 </button>
 
                 <button
+                  onClick={() => handleNavigation("/profile")}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </button>
+
+                <div className="border-t border-ink/10 my-2" />
+
+                <button
                   onClick={() => handleNavigation("/calendar")}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <Calendar className="w-4 h-4" />
-                  Calendar
+                  Calendar View
                 </button>
 
                 <button
@@ -161,6 +161,8 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                   Request a Spot
                 </button>
 
+                <div className="border-t border-ink/10 my-2" />
+
                 <button
                   onClick={() => handleNavigation("/changelog")}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
@@ -168,11 +170,8 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                   <FileText className="w-4 h-4" />
                   Changelog
                 </button>
-              </div>
 
-              {/* Sign out at bottom */}
-              {isAuthenticated && (
-                <div className="border-t border-ink/10 pt-3 mt-3">
+                {isAuthenticated && (
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
@@ -180,8 +179,8 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                     <LogOut className="w-4 h-4" />
                     Sign Out
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </motion.div>
         </>
