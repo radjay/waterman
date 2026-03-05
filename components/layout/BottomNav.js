@@ -63,7 +63,7 @@ export function BottomNav() {
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
       >
-        <div className="flex items-center gap-0.5 p-1 bg-ink/[0.08] backdrop-blur-xl rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (

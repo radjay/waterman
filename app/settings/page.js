@@ -8,11 +8,12 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, CheckCircle, ArrowLeft, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
+import { Loader2, CheckCircle, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
 import { Button } from "../../components/ui/Button";
 import { Divider } from "../../components/ui/Divider";
+import { SportBadge } from "../../components/ui/SportBadge";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -193,12 +194,7 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="py-12">
-        {/* Back to home button */}
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => router.push("/")} className="mb-6 -ml-2">
-          Back to home
-        </Button>
-        
+      <div className="pt-2 pb-24">
         <Heading level={1} className="mb-8">Settings</Heading>
 
         <div className="space-y-8">
@@ -217,7 +213,10 @@ export default function ProfilePage() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-ink">{sport.label}</span>
+                    <span className="flex items-center gap-2 font-medium text-ink">
+                      <SportBadge sport={sport.id} size={18} className={favoriteSports.includes(sport.id) ? "!text-ink" : "!text-ink/40"} />
+                      {sport.label}
+                    </span>
                     {favoriteSports.includes(sport.id) && (
                       <CheckCircle className="w-5 h-5 text-ink" />
                     )}
@@ -375,13 +374,14 @@ export default function ProfilePage() {
           {error && <Text className="text-red-600 text-sm">{error}</Text>}
           {success && <Text className="text-green-600 text-sm">{success}</Text>}
 
-          {/* Actions */}
-          <div className="pt-4">
-            <Button variant="primary" size="lg" fullWidth loading={saving} onClick={handleSave}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
         </div>
+      </div>
+
+      {/* Floating Save Button */}
+      <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 p-4 md:p-0 bg-newsprint/90 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t border-ink/10 md:border-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+        <Button variant="primary" size="lg" fullWidth className="md:w-auto md:px-8" loading={saving} onClick={handleSave}>
+          {saving ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
       <Footer />
     </MainLayout>

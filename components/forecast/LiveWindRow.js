@@ -57,7 +57,7 @@ export function LiveWindRow({ stationId, href, className = "" }) {
     };
   }, [stationId]);
 
-  if (loading || error || !liveWind || liveWind.windSpeedKnots === null) {
+  if (loading || error || !liveWind || !Number.isFinite(liveWind.windSpeedKnots)) {
     return null;
   }
 
@@ -95,7 +95,7 @@ export function LiveWindRow({ stationId, href, className = "" }) {
           kn
         </span>
 
-        {liveWind.windGustKnots !== null && (
+        {Number.isFinite(liveWind.windGustKnots) && (
           <span className={`text-[0.65rem] tabular-nums ${isStale ? "text-faded-ink/50" : "text-green-600"}`}>
             ({Math.round(liveWind.windGustKnots)})
           </span>

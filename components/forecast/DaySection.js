@@ -9,7 +9,6 @@ import {
   ChartSpline,
   CircleGauge,
   ChartNoAxesCombined,
-  StickyNote,
 } from "lucide-react";
 import { findTideForSlot } from "../../lib/tides";
 import { formatFullDay } from "../../lib/utils";
@@ -224,17 +223,6 @@ export function DaySection({
                 <div className="flex items-center justify-between text-[1.05rem] font-bold text-ink mb-2 px-2">
                   <span>{spotName}</span>
                   <div className="flex items-center gap-2">
-                    {isAuthenticated && (
-                      <Tooltip content="Add your notes for this spot" position="bottom">
-                        <button
-                          onClick={() => router.push("/profile/spots")}
-                          className="border border-ink/30 rounded p-1 bg-newsprint hover:bg-ink/5 transition-colors flex items-center justify-center"
-                          aria-label="Add notes for this spot"
-                        >
-                          <StickyNote size={14} className="text-black" />
-                        </button>
-                      </Tooltip>
-                    )}
                     {liveReportUrl && isWindSport && isTodayOrTomorrow() && (
                       <a
                         href={liveReportUrl}

@@ -63,8 +63,6 @@ export default function JournalPage() {
     <MainLayout>
       <Header />
 
-      <div className="pt-1" />
-
       {/* Filters + action */}
       <FilterBar
         activeFilters={[
@@ -107,7 +105,7 @@ export default function JournalPage() {
             <Button variant="primary" size="sm" icon={Plus} onClick={() => router.push("/journal/new")} className="mx-auto">Log Session</Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {entries.map((entry) => (
               <SessionCard key={entry._id} entry={entry} />
             ))}

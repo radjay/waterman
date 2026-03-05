@@ -155,7 +155,7 @@ function CamsContent() {
           <div className="flex items-center justify-end gap-2">
             <button
               onClick={() => setTvMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
               aria-label="TV Mode"
             >
               <Tv size={14} strokeWidth={2} />
@@ -199,21 +199,15 @@ function CamsContent() {
               </div>
             ))}
 
-            {/* Request a Spot tile — matches full WebcamCard height (video + info row) */}
+            {/* Request a Spot tile */}
             <Link
               href="/request-spot"
-              className="flex flex-col rounded-xl border-2 border-dashed border-ink/15 hover:border-ink/30 bg-ink/[0.02] hover:bg-ink/[0.04] transition-colors duration-fast ease-smooth"
+              className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink/15 hover:border-ink/30 bg-ink/[0.02] hover:bg-ink/[0.04] transition-colors duration-fast ease-smooth py-6 md:flex-col md:py-0 md:min-h-[200px]"
             >
-              {/* Content area — flex-1 fills the space equivalent to the video area */}
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 min-h-0">
-                <MapPin size={22} className="text-faded-ink/60" />
-              </div>
-              {/* Info row — mirrors WebcamCard's px-4 py-2 spot info section */}
-              <div className="px-4 py-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-faded-ink/60">
-                  Request a Spot
-                </span>
-              </div>
+              <MapPin size={18} className="text-faded-ink/50" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-faded-ink/50">
+                Request a Spot
+              </span>
             </Link>
           </div>
         )}
