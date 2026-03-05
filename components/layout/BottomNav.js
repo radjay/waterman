@@ -61,9 +61,11 @@ export function BottomNav() {
 
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 28px)" }}
       >
-        <div className="flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        {/* Gradient fade so content doesn't peek through */}
+        <div className="absolute inset-x-0 bottom-0 h-full pointer-events-none bg-gradient-to-t from-newsprint via-newsprint/80 to-transparent" />
+        <div className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (

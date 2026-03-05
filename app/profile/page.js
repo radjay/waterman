@@ -8,13 +8,11 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import Link from "next/link";
-import { Loader2, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
-import { Card } from "../../components/ui/Card";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -111,19 +109,6 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Settings Link */}
-          <Link href="/settings">
-            <Card variant="interactive" className="border-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Heading level={3}>Preferences & Settings</Heading>
-                  <Text variant="muted" className="text-sm">Manage sports, spots, and personalization</Text>
-                </div>
-                <ChevronRight className="w-5 h-5 text-ink/60" />
-              </div>
-            </Card>
-          </Link>
-
           {/* Error/Success Messages */}
           {error && <Text className="text-red-600 text-sm">{error}</Text>}
           {success && <Text className="text-green-600 text-sm">{success}</Text>}
@@ -136,8 +121,8 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Floating Save Button */}
-        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 p-4 md:p-0 bg-newsprint/90 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t border-ink/10 md:border-0" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}>
+        {/* Floating Save Button — sits above the pill nav bar on mobile */}
+        <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 px-4 pt-3 pb-24 md:p-0 bg-newsprint md:bg-transparent border-t border-ink/10 md:border-0">
           <Button variant="primary" size="lg" fullWidth className="md:w-auto md:px-8" loading={saving} onClick={handleSave}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>

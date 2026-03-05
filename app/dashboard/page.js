@@ -278,9 +278,11 @@ export default function DashboardPage() {
             <Section
               title={isShowingCurrentSlots ? "Right Now" : "Next Up Today"}
               action={
-                <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/report")}>
-                  Full Report
-                </Button>
+                isAuthenticated ? (
+                  <Button variant="ghost" size="sm" icon={Plus} onClick={() => router.push("/journal/new")}>
+                    Log a Session
+                  </Button>
+                ) : null
               }
             >
               {rightNowSlots.length === 0 ? (
@@ -324,16 +326,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {isAuthenticated && (
-                <Button
-                  variant="secondary"
-                  icon={Plus}
-                  onClick={() => router.push("/journal/new")}
-                  className="mt-4 font-bold uppercase text-xs"
-                >
-                  Log a Session
-                </Button>
-              )}
             </Section>
 
             {/* ── Coming Up ── */}

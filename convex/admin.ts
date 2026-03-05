@@ -1362,31 +1362,14 @@ export const getUsersWithPersonalizedScores = query({
       throw new Error("Unauthorized");
     }
     
-    // Get all condition scores with userId not null
-    let scores = await ctx.db.query("condition_scores").collect();
-    
-    // Filter to scores with userId (personalized scores)
-    const userIds = [...new Set(
-      scores
-        .filter(s => s.userId !== null)
-        .map(s => s.userId as string)
-    )];
-    
-    // Get user details
-    const users = await Promise.all(
-      userIds.map(async (userId) => {
-        // Try to find the user in the users table
-        const allUsers = await ctx.db.query("users").collect();
-        const user = allUsers.find(u => u._id === userId);
-        return {
-          userId,
-          email: user?.email || "Unknown",
-          name: user?.name,
-        };
-      })
-    );
-    
-    return users;
+    // Query users table directly (small table) instead of scanning all condition_scores
+    const allUsers = await ctx.db.query("users").collect();
+
+    return allUsers.map(user => ({
+      userId: user._id,
+      email: user.email || "Unknown",
+      name: user.name,
+    }));
   },
 });
 
