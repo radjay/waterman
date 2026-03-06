@@ -1045,13 +1045,14 @@ export const scorePersonalizedSlot = action({
     // LLM parameters for provenance tracking
     const MODEL = "openai/gpt-oss-120b";
     const TEMPERATURE = 0.3;
-    const MAX_TOKENS = 1500;
+    const MAX_TOKENS = 4000;
+
 
     for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
         // Track timing for provenance
         const startTime = Date.now();
-        
+
         const completion = await groq.chat.completions.create({
           model: MODEL,
           messages: [
@@ -1100,7 +1101,7 @@ export const scorePersonalizedSlot = action({
           sport: args.sport,
           userId: args.userId,
           score,
-          reasoning: response.reasoning.substring(0, 200),
+          reasoning: response.reasoning.substring(0, 500),
           factors: response.factors,
           model: MODEL,
           scrapeTimestamp: slot.scrapeTimestamp,

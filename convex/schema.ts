@@ -126,7 +126,8 @@ export default defineSchema({
         tideType: v.optional(v.string()),
         tideTime: v.optional(v.number()),
     }).index("by_spot", ["spotId"])
-      .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"]),
+      .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"])
+      .index("by_spot_timestamp", ["spotId", "timestamp"]),
     /**
      * Tide events - high and low tides for each spot.
      * Stored separately from forecast slots since tides rarely occur at exact slot times.

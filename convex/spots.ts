@@ -2,7 +2,7 @@ import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import Groq from "groq-sdk";
-import { buildPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
+import { buildPrompt, buildBatchPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
 import SunCalc from "suncalc";
 import { Id } from "./_generated/dataModel";
 
@@ -650,26 +650,24 @@ export const getTimeSeriesContext = query({
         scrapeTimestamp: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        const HOURS_72_MS = 72 * 60 * 60 * 1000;
-        const HOURS_12_MS = 12 * 60 * 60 * 1000;
-        
-        const startTime = args.timestamp - HOURS_72_MS;
-        const endTime = args.timestamp + HOURS_12_MS;
+        const HOURS_24_MS = 24 * 60 * 60 * 1000;
 
-        // Get all slots for this spot
-        const allSlots = await ctx.db
+        const startTime = args.timestamp - HOURS_24_MS;
+        const endTime = args.timestamp + HOURS_24_MS;
+
+        // Use timestamp-range index instead of loading all slots
+        const contextSlots = await ctx.db
             .query("forecast_slots")
-            .withIndex("by_spot", q => q.eq("spotId", args.spotId))
+            .withIndex("by_spot_timestamp", q =>
+                q.eq("spotId", args.spotId)
+                 .gte("timestamp", startTime)
+                 .lte("timestamp", endTime)
+            )
             .collect();
-
-        // Filter by time window
-        const contextSlots = allSlots.filter(slot => 
-            slot.timestamp >= startTime && slot.timestamp <= endTime
-        );
 
         // If scrapeTimestamp provided, prefer slots from that scrape
         if (args.scrapeTimestamp) {
-            const scrapeSlots = contextSlots.filter(s => 
+            const scrapeSlots = contextSlots.filter(s =>
                 s.scrapeTimestamp === args.scrapeTimestamp
             );
             if (scrapeSlots.length > 0) {
@@ -685,7 +683,7 @@ export const getTimeSeriesContext = query({
         );
 
         if (latestScrapeTimestamp > 0) {
-            const latestSlots = contextSlots.filter(s => 
+            const latestSlots = contextSlots.filter(s =>
                 s.scrapeTimestamp === latestScrapeTimestamp
             );
             return latestSlots.sort((a, b) => a.timestamp - b.timestamp);
@@ -697,8 +695,55 @@ export const getTimeSeriesContext = query({
 });
 
 /**
+ * Query to get time series context for a range (used by batch scoring).
+ * Returns slots between startTime and endTime for the given spot/scrape.
+ */
+export const getTimeSeriesContextRange = query({
+    args: {
+        spotId: v.id("spots"),
+        startTime: v.number(),
+        endTime: v.number(),
+        scrapeTimestamp: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const contextSlots = await ctx.db
+            .query("forecast_slots")
+            .withIndex("by_spot_timestamp", q =>
+                q.eq("spotId", args.spotId)
+                 .gte("timestamp", args.startTime)
+                 .lte("timestamp", args.endTime)
+            )
+            .collect();
+
+        if (args.scrapeTimestamp) {
+            const scrapeSlots = contextSlots.filter(s =>
+                s.scrapeTimestamp === args.scrapeTimestamp
+            );
+            if (scrapeSlots.length > 0) {
+                return scrapeSlots.sort((a, b) => a.timestamp - b.timestamp);
+            }
+        }
+
+        const latestScrapeTimestamp = Math.max(
+            ...contextSlots
+                .map(s => s.scrapeTimestamp || 0)
+                .filter(ts => ts > 0)
+        );
+
+        if (latestScrapeTimestamp > 0) {
+            const latestSlots = contextSlots.filter(s =>
+                s.scrapeTimestamp === latestScrapeTimestamp
+            );
+            return latestSlots.sort((a, b) => a.timestamp - b.timestamp);
+        }
+
+        return contextSlots.sort((a, b) => a.timestamp - b.timestamp);
+    }
+});
+
+/**
  * Query to get system sport prompt (shared across all spots).
- * 
+ *
  * @param {string} sport - The sport name
  * @returns {Object|null} System prompt object or null if not found
  */
@@ -982,7 +1027,8 @@ export const scoreSingleSlot = action({
         // LLM parameters for provenance tracking
         const MODEL = "openai/gpt-oss-120b";
         const TEMPERATURE = 0.3;
-        const MAX_TOKENS = 800;
+        const MAX_TOKENS = 4000;
+
 
         for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
             try {
@@ -1002,7 +1048,7 @@ export const scoreSingleSlot = action({
                         type: "json_object",
                     },
                 });
-                
+
                 const durationMs = Date.now() - startTime;
 
                 const content = completion.choices[0]?.message?.content;
@@ -1178,6 +1224,12 @@ export const scoreForecastSlots = action({
         slotIds: v.array(v.id("forecast_slots")),
     },
     handler: async (ctx, args) => {
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        if (!groq.apiKey) {
+            console.error("GROQ_API_KEY not set");
+            return { successCount: 0, failureCount: 0, total: 0 };
+        }
+
         // Get spot to determine which sports it supports and check coordinates
         const spot = await ctx.runQuery(api.spots.getSpotById, { spotId: args.spotId });
         if (!spot) {
@@ -1185,66 +1237,230 @@ export const scoreForecastSlots = action({
             return { successCount: 0, failureCount: 0, total: 0 };
         }
 
-        // Get all slots for this scrape to determine contextual slots
-        const allSlots = await Promise.all(
+        // Resolve all slot data upfront
+        const allSlots = (await Promise.all(
             args.slotIds.map(slotId => ctx.runQuery(api.spots.getSlotById, { slotId }))
-        );
-        
-        // Filter slots to only daylight and contextual slots
-        const sports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-        const slotsToScore: Array<{ slotId: any; sport: string; isContextual: boolean }> = [];
-        
-        for (const slot of allSlots) {
-            if (!slot) continue;
-            
-            const isDaylight = isDaylightSlot(slot.timestamp, spot);
-            
-            // Check if it's a contextual slot for any sport
-            for (const sport of sports) {
-                const isContextual = isContextualSlotForScoring(
-                    slot.timestamp,
-                    spot,
-                    sport,
-                    allSlots.filter(s => s !== null).map(s => ({ timestamp: s!.timestamp }))
-                );
-                
-                if (isDaylight || isContextual) {
-                    slotsToScore.push({
-                        slotId: slot._id,
-                        sport,
-                        isContextual,
-                    });
-                }
-            }
-        }
+        )).filter(s => s !== null) as any[];
 
+        const sports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
+        const allSlotTimestamps = allSlots.map(s => ({ timestamp: s.timestamp }));
+
+        // Build per-sport lists of slots to score, grouped by calendar day
         let successCount = 0;
         let failureCount = 0;
 
-        // Score each filtered slot
-        // Add a small delay between requests to avoid rate limit bursts
-        for (const { slotId, sport, isContextual } of slotsToScore) {
-            const result = await ctx.runAction(api.spots.scoreSingleSlot, {
-                slotId,
-                sport,
-                spotId: args.spotId,
-                userId: undefined, // System score for V1
-                isContextual, // Pass flag to include sunrise/sunset in prompt
-            });
-
-            if (result) {
-                successCount++;
-            } else {
-                failureCount++;
+        for (const sport of sports) {
+            // Determine which slots are daylight or contextual for this sport
+            const scorableSlots: Array<{ slot: any; isContextual: boolean }> = [];
+            for (const slot of allSlots) {
+                const isDaylight = isDaylightSlot(slot.timestamp, spot);
+                const isContextual = isContextualSlotForScoring(
+                    slot.timestamp, spot, sport, allSlotTimestamps
+                );
+                if (isDaylight || isContextual) {
+                    scorableSlots.push({ slot, isContextual });
+                }
             }
-            
-            // Small delay between requests to avoid rate limit bursts (100ms)
-            // This helps spread out requests when scoring many slots
-            await new Promise(resolve => setTimeout(resolve, 100));
+
+            if (scorableSlots.length === 0) continue;
+
+            // Group by calendar day (UTC)
+            const dayGroups = new Map<string, Array<{ slot: any; isContextual: boolean }>>();
+            for (const entry of scorableSlots) {
+                const dayKey = new Date(entry.slot.timestamp).toISOString().substring(0, 10);
+                if (!dayGroups.has(dayKey)) dayGroups.set(dayKey, []);
+                dayGroups.get(dayKey)!.push(entry);
+            }
+
+            // Fetch prompts once per sport (shared across all days)
+            const systemPromptData = await ctx.runQuery(api.spots.getSystemSportPrompt, { sport });
+            const spotPromptData = await ctx.runQuery(api.spots.getScoringPrompt, {
+                spotId: args.spotId, sport,
+            });
+            const systemPrompt = systemPromptData?.prompt || SYSTEM_SPORT_PROMPTS[sport as keyof typeof SYSTEM_SPORT_PROMPTS] || "";
+            const spotPrompt = spotPromptData?.spotPrompt || `This is ${spot.name}. Evaluate conditions for ${sport}.`;
+            const temporalPrompt = spotPromptData?.temporalPrompt || DEFAULT_TEMPORAL_PROMPT;
+
+            if (!systemPrompt || systemPrompt.trim().length === 0) {
+                console.error(`No system prompt found for sport: ${sport}. Please seed prompts.`);
+                continue;
+            }
+
+            // Score each day as a batch
+            for (const [dayKey, dayEntries] of dayGroups) {
+                // Sort by timestamp
+                dayEntries.sort((a, b) => a.slot.timestamp - b.slot.timestamp);
+                const daySlots = dayEntries.map(e => e.slot);
+                const contextualTimestamps = new Set(
+                    dayEntries.filter(e => e.isContextual).map(e => e.slot.timestamp)
+                );
+
+                // Get time series context: 24h before first slot through 24h after last slot
+                const firstTs = daySlots[0].timestamp;
+                const lastTs = daySlots[daySlots.length - 1].timestamp;
+                const HOURS_24_MS = 24 * 60 * 60 * 1000;
+
+                const timeSeriesContext = await ctx.runQuery(api.spots.getTimeSeriesContextRange, {
+                    spotId: args.spotId,
+                    startTime: firstTs - HOURS_24_MS,
+                    endTime: lastTs + HOURS_24_MS,
+                    scrapeTimestamp: args.scrapeTimestamp,
+                });
+                // Filter to only before/after the day's slots (context, not the scored slots themselves)
+                const contextSlots = timeSeriesContext.filter(
+                    (s: any) => s.timestamp < firstTs || s.timestamp > lastTs
+                );
+
+                // Get sun times for the day
+                let sunTimes: { sunrise: Date; sunset: Date } | undefined;
+                if (spot.latitude && spot.longitude) {
+                    const midDate = new Date(Math.round((firstTs + lastTs) / 2));
+                    const times = SunCalc.getTimes(midDate, spot.latitude, spot.longitude);
+                    sunTimes = { sunrise: times.sunrise, sunset: times.sunset };
+                }
+
+                // Build batch prompt
+                const { system, user } = buildBatchPrompt(
+                    systemPrompt, spotPrompt, temporalPrompt,
+                    daySlots, contextSlots, spot.name,
+                    contextualTimestamps, sunTimes,
+                );
+
+                // LLM parameters
+                const MODEL = "openai/gpt-oss-120b";
+                const TEMPERATURE = 0.3;
+                // Scale max tokens with batch size: ~250 tokens per slot for response (longer reasoning)
+                const MAX_TOKENS = Math.min(daySlots.length * 600 + 500, 16000);
+
+                // Call Groq API with retry logic
+                const retryDelays = [30000, 60000, 300000];
+                let lastError: any = null;
+                let batchSuccess = false;
+
+                for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+                    try {
+                        const startTime = Date.now();
+
+                        const completion = await groq.chat.completions.create({
+                            model: MODEL,
+                            messages: [
+                                { role: "system", content: system },
+                                { role: "user", content: user },
+                            ],
+                            temperature: TEMPERATURE,
+                            max_tokens: MAX_TOKENS,
+                            response_format: { type: "json_object" },
+                        });
+
+                        const durationMs = Date.now() - startTime;
+                        const content = completion.choices[0]?.message?.content;
+                        if (!content) throw new Error("No content in response");
+
+                        const response = JSON.parse(content);
+                        const scores = response.scores;
+
+                        if (!Array.isArray(scores) || scores.length !== daySlots.length) {
+                            throw new Error(
+                                `Expected ${daySlots.length} scores, got ${Array.isArray(scores) ? scores.length : 'non-array'}`
+                            );
+                        }
+
+                        // Validate and save each score
+                        const scoredAt = Date.now();
+                        for (let i = 0; i < daySlots.length; i++) {
+                            const slot = daySlots[i];
+                            const scoreData = scores[i];
+
+                            if (typeof scoreData.score !== "number" || scoreData.score < 0 || scoreData.score > 100) {
+                                console.error(`Invalid score for slot ${i}: ${scoreData.score}`);
+                                failureCount++;
+                                continue;
+                            }
+                            if (typeof scoreData.reasoning !== "string" || scoreData.reasoning.trim().length === 0) {
+                                console.error(`Missing reasoning for slot ${i}`);
+                                failureCount++;
+                                continue;
+                            }
+
+                            const score = Math.round(scoreData.score);
+                            const systemPromptId = systemPromptData?._id;
+                            const spotPromptId = spotPromptData?._id;
+
+                            const scoreId: Id<"condition_scores"> = await ctx.runMutation(api.spots.saveConditionScore, {
+                                slotId: slot._id,
+                                spotId: args.spotId,
+                                timestamp: slot.timestamp,
+                                sport,
+                                userId: null,
+                                score,
+                                reasoning: scoreData.reasoning.trim().substring(0, 500),
+                                factors: scoreData.factors || undefined,
+                                model: MODEL,
+                                scrapeTimestamp: slot.scrapeTimestamp,
+                                systemPromptId,
+                                spotPromptId,
+                                systemPromptText: systemPrompt,
+                                spotPromptText: spotPrompt,
+                                temporalPromptText: temporalPrompt,
+                            });
+
+                            // Save scoring log (one per batch, referencing first score)
+                            await ctx.runMutation(internal.admin.saveScoringLog, {
+                                scoreId,
+                                slotId: slot._id,
+                                spotId: args.spotId,
+                                sport,
+                                userId: null,
+                                timestamp: slot.timestamp,
+                                systemPrompt: system,
+                                userPrompt: user,
+                                model: MODEL,
+                                temperature: TEMPERATURE,
+                                maxTokens: MAX_TOKENS,
+                                rawResponse: content,
+                                scoredAt,
+                                durationMs,
+                                attempt: attempt + 1,
+                            });
+
+                            successCount++;
+                        }
+
+                        batchSuccess = true;
+                        break; // Success, exit retry loop
+                    } catch (error: any) {
+                        lastError = error;
+                        console.error(`Batch scoring attempt ${attempt + 1} failed for ${dayKey}/${sport}:`, error.message);
+
+                        if (attempt < retryDelays.length) {
+                            let delay = retryDelays[attempt];
+                            const isRateLimit = error.status === 429 ||
+                                (error.message && error.message.includes("rate limit"));
+                            if (isRateLimit && error.message) {
+                                const retryAfterMatch = error.message.match(/try again in ([\d.]+)s/i);
+                                if (retryAfterMatch) {
+                                    const retryAfterSeconds = parseFloat(retryAfterMatch[1]);
+                                    delay = Math.min(Math.max(retryAfterSeconds * 1000 + 1000, delay), retryDelays[retryDelays.length - 1]);
+                                }
+                            }
+                            console.log(`Retrying batch in ${delay / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
+                }
+
+                if (!batchSuccess) {
+                    console.error(`All retries failed for batch ${dayKey}/${sport}:`, lastError);
+                    failureCount += dayEntries.length;
+                }
+
+                // Small delay between day batches
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
         }
 
-        const total = slotsToScore.length;
-        console.log(`Scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed (filtered from ${args.slotIds.length} total slots)`);
+        const total = successCount + failureCount;
+        console.log(`Batch scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed (from ${args.slotIds.length} total slots)`);
 
         return {
             successCount,
