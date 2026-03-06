@@ -104,6 +104,7 @@ export default function HomeContent() {
 
   // Fetch spots and data using batched query
   useEffect(() => {
+    let stale = false;
     async function fetchData() {
       setLoading(true);
       try {
@@ -113,6 +114,7 @@ export default function HomeContent() {
           sports: selectedSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
+        if (stale) return;
 
         const fetchedSpots = reportData.spots;
 
@@ -176,6 +178,7 @@ export default function HomeContent() {
     }
 
     fetchData();
+    return () => { stale = true; };
   }, [selectedSports, user]);
 
   // Filter slots based on showFilter

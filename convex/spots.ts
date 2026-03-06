@@ -215,9 +215,11 @@ export const saveForecastSlots = mutation({
                 slotIds: slotIds as any[],
             });
 
-            // Schedule personalized scoring to run after a short delay
-            // (gives system scoring a head start, but runs in parallel)
-            ctx.scheduler.runAfter(1000, api.personalization.scorePersonalizedSlotsAfterScrape, {
+            // Schedule personalized scoring to run after system scoring has time to finish
+            // System scoring takes ~2s per slot, so delay proportionally
+            const estimatedSystemScoringMs = slotIds.length * spotSports.length * 2500;
+            const personalizedDelay = Math.max(estimatedSystemScoringMs, 30000); // At least 30s
+            ctx.scheduler.runAfter(personalizedDelay, api.personalization.scorePersonalizedSlotsAfterScrape, {
                 spotId: args.spotId,
                 scrapeTimestamp: args.scrapeTimestamp,
                 slotIds: slotIds as any[],

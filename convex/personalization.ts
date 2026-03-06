@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
 import Groq from "groq-sdk";
+import SunCalc from "suncalc";
 import { buildPrompt } from "./prompts";
 
 // =============================================================================
@@ -1037,8 +1038,8 @@ export const scorePersonalizedSlot = action({
       spot.name
     );
 
-    // Call Groq API with retry logic (shorter delays for interactive use)
-    const retryDelays = [2000, 5000]; // 2s, 5s - faster retries for better UX
+    // Call Groq API with retry logic
+    const retryDelays = [30000, 60000]; // 30s, 1 min - match system scoring retry cadence
     let lastError: Error | null = null;
     
     // LLM parameters for provenance tracking
@@ -1344,6 +1345,43 @@ export const scorePersonalizedSlotsAfterScrape = action({
       };
     }
 
+    // Get spot data for daylight filtering
+    const spot = await ctx.runQuery(api.spots.getSpotById, {
+      spotId: args.spotId,
+    });
+
+    // Resolve all slots and filter to daylight-only (matching system scoring behavior)
+    const allSlots = await Promise.all(
+      args.slotIds.map((slotId) =>
+        ctx.runQuery(api.spots.getSlotById, { slotId })
+      )
+    );
+    const validSlots = allSlots.filter((s) => s !== null) as Array<{
+      _id: any;
+      timestamp: number;
+    }>;
+
+    // Filter to daylight slots only (same as scoreForecastSlots does)
+    const daylightSlotIds = spot
+      ? validSlots
+          .filter((slot) => {
+            // Use SunCalc to check if slot is during daylight
+            if (!spot.latitude || !spot.longitude) return true;
+            const date = new Date(slot.timestamp);
+            const times = SunCalc.getTimes(date, spot.latitude, spot.longitude);
+            return date >= times.sunrise && date <= times.sunset;
+          })
+          .map((s) => s._id)
+      : args.slotIds;
+
+    if (daylightSlotIds.length === 0) {
+      return {
+        usersProcessed: usersToScore.length,
+        totalSlotsScored: 0,
+        totalSlotsFailed: 0,
+      };
+    }
+
     let totalSlotsScored = 0;
     let totalSlotsFailed = 0;
 
@@ -1366,7 +1404,7 @@ export const scorePersonalizedSlotsAfterScrape = action({
 
         if (!sportProfile) continue; // Skip if no profile for this sport
 
-        for (const slotId of args.slotIds) {
+        for (const slotId of daylightSlotIds) {
           try {
             await ctx.runAction(api.personalization.scorePersonalizedSlot, {
               slotId,
@@ -1385,6 +1423,9 @@ export const scorePersonalizedSlotsAfterScrape = action({
             );
             totalSlotsFailed++;
           }
+
+          // Delay between requests to avoid Groq rate limits
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     }
