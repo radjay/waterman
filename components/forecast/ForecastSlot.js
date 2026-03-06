@@ -42,7 +42,7 @@ export function ForecastSlot({
           isSurfing
             ? "grid-cols-[80px_0.7fr_1.1fr_150px_120px] gap-2"
             : "grid-cols-[80px_1fr_1fr_120px] gap-2"
-        } items-stretch py-3 px-0 border-b border-ink/20 font-data text-[0.95rem] w-full group ${
+        } items-stretch py-3 pl-0 pr-2 border-b border-ink/20 font-data text-[0.95rem] w-full group ${
           showFilter === "all" &&
           slot.score &&
           slot.score.value >= 60 &&
