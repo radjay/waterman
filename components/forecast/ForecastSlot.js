@@ -1,11 +1,11 @@
 import { WindGroup } from "./WindGroup";
 import { WaveGroup } from "./WaveGroup";
 import { TideDisplay } from "../tide/TideDisplay";
-import { ChevronRight, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
 import { Tooltip } from "../ui/Tooltip";
-import { ScoreDisplay } from "../ui/ScoreDisplay";
+import { ScorePill } from "../ui/ScorePill";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -73,28 +73,16 @@ export function ForecastSlot({
         {/* Tide column */}
         {isSurfing && nearbyTide && <TideDisplay tide={nearbyTide} />}
 
-        <div className="flex items-center justify-end mr-2 gap-2 min-w-[120px]">
+        <div className="flex items-center justify-end mr-4 gap-2 min-w-[120px]">
           {slot.score && (
-            <Tooltip content="60+ Good · 75+ Excellent · 90+ Epic" position="left">
-              <ScoreDisplay score={slot.score.value} />
-            </Tooltip>
-          )}
-          {/* Personalized indicator + Score button */}
-          {slot.score ? (
-            <button
-              onClick={() => setIsScoreModalOpen(true)}
-              className="flex items-center justify-center gap-1 text-ink/30 hover:text-ink/60 transition-colors"
-              aria-label="View score report"
-            >
+            <div className="flex items-center gap-1">
               {slot.score.isPersonalized && (
                 <Tooltip content="Personalized for you" position="left">
                   <User size={12} className="text-ink/40" />
                 </Tooltip>
               )}
-              <ChevronRight size={18} />
-            </button>
-          ) : (
-            <div className="w-[18px]"></div>
+              <ScorePill score={slot.score.value} sport={slot.sport} size="lg" onClick={() => setIsScoreModalOpen(true)} />
+            </div>
           )}
         </div>
       </div>
@@ -120,23 +108,13 @@ export function ForecastSlot({
             </div>
           </div>
           <div className="flex items-center gap-2">
-              {slot.score && (
-              <ScoreDisplay score={slot.score.value} size="lg" />
-            )}
-            {/* Personalized indicator + Score button for mobile */}
             {slot.score && (
-              <button
-                onClick={() => setIsScoreModalOpen(true)}
-                className="flex items-center justify-center gap-1 text-ink/30 hover:text-ink/60 transition-colors"
-                aria-label="View score report"
-              >
+              <div className="flex items-center gap-1">
                 {slot.score.isPersonalized && (
-                  <Tooltip content="Personalized for you" position="left">
-                    <User size={12} className="text-ink/40" />
-                  </Tooltip>
+                  <User size={12} className="text-ink/40" />
                 )}
-                <ChevronRight size={18} />
-              </button>
+                <ScorePill score={slot.score.value} sport={slot.sport} size="lg" onClick={() => setIsScoreModalOpen(true)} />
+              </div>
             )}
           </div>
         </div>

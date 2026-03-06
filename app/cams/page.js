@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
@@ -15,6 +15,9 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { Tv, MapPin, SlidersHorizontal, X } from "lucide-react";
 import { PillToggle } from "../../components/ui/PillToggle";
 import { FilterGroup } from "../../components/ui/FilterGroup";
+import { enrichSlots } from "../../lib/slots";
+import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
+import { ScoreModal } from "../../components/common/ScoreModal";
 import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -24,9 +27,12 @@ function CamsContent() {
   const { sessionToken } = useAuth();
   const user = useUser();
   const [webcams, setWebcams] = useState([]);
+  const [enrichedSlots, setEnrichedSlots] = useState([]);
+  const [spotsMap, setSpotsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
   const [favoriteSpots, setFavoriteSpots] = useState([]);
+  const [scoreModalSlot, setScoreModalSlot] = useState(null);
   const [tvMode, setTvMode] = useState(false);
   const [selectedSport, setSelectedSport] = useState(""); // Empty = all sports
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -40,7 +46,7 @@ function CamsContent() {
     }
   }, [user]);
 
-  // Fetch all webcam spots
+  // Fetch webcam spots + forecast data
   useEffect(() => {
     async function fetchWebcams() {
       setLoading(true);
@@ -49,6 +55,36 @@ function CamsContent() {
           sports: selectedSport ? [selectedSport] : undefined,
         });
         setWebcams(webcamSpots);
+
+        const map = {};
+        webcamSpots.forEach((s) => { map[s._id] = s; });
+        setSpotsMap(map);
+
+        // Fetch forecast data for these spots
+        const userSports = user?.favoriteSports?.length > 0
+          ? user.favoriteSports
+          : ["wingfoil"];
+        const sports = selectedSport ? [selectedSport] : userSports;
+
+        const usePersonalizedScores = user && user.showPersonalizedScores !== false;
+        const batchedData = await client.query(api.spots.getDashboardData, {
+          spotIds: webcamSpots.map((s) => s._id),
+          sports,
+          userId: usePersonalizedScores && user?._id ? user._id : undefined,
+        });
+
+        const allSlots = webcamSpots.flatMap((spot) => {
+          const spotData = batchedData[spot._id];
+          if (!spotData || !spotData.slots) return [];
+          const spotSports = spot.sports?.length > 0 ? spot.sports : ["wingfoil"];
+          const relevantSports = selectedSport
+            ? spotSports.filter((s) => s === selectedSport)
+            : spotSports.filter((s) => sports.includes(s));
+          const configs = Object.values(spotData.configs);
+          return enrichSlots(spotData.slots, spot, configs, spotData.scoresMap, relevantSports);
+        });
+
+        setEnrichedSlots(allSlots);
       } catch (error) {
         console.error("Error fetching webcams:", error);
       } finally {
@@ -57,7 +93,7 @@ function CamsContent() {
     }
 
     fetchWebcams();
-  }, [selectedSport]);
+  }, [selectedSport, user]);
 
   // Toggle favorite spot
   const handleToggleFavorite = async (spotId, e) => {
@@ -84,6 +120,72 @@ function CamsContent() {
     }
   };
 
+  // Build forecast data map: spotId → forecastData for current time window
+  const forecastBySpot = useMemo(() => {
+    if (enrichedSlots.length === 0) return {};
+
+    const now = Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+    const SLOT_DURATION = 3 * 60 * 60 * 1000;
+
+    // Filter to daylight slots
+    const daylightSlots = enrichedSlots.filter((slot) => {
+      if (slot.isTideOnly) return false;
+      if (isNighttimeSlot(new Date(slot.timestamp))) return false;
+      const spot = spotsMap[slot.spotId];
+      if (!spot) return false;
+      if (!isDaylightSlot(new Date(slot.timestamp), spot)) return false;
+      if (isAfterSunset(new Date(slot.timestamp), spot)) return false;
+      return true;
+    });
+
+    // Current time window slots
+    let candidates = daylightSlots.filter((slot) => {
+      const slotStart = slot.timestamp;
+      const slotEnd = slotStart + SLOT_DURATION;
+      return slotStart <= now && now < slotEnd;
+    });
+
+    // Fallback to next upcoming today
+    if (candidates.length === 0) {
+      const upcoming = daylightSlots
+        .filter((slot) => {
+          const slotDate = new Date(slot.timestamp);
+          slotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === todayMs && slot.timestamp > now;
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
+      if (upcoming.length > 0) {
+        const nextTs = upcoming[0].timestamp;
+        candidates = upcoming.filter((s) => s.timestamp === nextTs);
+      }
+    }
+
+    // Best slot per spot (by score)
+    const map = {};
+    for (const slot of candidates) {
+      const existing = map[slot.spotId];
+      if (!existing || (slot.score?.value || 0) > (existing.forecastData.score || 0)) {
+        map[slot.spotId] = {
+          slot,
+          forecastData: {
+            score: slot.score?.value,
+            speed: slot.speed,
+            gust: slot.gust,
+            direction: slot.direction,
+            waveHeight: slot.waveHeight,
+            wavePeriod: slot.wavePeriod,
+            sport: slot.sport,
+            timestamp: slot.timestamp,
+          },
+        };
+      }
+    }
+    return map;
+  }, [enrichedSlots, spotsMap]);
+
   const handleWebcamClick = (webcam) => setFocusedWebcam(webcam);
   const handleCloseFullscreen = () => setFocusedWebcam(null);
   const handleNavigateWebcam = (webcam) => setFocusedWebcam(webcam);
@@ -93,7 +195,7 @@ function CamsContent() {
       <Header />
 
       {/* Filter bar — always in normal document flow, never overlaying cams */}
-      <div className="pb-4 pt-2">
+      {!loading && <div className="pb-4 pt-2">
         {filtersExpanded ? (
           /* Expanded: full filter bar, TV Mode hidden */
           <div className="rounded-xl bg-ink/[0.04] px-4 md:-mx-2 py-3">
@@ -174,7 +276,7 @@ function CamsContent() {
             </button>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Webcam grid */}
       <div className="pb-12">
@@ -195,6 +297,8 @@ function CamsContent() {
                   showHoverButtons
                   isFavorite={favoriteSpots.includes(webcam._id)}
                   onToggleFavorite={(e) => handleToggleFavorite(webcam._id, e)}
+                  forecastData={forecastBySpot[webcam._id]?.forecastData || null}
+                  onScoreClick={forecastBySpot[webcam._id]?.slot?.score ? () => setScoreModalSlot(forecastBySpot[webcam._id].slot) : undefined}
                 />
               </div>
             ))}
@@ -228,6 +332,17 @@ function CamsContent() {
         <TvMode
           webcams={webcams}
           onClose={() => setTvMode(false)}
+        />
+      )}
+
+      {/* Score Modal */}
+      {scoreModalSlot && scoreModalSlot.score && (
+        <ScoreModal
+          isOpen={true}
+          onClose={() => setScoreModalSlot(null)}
+          score={scoreModalSlot.score}
+          slot={scoreModalSlot}
+          spotName={spotsMap[scoreModalSlot.spotId]?.name || ""}
         />
       )}
 

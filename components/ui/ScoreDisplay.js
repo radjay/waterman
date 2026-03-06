@@ -20,7 +20,7 @@ export function ScoreDisplay({ score, size = "md", className = "" }) {
     size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-base";
 
   return (
-    <span className={`font-data tabular-nums ${colorClass} ${sizeClass} ${className}`}>
+    <span className={`font-data tabular-nums leading-none ${colorClass} ${sizeClass} ${className}`}>
       {score}
     </span>
   );

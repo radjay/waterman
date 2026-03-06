@@ -1,4 +1,4 @@
-import { getCardinalDirection } from "../../lib/utils";
+import { getDisplayWindDirection } from "../../lib/utils";
 
 /**
  * ConditionLine component - compact one-line wind/wave summary.
@@ -20,7 +20,7 @@ export function ConditionLine({
   sport,
   className = "",
 }) {
-  const windDir = direction != null ? getCardinalDirection(direction) : "";
+  const windDir = direction != null ? getDisplayWindDirection(direction) : "";
   const windStr = speed != null ? `${Math.round(speed)} kn` : "";
   const gustStr = gust != null ? ` (${Math.round(gust)}*)` : "";
   const waveStr = waveHeight != null ? `${waveHeight.toFixed(1)}m` : "";

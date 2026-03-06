@@ -103,7 +103,7 @@ export function SportBadge({ sport, size = 14, className = "" }) {
   if (!IconComponent) return null;
 
   return (
-    <span className={`inline-flex items-center text-ink/30 ${className}`}>
+    <span className={`inline-flex items-center ${className || "text-ink/30"}`}>
       <IconComponent size={size} />
     </span>
   );

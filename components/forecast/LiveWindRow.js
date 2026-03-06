@@ -111,7 +111,7 @@ export function LiveWindRow({ stationId, href, className = "" }) {
   );
 
   return (
-    <div className="pt-3 pb-1">
+    <div className="py-2">
       {href ? (
         <a href={href} target="_blank" rel="noopener noreferrer">
           {pill}

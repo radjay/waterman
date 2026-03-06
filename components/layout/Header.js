@@ -90,6 +90,8 @@ export function Header({ className = "" }) {
             </span>
           </div>
         </div>
+        {/* Divider under logo on mobile */}
+        <div className="md:hidden border-b border-ink/10" />
       </motion.div>
 
       {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}

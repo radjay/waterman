@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { formatDate, formatFullDay, formatTideTime } from "../../lib/utils";
-import { ScoreDisplay } from "../ui/ScoreDisplay";
+import { ScorePill } from "../ui/ScorePill";
 import { ConditionLine } from "../ui/ConditionLine";
 
 /**
@@ -286,7 +286,7 @@ export function CalendarView({
                             <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
                               {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
                             </span>
-                            <ScoreDisplay score={sportData?.score} size="sm" />
+                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
                           </div>
                           {cd && (
                             <ConditionLine
@@ -328,7 +328,7 @@ export function CalendarView({
                             <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
                               {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
                             </span>
-                            <ScoreDisplay score={sportData?.score} size="sm" />
+                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
                           </div>
                           {cd && (
                             <ConditionLine
@@ -370,7 +370,7 @@ export function CalendarView({
                             <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
                               {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
                             </span>
-                            <ScoreDisplay score={sportData?.score} size="sm" />
+                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
                           </div>
                           {cd && (
                             <ConditionLine

@@ -7,7 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Plus, ArrowRight, Clock, Calendar } from "lucide-react";
+import { Plus, ArrowRight, Calendar } from "lucide-react";
 import { Loader } from "../../components/common/Loader";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
@@ -16,8 +16,7 @@ import { Section } from "../../components/ui/Section";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { formatDate, formatTime, formatFullDay } from "../../lib/utils";
 import { ScoreCard } from "../../components/ui/ScoreCard";
-import { ScoreDisplay } from "../../components/ui/ScoreDisplay";
-import { SportBadge } from "../../components/ui/SportBadge";
+import { ScorePill } from "../../components/ui/ScorePill";
 import { ConditionLine } from "../../components/ui/ConditionLine";
 import { enrichSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
@@ -26,6 +25,7 @@ import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import { OnboardingFooter } from "../../components/onboarding/OnboardingFooter";
 import { OnboardingModal } from "../../components/onboarding/OnboardingModal";
+import { ScoreModal } from "../../components/common/ScoreModal";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(null);
   const [focusedWebcam, setFocusedWebcam] = useState(null);
   const [favoriteSpotIds, setFavoriteSpotIds] = useState(new Set());
+  const [scoreModalSlot, setScoreModalSlot] = useState(null);
 
   const selectedSport = user?.selectedSport || "wingfoil";
 
@@ -150,10 +151,10 @@ export default function DashboardPage() {
     setDataVersion((v) => v + 1);
   };
 
-  // Derive "Right Now", "Coming Up", and webcam ordering from enriched slots
-  const { rightNowSlots, comingUpGroups, orderedWebcams } = useMemo(() => {
+  // Derive "Right Now", "Coming Up", and webcam data from enriched slots
+  const { rightNowSlots, rightNowWebcams, comingUpGroups } = useMemo(() => {
     if (allEnrichedSlots.length === 0) {
-      return { rightNowSlots: [], comingUpGroups: [], orderedWebcams: webcamSpots };
+      return { rightNowSlots: [], rightNowWebcams: webcamSpots.map((s) => ({ spot: s, forecastData: null })), comingUpGroups: [] };
     }
 
     const now = Date.now();
@@ -161,29 +162,31 @@ export default function DashboardPage() {
     today.setHours(0, 0, 0, 0);
     const todayMs = today.getTime();
 
-    // Filter to good daylight slots only
-    const goodSlots = allEnrichedSlots.filter((slot) => {
+    // Daylight-filtered slots (no score filter)
+    const daylightSlots = allEnrichedSlots.filter((slot) => {
       if (slot.isTideOnly) return false;
       if (isNighttimeSlot(new Date(slot.timestamp))) return false;
       const spot = spotsMap[slot.spotId];
       if (!spot) return false;
       if (!isDaylightSlot(new Date(slot.timestamp), spot)) return false;
       if (isAfterSunset(new Date(slot.timestamp), spot)) return false;
-      return slot.score && slot.score.value >= 60;
+      return true;
     });
 
-    // "Right Now" — current 3-hour window or next upcoming slot
+    // Good slots (score >= 60) for ScoreCards and Coming Up
+    const goodSlots = daylightSlots.filter((slot) => slot.score && slot.score.value >= 60);
+
+    // "Right Now" — current 3-hour window or next upcoming slot (good scores only, for ScoreCards)
     const SLOT_DURATION = 3 * 60 * 60 * 1000;
-    const currentSlots = goodSlots.filter((slot) => {
+    const currentGoodSlots = goodSlots.filter((slot) => {
       const slotStart = slot.timestamp;
       const slotEnd = slotStart + SLOT_DURATION;
       return slotStart <= now && now < slotEnd;
     });
 
-    // If no current slots, show next upcoming today
     let rightNow;
-    if (currentSlots.length > 0) {
-      rightNow = currentSlots.sort((a, b) => (b.score?.value || 0) - (a.score?.value || 0)).slice(0, 4);
+    if (currentGoodSlots.length > 0) {
+      rightNow = currentGoodSlots.sort((a, b) => (b.score?.value || 0) - (a.score?.value || 0)).slice(0, 4);
     } else {
       const upcomingToday = goodSlots
         .filter((slot) => {
@@ -192,7 +195,6 @@ export default function DashboardPage() {
           return slotDate.getTime() === todayMs && slot.timestamp > now;
         })
         .sort((a, b) => a.timestamp - b.timestamp);
-      // Take the earliest upcoming time slot, show best spots for it
       if (upcomingToday.length > 0) {
         const nextTimestamp = upcomingToday[0].timestamp;
         rightNow = upcomingToday
@@ -204,19 +206,82 @@ export default function DashboardPage() {
       }
     }
 
-    // "Coming Up" — good conditions in the next few days (excluding slots shown in Right Now)
+    // Build forecast data for webcam spots (current time window, any score)
+    const currentAllSlots = daylightSlots.filter((slot) => {
+      const slotStart = slot.timestamp;
+      const slotEnd = slotStart + SLOT_DURATION;
+      return slotStart <= now && now < slotEnd;
+    });
+
+    // Map spotId → best current slot (by score)
+    const currentSlotsBySpot = {};
+    for (const slot of currentAllSlots) {
+      const existing = currentSlotsBySpot[slot.spotId];
+      if (!existing || (slot.score?.value || 0) > (existing.score?.value || 0)) {
+        currentSlotsBySpot[slot.spotId] = slot;
+      }
+    }
+
+    // If no current slots, try next upcoming today
+    if (Object.keys(currentSlotsBySpot).length === 0) {
+      const upcomingAllToday = daylightSlots
+        .filter((slot) => {
+          const slotDate = new Date(slot.timestamp);
+          slotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === todayMs && slot.timestamp > now;
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      if (upcomingAllToday.length > 0) {
+        const nextTimestamp = upcomingAllToday[0].timestamp;
+        for (const slot of upcomingAllToday.filter((s) => s.timestamp === nextTimestamp)) {
+          const existing = currentSlotsBySpot[slot.spotId];
+          if (!existing || (slot.score?.value || 0) > (existing.score?.value || 0)) {
+            currentSlotsBySpot[slot.spotId] = slot;
+          }
+        }
+      }
+    }
+
+    // Build webcam cards with forecast data, only for spots with good conditions (score >= 60)
+    const webcamCards = webcamSpots
+      .filter((spot) => {
+        const slot = currentSlotsBySpot[spot._id];
+        return slot && slot.score && slot.score.value >= 60;
+      })
+      .map((spot) => {
+        const slot = currentSlotsBySpot[spot._id];
+        return {
+          spot,
+          slot,
+          forecastData: {
+            score: slot.score?.value,
+            speed: slot.speed,
+            gust: slot.gust,
+            direction: slot.direction,
+            waveHeight: slot.waveHeight,
+            wavePeriod: slot.wavePeriod,
+            sport: slot.sport,
+            timestamp: slot.timestamp,
+          },
+        };
+      })
+      .sort((a, b) => (b.forecastData.score || 0) - (a.forecastData.score || 0));
+
+    // Filter rightNow ScoreCards to exclude spots already shown as webcams
+    const webcamSpotIds = new Set(webcamSpots.map((s) => s._id));
+    const rightNowNonWebcam = rightNow.filter((slot) => !webcamSpotIds.has(slot.spotId));
+
+    // "Coming Up" — good conditions in the next few days
     const rightNowKeys = new Set(rightNow.map((s) => `${s.spotId}-${s.timestamp}`));
     const futureSlots = goodSlots
       .filter((slot) => {
-        // Must be in the future
         if (slot.timestamp <= now) return false;
-        // Exclude slots already shown in Right Now
         if (rightNowKeys.has(`${slot.spotId}-${slot.timestamp}`)) return false;
         return true;
       })
       .sort((a, b) => a.timestamp - b.timestamp);
 
-    // Group by day
     const dayGroups = {};
     for (const slot of futureSlots) {
       const dayKey = formatFullDay(new Date(slot.timestamp));
@@ -226,7 +291,6 @@ export default function DashboardPage() {
       dayGroups[dayKey].push(slot);
     }
 
-    // Limit: top 3 per day, max 3 days
     const comingUp = Object.entries(dayGroups)
       .slice(0, 3)
       .map(([day, slots]) => ({
@@ -236,18 +300,7 @@ export default function DashboardPage() {
           .slice(0, 3),
       }));
 
-    // Prioritize webcams: spots with good current conditions first, then favorites
-    const spotsWithGoodNow = new Set(rightNow.map((s) => s.spotId));
-    const orderedCams = [...webcamSpots].sort((a, b) => {
-      const aHasGood = spotsWithGoodNow.has(a._id) ? 1 : 0;
-      const bHasGood = spotsWithGoodNow.has(b._id) ? 1 : 0;
-      if (aHasGood !== bHasGood) return bHasGood - aHasGood;
-      const aIsFav = favoriteSpotIds.has(a._id) ? 1 : 0;
-      const bIsFav = favoriteSpotIds.has(b._id) ? 1 : 0;
-      return bIsFav - aIsFav;
-    });
-
-    return { rightNowSlots: rightNow, comingUpGroups: comingUp, orderedWebcams: orderedCams };
+    return { rightNowSlots: rightNowNonWebcam, rightNowWebcams: webcamCards, comingUpGroups: comingUp };
   }, [allEnrichedSlots, spotsMap, webcamSpots, favoriteSpotIds]);
 
   const handleWebcamClick = (webcam) => setFocusedWebcam(webcam);
@@ -255,7 +308,9 @@ export default function DashboardPage() {
   const handleNavigateWebcam = (webcam) => setFocusedWebcam(webcam);
 
   // Helper to determine if "Right Now" shows current or next-up slots
-  const isShowingCurrentSlots = rightNowSlots.length > 0 && rightNowSlots[0].timestamp <= Date.now();
+  const hasAnyRightNowContent = rightNowSlots.length > 0 || rightNowWebcams.length > 0;
+  const firstSlotTimestamp = rightNowSlots[0]?.timestamp || rightNowWebcams[0]?.forecastData?.timestamp;
+  const isShowingCurrentSlots = hasAnyRightNowContent && firstSlotTimestamp && firstSlotTimestamp <= Date.now();
 
   return (
     <>
@@ -285,44 +340,61 @@ export default function DashboardPage() {
                 ) : null
               }
             >
-              {rightNowSlots.length === 0 ? (
+              {!hasAnyRightNowContent ? (
                 <Text variant="muted" className="text-sm py-4">No good conditions forecast for today</Text>
               ) : (
-                <div className="space-y-2">
-                  {rightNowSlots.map((slot) => {
-                    const spot = spotsMap[slot.spotId];
-                    if (!spot) return null;
-
-                    return (
-                      <ScoreCard
-                        key={`${slot.spotId}-${slot.timestamp}-${slot.sport}`}
-                        score={slot.score?.value}
-                        onClick={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <SportBadge sport={slot.sport} size={22} />
-                              <span className="font-bold text-ink truncate">{spot.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-ink/60 whitespace-nowrap overflow-hidden">
-                              <span>{formatTime(new Date(slot.timestamp))}</span>
-                              <span className="text-ink/30">&middot;</span>
-                              <ConditionLine
-                                speed={slot.speed}
-                                gust={slot.gust}
-                                direction={slot.direction}
-                                waveHeight={slot.waveHeight}
-                                wavePeriod={slot.wavePeriod}
-                                sport={slot.sport}
-                              />
-                            </div>
-                          </div>
-                          <ScoreDisplay score={slot.score?.value} size="lg" />
+                <div className="space-y-4">
+                  {/* Webcam cards with live + forecast data */}
+                  {rightNowWebcams.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {rightNowWebcams.map(({ spot, slot, forecastData }) => (
+                        <div
+                          key={spot._id}
+                          onClick={() => handleWebcamClick(spot)}
+                          className="cursor-pointer group"
+                        >
+                          <WebcamCard spot={spot} showHoverButtons forecastData={forecastData} onScoreClick={slot?.score ? () => setScoreModalSlot(slot) : undefined} />
                         </div>
-                      </ScoreCard>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Non-webcam spots with good scores */}
+                  {rightNowSlots.length > 0 && (
+                    <div className="space-y-2">
+                      {rightNowSlots.map((slot) => {
+                        const spot = spotsMap[slot.spotId];
+                        if (!spot) return null;
+
+                        return (
+                          <ScoreCard
+                            key={`${slot.spotId}-${slot.timestamp}-${slot.sport}`}
+                            score={slot.score?.value}
+                            onClick={() => router.push(`/report?day=${encodeURIComponent(formatDate(new Date()))}`)}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-bold text-ink truncate block">{spot.name}</span>
+                                <div className="flex items-center gap-1.5 font-data text-xs text-faded-ink whitespace-nowrap overflow-hidden">
+                                  <span className="font-bold text-ink/80">{formatTime(new Date(slot.timestamp))}</span>
+                                  <span className="text-ink/30">&middot;</span>
+                                  <ConditionLine
+                                    speed={slot.speed}
+                                    gust={slot.gust}
+                                    direction={slot.direction}
+                                    waveHeight={slot.waveHeight}
+                                    wavePeriod={slot.wavePeriod}
+                                    sport={slot.sport}
+                                  />
+                                </div>
+                              </div>
+                              <ScorePill score={slot.score?.value} sport={slot.sport} size="lg" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
+                            </div>
+                          </ScoreCard>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -358,12 +430,9 @@ export default function DashboardPage() {
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    <SportBadge sport={slot.sport} size={22} />
-                                    <span className="font-bold text-ink truncate">{spot.name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-ink/60 whitespace-nowrap overflow-hidden">
-                                    <span>{formatTime(new Date(slot.timestamp))}</span>
+                                  <span className="font-bold text-ink truncate block">{spot.name}</span>
+                                  <div className="flex items-center gap-1.5 font-data text-xs text-faded-ink whitespace-nowrap overflow-hidden">
+                                    <span className="font-bold text-ink/80">{formatTime(new Date(slot.timestamp))}</span>
                                     <span className="text-ink/30">&middot;</span>
                                     <ConditionLine
                                       speed={slot.speed}
@@ -375,7 +444,7 @@ export default function DashboardPage() {
                                     />
                                   </div>
                                 </div>
-                                <ScoreDisplay score={slot.score?.value} size="lg" />
+                                <ScorePill score={slot.score?.value} sport={slot.sport} size="lg" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
                               </div>
                             </ScoreCard>
                           );
@@ -387,29 +456,6 @@ export default function DashboardPage() {
               </Section>
             )}
 
-            {/* ── Live Webcams ── */}
-            {orderedWebcams.length > 0 && (
-              <Section
-                title="Live Webcams"
-                action={
-                  <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/cams")}>
-                    See All
-                  </Button>
-                }
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {orderedWebcams.map((spot) => (
-                    <div
-                      key={spot._id}
-                      onClick={() => handleWebcamClick(spot)}
-                      className="cursor-pointer group"
-                    >
-                      <WebcamCard spot={spot} showHoverButtons />
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
           </div>
         )}
 
@@ -419,8 +465,18 @@ export default function DashboardPage() {
           <WebcamFullscreen
             spot={focusedWebcam}
             onClose={handleCloseFullscreen}
-            allWebcams={orderedWebcams}
+            allWebcams={rightNowWebcams.map((w) => w.spot)}
             onNavigate={handleNavigateWebcam}
+          />
+        )}
+
+        {scoreModalSlot && scoreModalSlot.score && (
+          <ScoreModal
+            isOpen={true}
+            onClose={() => setScoreModalSlot(null)}
+            score={scoreModalSlot.score}
+            slot={scoreModalSlot}
+            spotName={spotsMap[scoreModalSlot.spotId]?.name || ""}
           />
         )}
       </MainLayout>

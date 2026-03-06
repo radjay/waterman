@@ -2,6 +2,7 @@
 
 import { X, User } from "lucide-react";
 import { useEffect } from "react";
+import { ScorePill } from "../ui/ScorePill";
 
 export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
   useEffect(() => {
@@ -40,10 +41,10 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
         {/* Header */}
         <div className="mb-6">
           <h2 className="font-headline text-2xl font-bold text-ink mb-2">
-            Condition Score Report
+            Condition Report
           </h2>
           <div className="text-sm text-ink/60">
-            {spotName} • {slot.hour}
+            {spotName} @ {slot.hour}
           </div>
           {score.isPersonalized && (
             <div className="flex items-center gap-1.5 mt-2 text-xs text-ink/50">
@@ -54,11 +55,9 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
         </div>
 
         {/* Score */}
-        <div className="mb-6 text-center">
-          <div className="font-headline text-6xl font-bold text-ink mb-2">
-            {score.value}
-          </div>
-          <div className="text-sm text-ink/60">out of 100</div>
+        <div className="mb-6">
+          <h3 className="font-headline text-lg font-bold text-ink mb-2">Score</h3>
+          <ScorePill score={score.value} sport={slot.sport} size="xl" />
         </div>
 
         {/* Reasoning */}

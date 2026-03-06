@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { CircleGauge, ChartNoAxesCombined, Heart, RefreshCw } from "lucide-react";
 import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
-import { ScoreDisplay } from "../ui/ScoreDisplay";
+import { ScorePill } from "../ui/ScorePill";
+import { ConditionLine } from "../ui/ConditionLine";
+import { formatTime } from "../../lib/utils";
 
 /**
  * WebcamCard component that displays a webcam video stream with current conditions.
@@ -15,7 +17,7 @@ import { ScoreDisplay } from "../ui/ScoreDisplay";
  * @param {boolean} isFavorite - Whether this spot is favorited by the user
  * @param {Function} onToggleFavorite - Callback when favorite button is clicked
  */
-export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, score }) {
+export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error"
@@ -229,13 +231,6 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
           </div>
         )}
 
-        {/* Score overlay */}
-        {score && score >= 60 && (
-          <div className="absolute bottom-2 right-2 bg-newsprint/90 backdrop-blur-sm rounded px-1.5 py-0.5">
-            <ScoreDisplay score={score} size="sm" />
-          </div>
-        )}
-
         {/* Live wind indicator overlay - top left corner */}
         {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
           <div className="absolute top-2 left-2">
@@ -294,12 +289,30 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
 
       {/* Spot info */}
       <div className="px-4 py-2">
-        <div>
-          <h3 className="font-headline text-lg font-bold text-ink">{spot.name}</h3>
-          {spot.town && (
-            <p className="text-sm text-ink/60">{spot.town}</p>
-          )}
-        </div>
+        {forecastData ? (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-ink truncate block">{spot.name}</span>
+              <div className="flex items-center gap-1.5 font-data text-xs text-faded-ink whitespace-nowrap overflow-hidden">
+                <span className="font-bold text-ink/80">{formatTime(new Date(forecastData.timestamp))}</span>
+                <span className="text-ink/30">&middot;</span>
+                <ConditionLine
+                  speed={forecastData.speed}
+                  gust={forecastData.gust}
+                  direction={forecastData.direction}
+                  waveHeight={forecastData.waveHeight}
+                  wavePeriod={forecastData.wavePeriod}
+                  sport={forecastData.sport}
+                />
+              </div>
+            </div>
+            <ScorePill score={forecastData.score} sport={forecastData.sport} size="lg" onClick={onScoreClick ? (e) => { e.stopPropagation(); onScoreClick(); } : undefined} />
+          </div>
+        ) : (
+          <div>
+            <h3 className="font-headline text-lg font-bold text-ink" title={spot.town || undefined}>{spot.name}</h3>
+          </div>
+        )}
       </div>
     </div>
   );

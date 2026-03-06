@@ -18,7 +18,7 @@ export function Footer({ className = "", mostRecentScrapeTimestamp }) {
   const relativeTime = getRelativeTime(mostRecentScrapeTimestamp);
 
   return (
-    <footer className={`mt-12 pt-8 border-t-2 border-ink/20 ${className}`}>
+    <footer className={`mt-12 pt-8 md:border-t-2 md:border-ink/20 ${className}`}>
       <div className="flex flex-col items-center justify-center gap-2">
         {relativeTime && (
           <div className="text-xs text-ink/60 font-body">
