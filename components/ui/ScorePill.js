@@ -34,11 +34,13 @@ export function ScorePill({ score, sport, size = "md", onClick, className = "" }
   };
 
   const s = sizeConfig[size] || sizeConfig.md;
-  const Tag = onClick ? "button" : "span";
 
   return (
-    <Tag
+    <span
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(e); } } : undefined}
       className={`inline-flex items-center ${s.gap} ${s.px} rounded-full border ${bgClass} ${
         onClick ? "cursor-pointer hover:brightness-95 active:scale-[0.97] transition-all" : ""
       } ${className}`}
@@ -47,6 +49,6 @@ export function ScorePill({ score, sport, size = "md", onClick, className = "" }
       <span className={`font-data tabular-nums leading-none ${colorClass} ${s.text}`}>
         {score}
       </span>
-    </Tag>
+    </span>
   );
 }
