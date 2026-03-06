@@ -81,7 +81,7 @@ export function ForecastSlot({
                   <User size={12} className="text-ink/40" />
                 </Tooltip>
               )}
-              <ScorePill score={slot.score.value} sport={slot.sport} size="lg" onClick={() => setIsScoreModalOpen(true)} />
+              <ScorePill score={slot.score.value} sport={slot.sport} size="lg" showAll onClick={() => setIsScoreModalOpen(true)} />
             </div>
           )}
         </div>
@@ -113,7 +113,7 @@ export function ForecastSlot({
                 {slot.score.isPersonalized && (
                   <User size={12} className="text-ink/40" />
                 )}
-                <ScorePill score={slot.score.value} sport={slot.sport} size="lg" onClick={() => setIsScoreModalOpen(true)} />
+                <ScorePill score={slot.score.value} sport={slot.sport} size="lg" showAll onClick={() => setIsScoreModalOpen(true)} />
               </div>
             )}
           </div>

@@ -60,7 +60,6 @@ export default function SportProfilePage({ params }) {
   const [context, setContext] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [scoring, setScoring] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [scoringResult, setScoringResult] = useState(null);
@@ -123,27 +122,20 @@ export default function SportProfilePage({ params }) {
 
       setSuccess(true);
       setSaving(false);
-      
-      // Trigger personalized scoring
-      setScoring(true);
-      try {
-        const result = await client.action(api.personalization.scorePersonalizedSlots, {
-          sessionToken,
-          sport,
-        });
-        setScoringResult(result);
-      } catch (scoringErr) {
-        console.error("Scoring error:", scoringErr);
-        // Don't show error, scoring is optional enhancement
-        setScoringResult({ slotsScored: 0, message: "Scores will generate in background" });
-      } finally {
-        setScoring(false);
-      }
-      
+
+      // Trigger personalized scoring in background (don't await — it can take a long time)
+      client.action(api.personalization.scorePersonalizedSlots, {
+        sessionToken,
+        sport,
+      }).catch((err) => {
+        console.error("Background scoring error:", err);
+      });
+      setScoringResult({ slotsScored: 0, message: "Personalized scores will update in the background" });
+
       // Redirect back to profile after showing results
       setTimeout(() => {
         router.push("/profile");
-      }, 3000);
+      }, 2000);
     } catch (err) {
       console.error("Error saving profile:", err);
       setError(err.message || "Failed to save profile");

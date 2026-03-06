@@ -57,7 +57,7 @@ export function ScoreModal({ isOpen, onClose, score, slot, spotName }) {
         {/* Score */}
         <div className="mb-6">
           <h3 className="font-headline text-lg font-bold text-ink mb-2">Score</h3>
-          <ScorePill score={score.value} sport={slot.sport} size="xl" />
+          <ScorePill score={score.value} sport={slot.sport} size="xl" showAll />
         </div>
 
         {/* Reasoning */}
