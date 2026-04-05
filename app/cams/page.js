@@ -46,35 +46,29 @@ function CamsContent() {
     }
   }, [user]);
 
-  // Fetch webcam spots + forecast data
+  // Fetch webcam spots + forecast data in a single round-trip
   useEffect(() => {
     async function fetchWebcams() {
       setLoading(true);
       try {
-        const webcamSpots = await client.query(api.spots.listWebcams, {
-          sports: selectedSport ? [selectedSport] : undefined,
-        });
-        setWebcams(webcamSpots);
-
-        const map = {};
-        webcamSpots.forEach((s) => { map[s._id] = s; });
-        setSpotsMap(map);
-
-        // Fetch forecast data for these spots
         const userSports = user?.favoriteSports?.length > 0
           ? user.favoriteSports
           : ["wingfoil"];
         const sports = selectedSport ? [selectedSport] : userSports;
-
         const usePersonalizedScores = user && user.showPersonalizedScores !== false;
-        const batchedData = await client.query(api.spots.getDashboardData, {
-          spotIds: webcamSpots.map((s) => s._id),
-          sports,
+
+        const camsData = await client.query(api.spots.getCamsData, {
+          sports: selectedSport ? [selectedSport] : userSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
 
-        const allSlots = webcamSpots.flatMap((spot) => {
-          const spotData = batchedData[spot._id];
+        setWebcams(camsData.spots);
+        const map = {};
+        camsData.spots.forEach((s) => { map[s._id] = s; });
+        setSpotsMap(map);
+
+        const allSlots = camsData.spots.flatMap((spot) => {
+          const spotData = camsData.data[spot._id];
           if (!spotData || !spotData.slots) return [];
           const spotSports = spot.sports?.length > 0 ? spot.sports : ["wingfoil"];
           const relevantSports = selectedSport
