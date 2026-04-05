@@ -103,7 +103,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 
 ### Deferred to Implementation
 
-- **OnboardingModal on first visit to `/report/[spot]`**: The current `HomeContent` shows `OnboardingModal` with `isDismissible={false}` for new users. Whether spot pages should inherit or skip this is deferred — implementing agent should match whatever the base `/report` page currently does and flag if it creates a confusing share-link-recipient experience.
+- **OnboardingModal on first visit to `/report/[spot]`**: ~~Deferred~~ **Resolved** — suppress `OnboardingModal` on `/report/[spot]`. A first-time user arriving via a share link should land directly on the forecast they were sent. Onboarding is deferred to their next visit to `/dashboard` or `/report`. Detection: if the page was reached with a `?sport=` param (indicating a share link), or simply unconditionally on all `/report/[spot]` routes — the spot page is always a share-link entry point by design.
 - **Share button on `[sport]/[filter]` routes**: Now in scope — see Unit 4. These routes already encode everything in the URL so no URL construction is needed; `ShareButton` with no `url` prop is sufficient.
 
 ## High-Level Technical Design
@@ -237,6 +237,7 @@ graph TB
   5. Filter the enriched slot pipeline to only slots where `slot.spotId === targetSpot._id`.
   6. Determine `activeSport` using priority order: (1) `sportParam` if present and in `targetSpot.sports`; (2) localStorage-persisted sport if in `targetSpot.sports`; (3) `targetSpot.sports?.[0] ?? 'wingfoil'`. `activeSport` is display-layer state only — does not affect the query. Note: `activeSport` is one-time initial state from `sportParam`; changing the sport toggle in-page does not update the URL.
   7. Render `<MainLayout>` → `<Header>` → day sections for the single spot only.
+  8. Do NOT show `OnboardingModal` on this page — suppress it unconditionally. Users arriving via a share link should see the forecast immediately; onboarding will surface on their next visit to `/dashboard` or `/report`.
 
 **Patterns to follow:**
 - `app/[sport]/[filter]/page.js` — full structural reference: `Suspense` wrapper, `useParams`, enrichment pipeline order
