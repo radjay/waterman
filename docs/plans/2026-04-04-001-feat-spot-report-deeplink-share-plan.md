@@ -34,7 +34,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 
 - No `slug` field added to the Convex schema — slugs are derived client-side from `spot.name` and resolved by fetching all spots.
 - The active sport IS encoded in the share URL as a `?sport=` query parameter (e.g. `/report/guincho?sport=wingfoil`) so recipients see the same sport the sender was viewing. The best/all condition filter is NOT encoded — that remains a local preference.
-- No share button on `/dashboard`, `/[sport]/[filter]`, or other non-report pages (deferred).
+- A share button is also added to `/[sport]/[filter]` pages (e.g. `/wing/best`). These routes already encode sport and filter in the URL by design, so `window.location.href` is the correct share URL — no additional construction needed. No share button on `/dashboard` or other non-forecast pages (deferred).
 - No share analytics or share-count tracking.
 - No custom Open Graph image generation — text-based `generateMetadata` only.
 - The `[sport]/[filter]` routes are not modified (they are already shareable by URL structure; adding a button is deferred).
@@ -100,7 +100,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 ### Deferred to Implementation
 
 - **OnboardingModal on first visit to `/report/[spot]`**: The current `HomeContent` shows `OnboardingModal` with `isDismissible={false}` for new users. Whether spot pages should inherit or skip this is deferred — implementing agent should match whatever the base `/report` page currently does and flag if it creates a confusing share-link-recipient experience.
-- **Share button on `[sport]/[filter]` routes**: Deferred — those routes encode state in the URL already and are inherently shareable. Adding a button is cosmetic and out of scope for this plan.
+- **Share button on `[sport]/[filter]` routes**: Now in scope — see Unit 4. These routes already encode everything in the URL so no URL construction is needed; `ShareButton` with no `url` prop is sufficient.
 
 ## High-Level Technical Design
 
@@ -299,7 +299,7 @@ graph TB
 
 - [ ] **Unit 4: Wire `ShareButton` into report pages**
 
-**Goal:** Add `ShareButton` to `/report` and `/report/[spot]` so users can share from both pages.
+**Goal:** Add `ShareButton` to `/report`, `/report/[spot]`, and `/[sport]/[filter]` pages so users can share from all forecast surfaces.
 
 **Requirements:** R3, R4
 
@@ -308,11 +308,13 @@ graph TB
 **Files:**
 - Modify: `app/report/page.js` (or `app/HomeContent.js` depending on where the header is controlled)
 - Modify: `app/report/[spot]/page.js`
+- Modify: `app/[sport]/[filter]/page.js`
 - Modify: `components/layout/Header.js` if the `rightContent` slot needs to be exposed or extended
 
 **Approach:**
-- On `/report`: add `<ShareButton />` (no `url` prop needed — defaults to `window.location.href`, which is just `/report` with no sport to encode). Desktop: inject via `Header`'s `rightContent` prop alongside any existing `ViewToggle` content. Mobile: render inline below the filter bar, above the first day section.
-- On `/report/[spot]`: pass an explicit `url` prop constructed from the current pathname + `?sport=<activeSport>`, e.g. `url={`${pathname}?sport=${activeSport}`}`. Do not use `window.location.href` directly here — it may or may not already have a `?sport=` param depending on how the user navigated to the page. Always construct the URL from the current `activeSport` state so the shared URL reflects what is actually on screen.
+- On `/report`: add `<ShareButton />` with no `url` prop (defaults to `window.location.href` = `/report`). Desktop: inject via `Header`'s `rightContent` prop alongside any existing `ViewToggle` content. Mobile: render inline below the filter bar, above the first day section.
+- On `/report/[spot]`: pass an explicit `url` prop constructed from the current pathname + `?sport=<activeSport>`, e.g. `url={\`${pathname}?sport=${activeSport}\`}`. Do not use `window.location.href` directly — it may or may not already have a `?sport=` param depending on how the user arrived. Always construct from current `activeSport` state so the share URL reflects what is on screen.
+- On `/[sport]/[filter]`: add `<ShareButton />` with no `url` prop — `window.location.href` is already the fully-specified share URL (sport and filter are both in the path). Same placement as `/report`.
 - Verify whether `Header` already accepts a `rightContent` prop (per research: `ViewToggle` uses it). If so, add `ShareButton` next to the existing `rightContent` content without breaking layout. If `rightContent` needs extending to accept multiple children, make the minimal change.
 - `ShareButton` is a `'use client'` component — its parent page file can remain a server component; the boundary is at the component itself.
 
@@ -323,9 +325,10 @@ graph TB
 - `app/[sport]/[filter]/page.js` — how header props are composed in a dynamic report page
 
 **Verification:**
-- `ShareButton` is visible on `/report` and `/report/[spot]`.
-- Tapping the button on a spot page shares/copies the sport-scoped URL (e.g. `/report/carcavelos?sport=wingfoil`), not just `/report/carcavelos`.
-- Tapping the button on the all-spots `/report` shares/copies the generic report URL.
+- `ShareButton` is visible on `/report`, `/report/[spot]`, and `/[sport]/[filter]`.
+- Tapping on a spot page shares/copies the sport-scoped URL (e.g. `/report/carcavelos?sport=wingfoil`).
+- Tapping on `/wing/best` shares/copies `/wing/best` — already fully specified.
+- Tapping on the all-spots `/report` shares/copies the generic report URL.
 - No layout shift or overflow in the header on narrow screen widths.
 
 ---
