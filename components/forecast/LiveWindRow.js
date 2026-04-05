@@ -63,7 +63,7 @@ export function LiveWindRow({ stationId, href, className = "" }) {
 
   // Calculate how old the data is
   const ageMinutes = Math.floor((Date.now() - liveWind.timestamp) / (60 * 1000));
-  const isStale = ageMinutes > 15; // Consider stale if older than 15 minutes
+  const isStale = ageMinutes > 60; // Consider stale if older than 60 minutes (stations report every 10-30 min)
 
   const pill = (
     <div
