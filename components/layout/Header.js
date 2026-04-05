@@ -9,6 +9,14 @@ import { ViewToggle } from "./ViewToggle";
 import { useAuth } from "../auth/AuthProvider";
 import UserMenu from "../auth/UserMenu";
 import { useRouter, usePathname } from "next/navigation";
+import { ShareButton } from "../ui/ShareButton";
+
+// Routes where the share button shows the app homepage URL instead of the
+// current page URL (content is personalised; the URL itself has no value).
+const USER_SPECIFIC_PATHS = ["/dashboard", "/journal", "/settings", "/profile"];
+
+// Routes where no share button is shown at all.
+const NO_SHARE_PATHS = ["/admin", "/auth", "/ui-kit"];
 
 /**
  * Header — clean sticky header.
@@ -16,6 +24,10 @@ import { useRouter, usePathname } from "next/navigation";
  * Mobile: masthead only (title + date). Nav is handled by BottomNav.
  * Desktop: masthead (container-width) + full-width nav bar with auth inside.
  * Collapses on scroll with smooth Framer Motion animation.
+ *
+ * A ShareButton is rendered automatically on every page. User-specific routes
+ * (/dashboard, /journal, /settings, /profile) share the app homepage URL;
+ * all other routes share the current page URL.
  */
 export function Header({ className = "" }) {
   const todayStr = formatFullDate(new Date());
@@ -25,6 +37,18 @@ export function Header({ className = "" }) {
   const router = useRouter();
   const pathname = usePathname();
   const isHome = pathname === "/dashboard";
+
+  const showShareButton = !NO_SHARE_PATHS.some((p) => pathname?.startsWith(p));
+  const isUserSpecificPath = USER_SPECIFIC_PATHS.some((p) =>
+    pathname?.startsWith(p)
+  );
+  // Resolve at render time (client only); empty string is safe for SSR.
+  const shareUrl =
+    typeof window !== "undefined"
+      ? isUserSpecificPath
+        ? window.location.origin
+        : window.location.href
+      : "";
 
   useLayoutEffect(() => {
     setIsScrolled(window.scrollY > 20);
@@ -44,6 +68,10 @@ export function Header({ className = "" }) {
       router={router}
     />
   );
+
+  const shareContent = showShareButton ? (
+    <ShareButton url={shareUrl} />
+  ) : null;
 
   return (
     <header
@@ -94,6 +122,14 @@ export function Header({ className = "" }) {
         <div className="md:hidden border-b border-ink/10" />
       </motion.div>
 
+      {/* ── Mobile share bar — thin row with share button, all pages ── */}
+      {/* Desktop uses the nav bar below; this targets mobile only. */}
+      {shareContent && (
+        <div className="flex md:hidden justify-end px-4 py-1.5 border-b border-ink/5">
+          {shareContent}
+        </div>
+      )}
+
       {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}
       {/* Mobile nav is handled by BottomNav */}
       <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2">
@@ -121,10 +157,15 @@ export function Header({ className = "" }) {
           )}
         </AnimatePresence>
 
-        {/* Full-width nav bar with Sign In inside */}
+        {/* Full-width nav bar with Share + Sign In inside */}
         <ViewToggle
           compact={isScrolled}
-          rightContent={authContent}
+          rightContent={
+            <>
+              {shareContent}
+              {authContent}
+            </>
+          }
           className="flex-1"
         />
       </div>
