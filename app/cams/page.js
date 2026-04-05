@@ -58,7 +58,7 @@ function CamsContent() {
         const usePersonalizedScores = user && user.showPersonalizedScores !== false;
 
         const camsData = await client.query(api.spots.getCamsData, {
-          sports: selectedSport ? [selectedSport] : undefined,
+          sports: selectedSport ? [selectedSport] : userSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
 
