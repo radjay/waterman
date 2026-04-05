@@ -136,11 +136,8 @@ export const getSpotConfig = query({
     handler: async (ctx, args) => {
         return await ctx.db
             .query("spotConfigs")
-            .filter((q) => 
-                q.and(
-                    q.eq(q.field("spotId"), args.spotId),
-                    q.eq(q.field("sport"), args.sport)
-                )
+            .withIndex("by_spot_sport", (q) =>
+                q.eq("spotId", args.spotId).eq("sport", args.sport)
             )
             .first();
     }
@@ -303,23 +300,42 @@ export const getTides = query({
         endTime: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        let query = ctx.db
-            .query("tides")
-            .withIndex("by_spot", q => q.eq("spotId", args.spotId));
-        
-        const allTides = await query.collect();
-        
-        // Filter by time range if provided
-        let filteredTides = allTides;
+        let tides;
+
         if (args.startTime !== undefined) {
-            filteredTides = filteredTides.filter(t => t.time >= args.startTime!);
+            // Use the by_spot_time index to push the lower-bound filter to the
+            // database, avoiding a full collect of all tides for this spot.
+            const q = ctx.db
+                .query("tides")
+                .withIndex("by_spot_time", (q) =>
+                    q.eq("spotId", args.spotId).gte("time", args.startTime!)
+                );
+
+            // Apply optional upper-bound as a post-index filter (tides per
+            // window are few, so this is negligible).
+            tides = args.endTime !== undefined
+                ? await q.filter((q) => q.lte(q.field("time"), args.endTime!)).collect()
+                : await q.collect();
+        } else {
+            // No time range — collect all tides for the spot and apply any
+            // endTime filter in JS (rare call pattern).
+            const allTides = await ctx.db
+                .query("tides")
+                .withIndex("by_spot", (q) => q.eq("spotId", args.spotId))
+                .collect();
+
+            tides = args.endTime !== undefined
+                ? allTides.filter(t => t.time <= args.endTime!)
+                : allTides;
         }
-        if (args.endTime !== undefined) {
-            filteredTides = filteredTides.filter(t => t.time <= args.endTime!);
+
+        // Results from by_spot_time are already ordered by time ascending.
+        // The by_spot fallback path needs an explicit sort.
+        if (args.startTime === undefined) {
+            tides = tides.sort((a, b) => a.time - b.time);
         }
-        
-        // Sort by time
-        return filteredTides.sort((a, b) => a.time - b.time);
+
+        return tides;
     }
 });
 
@@ -441,20 +457,15 @@ export const getForecastSlots = query({
 export const getMostRecentScrapeTimestamp = query({
     args: {},
     handler: async (ctx) => {
-        // Get all successful scrapes
-        const allScrapes = await ctx.db.query("scrapes").collect();
-        const successfulScrapes = allScrapes.filter(s => s.isSuccessful);
-        
-        if (successfulScrapes.length === 0) {
-            return null;
-        }
-        
-        // Find the most recent successful scrape timestamp
-        const mostRecentTimestamp = Math.max(
-            ...successfulScrapes.map(s => s.scrapeTimestamp)
-        );
-        
-        return mostRecentTimestamp;
+        // Use the by_success_timestamp index to find the most recent successful
+        // scrape in a single indexed lookup instead of a full table scan.
+        const mostRecent = await ctx.db
+            .query("scrapes")
+            .withIndex("by_success_timestamp", (q) => q.eq("isSuccessful", true))
+            .order("desc")
+            .first();
+
+        return mostRecent?.scrapeTimestamp ?? null;
     }
 });
 

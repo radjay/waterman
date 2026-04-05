@@ -105,7 +105,7 @@ export default defineSchema({
         swellDirectionTo: v.optional(v.number()),
         minPeriod: v.optional(v.number()),
         optimalTide: v.optional(v.string()), // "high" | "low" | "both"
-    }),
+    }).index("by_spot_sport", ["spotId", "sport"]),
     /**
      * Forecast data slots - time-series weather/condition data.
      * Each slot represents conditions at a specific timestamp for a spot.
@@ -154,7 +154,8 @@ export default defineSchema({
         isSuccessful: v.boolean(), // Whether this scrape was successful
         slotsCount: v.number(), // Number of slots collected
         errorMessage: v.optional(v.string()), // Error message if scrape failed
-    }).index("by_spot_and_timestamp", ["spotId", "scrapeTimestamp"]),
+    }).index("by_spot_and_timestamp", ["spotId", "scrapeTimestamp"])
+      .index("by_success_timestamp", ["isSuccessful", "scrapeTimestamp"]),
     /**
      * Condition scores from LLM evaluation.
      * Stores scores for each slot-sport combination.
