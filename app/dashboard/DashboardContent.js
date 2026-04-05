@@ -7,7 +7,7 @@ import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Plus, ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Loader } from "../../components/common/Loader";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
@@ -256,8 +256,27 @@ export default function DashboardContent({ initialData = null }) {
       }
     }
 
-    // Build webcam cards with forecast data, only for spots with good conditions (score >= 60)
-    const webcamCards = webcamSpots
+    // RAD-20 / RAD-24: Build webcam cards for ALL spots in rightNow that have a webcam.
+    // A spot "has a webcam" if it has webcamUrl OR webcamStreamId.
+    // This ensures any spot with good conditions + a cam renders as a WebcamCard,
+    // not a plain slot card (RAD-24), and covers spots beyond the initial webcamSpots list (RAD-20).
+
+    // Collect all unique spots referenced by rightNow slots that have a webcam
+    const rightNowSpotIds = new Set(rightNow.map((s) => s.spotId));
+    const allWebcamSpotsMap = new Map();
+    // Start with pre-fetched webcamSpots (may include spots not in rightNow)
+    for (const spot of webcamSpots) {
+      allWebcamSpotsMap.set(spot._id, spot);
+    }
+    // Also include any spots in spotsMap that have a webcam and appear in rightNow
+    for (const spotId of rightNowSpotIds) {
+      const spot = spotsMap[spotId];
+      if (spot && (spot.webcamUrl || spot.webcamStreamId) && !allWebcamSpotsMap.has(spotId)) {
+        allWebcamSpotsMap.set(spotId, spot);
+      }
+    }
+
+    const webcamCards = Array.from(allWebcamSpotsMap.values())
       .filter((spot) => {
         const slot = currentSlotsBySpot[spot._id];
         return slot && slot.score && slot.score.value >= 60;
@@ -281,9 +300,12 @@ export default function DashboardContent({ initialData = null }) {
       })
       .sort((a, b) => (b.forecastData.score || 0) - (a.forecastData.score || 0));
 
-    // Filter rightNow ScoreCards to exclude spots already shown as webcams
-    const webcamSpotIds = new Set(webcamSpots.map((s) => s._id));
-    const rightNowNonWebcam = rightNow.filter((slot) => !webcamSpotIds.has(slot.spotId));
+    // Filter rightNow ScoreCards to exclude spots shown as webcam cards
+    const webcamCardSpotIds = new Set(webcamCards.map((w) => w.spot._id));
+    // Also exclude ALL spots that have a webcam (whether or not they have good conditions)
+    // so they don't show as slot cards — RAD-24: slots with cams are webcam cards only.
+    const allWebcamSpotIds = new Set(allWebcamSpotsMap.keys());
+    const rightNowNonWebcam = rightNow.filter((slot) => !allWebcamSpotIds.has(slot.spotId));
 
     // "Coming Up" — good conditions in the next few days
     const rightNowKeys = new Set(rightNow.map((s) => `${s.spotId}-${s.timestamp}`));
@@ -322,8 +344,6 @@ export default function DashboardContent({ initialData = null }) {
 
   // Helper to determine if "Right Now" shows current or next-up slots
   const hasAnyRightNowContent = rightNowSlots.length > 0 || rightNowWebcams.length > 0;
-  const firstSlotTimestamp = rightNowSlots[0]?.timestamp || rightNowWebcams[0]?.forecastData?.timestamp;
-  const isShowingCurrentSlots = hasAnyRightNowContent && firstSlotTimestamp && firstSlotTimestamp <= Date.now();
 
   return (
     <>
@@ -344,14 +364,7 @@ export default function DashboardContent({ initialData = null }) {
           <div className="pb-12 pt-4 space-y-10">
             {/* ── Right Now ── */}
             <Section
-              title={isShowingCurrentSlots ? "Right Now" : "Next Up Today"}
-              action={
-                isAuthenticated ? (
-                  <Button variant="ghost" size="sm" icon={Plus} onClick={() => router.push("/journal/new")}>
-                    Log a Session
-                  </Button>
-                ) : null
-              }
+              title="Right Now"
             >
               {!hasAnyRightNowContent ? (
                 <Text variant="muted" className="text-sm py-4">No good conditions forecast for today</Text>
@@ -418,7 +431,7 @@ export default function DashboardContent({ initialData = null }) {
               <Section
                 title="Coming Up"
                 action={
-                  <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => router.push("/report")}>
+                  <Button variant="primary" size="sm" icon={ArrowRight} onClick={() => router.push("/report")}>
                     Full Report
                   </Button>
                 }
@@ -427,7 +440,6 @@ export default function DashboardContent({ initialData = null }) {
                   {comingUpGroups.map(({ day, slots }) => (
                     <div key={day}>
                       <div className="flex items-center gap-2 mb-2">
-                        <Calendar size={14} className="text-ink/40" />
                         <Text variant="label" className="text-xs">{day}</Text>
                       </div>
                       <div className="space-y-2">
