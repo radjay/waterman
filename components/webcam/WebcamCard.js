@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { CircleGauge, ChartNoAxesCombined, Heart, RefreshCw } from "lucide-react";
+import { CircleGauge, ChartNoAxesCombined, Heart, RefreshCw, CameraOff } from "lucide-react";
 import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
 import { ScorePill } from "../ui/ScorePill";
 import { ConditionLine } from "../ui/ConditionLine";
 import { formatTime } from "../../lib/utils";
+
+// RAD-29: How long to wait before showing "Cam offline" instead of spinner (ms)
+const CAM_TIMEOUT_MS = 12000;
 
 /**
  * WebcamCard component that displays a webcam video stream with current conditions.
@@ -20,7 +23,8 @@ import { formatTime } from "../../lib/utils";
 export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
-  const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error"
+  const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error" | "offline"
+  const loadingTimerRef = useRef(null);
 
   // Get stream URL based on source
   // Handles both new format (webcamStreamId + webcamStreamSource) and old format (webcamUrl)
@@ -54,6 +58,12 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
     }
     setStreamStatus("loading");
 
+    // RAD-29: Start offline timeout — if still loading after CAM_TIMEOUT_MS, show offline state
+    if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current);
+    loadingTimerRef.current = setTimeout(() => {
+      setStreamStatus((prev) => prev === "loading" ? "offline" : prev);
+    }, CAM_TIMEOUT_MS);
+
     const initializePlayer = () => {
       if (Hls.isSupported()) {
         // Clean up existing HLS instance
@@ -74,6 +84,11 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           // Check if video element is still valid before playing
           if (video && videoRef.current === video) {
+            // RAD-29: Cancel offline timer when stream loads successfully
+            if (loadingTimerRef.current) {
+              clearTimeout(loadingTimerRef.current);
+              loadingTimerRef.current = null;
+            }
             setStreamStatus("playing");
             const playPromise = video.play();
             if (playPromise !== undefined) {
@@ -130,6 +145,11 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
 
     // Cleanup function
     return () => {
+      // Clear the offline timer
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
       // Pause video before cleanup to prevent AbortError
       if (video && videoRef.current === video) {
         video.pause();
@@ -210,10 +230,11 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
           </div>
         )}
 
-        {/* Error fallback */}
-        {streamStatus === "error" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/5 gap-2">
-            <span className="text-sm text-ink/40">Stream unavailable</span>
+        {/* RAD-29: Cam offline state — shown after timeout or fatal error */}
+        {(streamStatus === "error" || streamStatus === "offline") && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/[0.06] gap-3">
+            <CameraOff size={28} className="text-ink/25" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink/35">Cam offline</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -224,7 +245,7 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
                   hlsRef.current.startLoad();
                 }
               }}
-              className="text-xs text-ink/60 underline hover:text-ink transition-colors"
+              className="text-[0.65rem] font-semibold uppercase tracking-wider text-ink/40 border border-ink/15 rounded-full px-2.5 py-1 hover:text-ink hover:border-ink/30 transition-colors"
             >
               Retry
             </button>
@@ -242,8 +263,9 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
         )}
 
         {/* Hover buttons overlay - top right corner */}
+        {/* RAD-21: Hidden on mobile (one tap = fullscreen). Desktop: appear on hover. */}
         {showHoverButtons && (
-          <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 right-2 hidden md:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {onToggleFavorite && (
               <button
                 onClick={onToggleFavorite}
