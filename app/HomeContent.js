@@ -80,53 +80,39 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
   // Onboarding state (skip for authenticated users)
   const { needsOnboarding, isLoading: onboardingLoading, markOnboardingComplete } = useOnboarding(user);
 
-  // Use persisted state hook for sport selection (fallback for anonymous users)
-  const [localSelectedSport, setLocalSelectedSport] = usePersistedState(
-    "waterman_selected_sport",
-    "wingfoil",
-    (val) => val === "wingfoil" || val === "kitesurfing" || val === "surfing"
+  // RAD-22: Multi-select sport filter — persisted as an array.
+  // An empty array means "all sports" (equivalent to all selected).
+  const ALL_SPORT_IDS = ["wingfoil", "kitesurfing", "surfing"];
+  const [localSelectedSports, setLocalSelectedSports] = usePersistedState(
+    "waterman_report_sports",
+    [],
+    (val) => Array.isArray(val) && val.every((s) => ALL_SPORT_IDS.includes(s))
   );
 
   // Track if we've synced with user's favorite sports (only sync once on initial load)
   const hasSyncedWithUser = useRef(false);
 
-  // Sync localSelectedSport with user's favorite sports on initial load only
-  // Don't reset if user explicitly selects a different sport
+  // Sync localSelectedSports with user's favorite sports on initial load only
   useEffect(() => {
     if (!hasSyncedWithUser.current && user && user.favoriteSports && user.favoriteSports.length > 0) {
-      const userSport = user.favoriteSports[0];
-      // Only sync if different from current selection
-      if (userSport !== localSelectedSport) {
-        setLocalSelectedSport(userSport);
+      // Only sync if no local preference has been set yet
+      if (localSelectedSports.length === 0) {
+        setLocalSelectedSports(user.favoriteSports.filter((s) => ALL_SPORT_IDS.includes(s)));
       }
       hasSyncedWithUser.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?._id]); // Only run when user ID changes (initial load or user change)
+  }, [user?._id]);
 
-  // RAD-26: Use URL sport override when active, otherwise fall back to persisted value
-  const selectedSport = (sportOverrideActive && urlSportOverride) ? urlSportOverride : localSelectedSport;
-
-  // Convert single sport to array format (used throughout the app)
-  // Memoize to prevent infinite loops in useEffect dependencies
-  const selectedSports = useMemo(() => [selectedSport], [selectedSport]);
-
-  // Handle sport change from SportSelector
-  const handleSportChange = async (sportId) => {
-    // Always update local state immediately for responsive UI
-    setLocalSelectedSport(sportId);
-
-    // If user is authenticated, also save to server
-    if (sessionToken && user) {
-      try {
-        await client.mutation(api.auth.updatePreferences, {
-          sessionToken,
-          favoriteSports: [sportId],
-        });
-      } catch (error) {
-        console.error("Failed to save sport preference:", error);
+  // Toggle a single sport in the multi-select filter
+  const handleSportToggle = (sportId) => {
+    setLocalSelectedSports((prev) => {
+      if (prev.includes(sportId)) {
+        return prev.filter((s) => s !== sportId);
+      } else {
+        return [...prev, sportId];
       }
-    }
+    });
   };
 
   // Use persisted state hook for filter
@@ -166,13 +152,21 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
     window.history.replaceState(null, "", url.toString());
   };
 
+  // RAD-22 + RAD-26: Determine effective sport filter.
+  // RAD-26 URL override takes priority as a single-sport filter.
+  // Otherwise, use multi-select (empty = all sports).
+  const selectedSports = useMemo(() => {
+    if (sportOverrideActive && urlSportOverride) {
+      return [urlSportOverride];
+    }
+    // Empty array means all sports selected
+    return localSelectedSports.length > 0 ? localSelectedSports : ALL_SPORT_IDS;
+  }, [sportOverrideActive, urlSportOverride, localSelectedSports]);
+
   // -----------------------------------------------------------------------
   // State — initialize from server-prefetched data when available.
-  // initialData is for `initialDataSport` (default "wingfoil").
-  // usePersistedState returns "wingfoil" on first render (before localStorage
-  // hydrates), so the initialData sport reliably matches the first render.
   // -----------------------------------------------------------------------
-  const canUseInitialData = !!initialData && selectedSport === initialDataSport;
+  const canUseInitialData = !!initialData && selectedSports.length === 1 && selectedSports[0] === initialDataSport;
 
   const [spots, setSpots] = useState(() =>
     canUseInitialData ? initialData.spots : []
@@ -403,7 +397,13 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
 
         {/* Filters — "set and forget" */}
         <FilterBar activeFilters={[
-          { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+          // RAD-22: Show sport labels for active selections (or "All" if none)
+          ...(sportOverrideActive && urlSportOverride
+            ? [{ wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[urlSportOverride] || urlSportOverride]
+            : localSelectedSports.length === 0
+              ? []
+              : localSelectedSports.map((s) => ({ wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[s] || s))
+          ),
           { best: "Best", all: "All" }[showFilter],
         ].filter(Boolean)}>
           <FilterGroup label="Sport">
@@ -424,16 +424,32 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
                 </button>
               </div>
             ) : (
-              <PillToggle
-                name="sport"
-                options={[
+              /* RAD-22: Multi-select sport pills — each toggles independently */
+              <div className="inline-flex items-center gap-0.5 p-1 bg-ink/[0.04] rounded-full">
+                {[
                   { id: "wingfoil", label: "Wing" },
                   { id: "kitesurfing", label: "Kite" },
                   { id: "surfing", label: "Surf" },
-                ]}
-                value={selectedSport}
-                onChange={handleSportChange}
-              />
+                ].map((option) => {
+                  // A sport is "active" if it's in localSelectedSports,
+                  // OR if localSelectedSports is empty (all active = no filter)
+                  const isActive = localSelectedSports.length === 0 || localSelectedSports.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => handleSportToggle(option.id)}
+                      className="relative px-3 py-1 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-fast ease-smooth"
+                    >
+                      {isActive && (
+                        <span className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10" />
+                      )}
+                      <span className={`relative z-10 ${isActive ? "text-ink" : "text-faded-ink hover:text-ink"}`}>
+                        {option.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </FilterGroup>
           <FilterGroup label="Conditions">
