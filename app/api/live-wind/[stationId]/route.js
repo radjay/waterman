@@ -28,6 +28,7 @@ export async function GET(request, { params }) {
     let windguruUrl = `https://www.windguru.cz/int/iapi.php?q=station_data_current&id_station=${stationId}`;
 
     let response = await fetch(windguruUrl, {
+      cache: "no-store", // Always fetch fresh — never serve a cached wind reading
       headers: {
         "User-Agent":
           "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -54,23 +55,22 @@ export async function GET(request, { params }) {
     // Windguru iAPI returns data in this format:
     // { wind_avg: number, wind_max: number, wind_direction: number, etc. }
     // NOTE: Data is already in KNOTS, not m/s!
+    // NOTE: When windstill, Windguru omits wind_avg/wind_max entirely (no field at all).
+    //       Treat absent wind fields as 0 — the station is alive but reporting calm conditions.
+    const windSpeed = data.wind_avg ?? 0;
+    const windGust = data.wind_max ?? 0;
+
     const liveWind = {
       stationId: stationId,
-      timestamp: data.dt_utc ? data.dt_utc * 1000 : Date.now(), // Convert to milliseconds
-      windSpeed: data.wind_avg || null, // Average wind speed in knots (already converted)
-      windGust: data.wind_max || null, // Max gust in knots (already converted)
-      windDirection: data.wind_direction || null, // Direction in degrees
-      temperature: data.temperature || null, // Temperature in Celsius
+      timestamp: data.unixtime ? data.unixtime * 1000 : Date.now(), // unixtime is the correct field name
+      windSpeed,
+      windGust,
+      windSpeedKnots: Math.round(windSpeed * 10) / 10,
+      windGustKnots: Math.round(windGust * 10) / 10,
+      windDirection: data.wind_direction ?? null, // Direction in degrees (null when calm is valid)
+      temperature: data.temperature ?? null, // Temperature in Celsius
       updatedAt: Date.now(),
     };
-
-    // Data is already in knots, so we just use it directly
-    if (liveWind.windSpeed !== null) {
-      liveWind.windSpeedKnots = Math.round(liveWind.windSpeed * 10) / 10;
-    }
-    if (liveWind.windGust !== null) {
-      liveWind.windGustKnots = Math.round(liveWind.windGust * 10) / 10;
-    }
 
     return NextResponse.json(liveWind, {
       status: 200,
