@@ -899,8 +899,8 @@ export const triggerScrape = action({
           const hour = date.getHours();
           if (hour < 9 || hour > 18) continue; // Daylight hours only
           
-          const speedKnots = (slot.windSpeed || 0) * 1.94384;
-          const gustKnots = (slot.windGust || 0) * 1.94384;
+          const speedKnots = (slot.windSpeed ?? 0) * 1.94384;
+          const gustKnots = (slot.windGust ?? 0) * 1.94384;
           
           slots.push({
             timestamp,
