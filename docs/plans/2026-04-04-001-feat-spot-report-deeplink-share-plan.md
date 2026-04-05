@@ -13,9 +13,9 @@ deepened: 2026-04-04
 Two related features that together make Waterman forecast data shareable:
 
 - **RAD-16** adds a `/report/[spot]` route that renders a single-spot forecast page with a stable, shareable URL.
-- **RAD-17** adds a `ShareButton` component to report pages that invokes the Web Share API on mobile and copies the URL to clipboard on desktop.
+- **RAD-17** adds a `ShareButton` component to every page that invokes the Web Share API on mobile and copies a URL to clipboard on desktop. On public forecast pages the button shares the current URL; on user-specific pages (dashboard, journal, settings, etc.) it shares the app homepage.
 
-Together, they let a user share a direct link to any spot's forecast with a single tap.
+Together, they let a user share a direct link to any spot's forecast — or the app itself — with a single tap.
 
 ## Problem Frame
 
@@ -25,19 +25,20 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 
 - R1. A URL like `/report/carcavelos` shows only the forecast for the spot matching that slug.
 - R2. The URL is stable and shareable — the same URL resolves to the same spot **and the same sport** regardless of the recipient's device or local state. The share URL encodes the active sport as a `?sport=` query parameter so recipients see exactly what the sender was viewing.
-- R3. A share button on report pages invokes the native share sheet on supported mobile browsers.
-- R4. On desktop or unsupported browsers, the share button copies the current URL to clipboard with transient visual feedback ("Copied!").
+- R3. Every page has a share button that invokes the native share sheet on supported mobile browsers.
+- R4. On desktop or unsupported browsers, the share button copies a URL to clipboard with transient visual feedback ("Copied!").
+- R7. On public forecast pages (`/report`, `/report/[spot]`, `/[sport]/[filter]`), the shared URL is the current page URL. On user-specific pages (`/dashboard`, `/journal`, `/settings`, etc.), the shared URL is the app homepage (`window.location.origin`).
 - R5. Invalid slugs (no matching spot) redirect to `/report` gracefully.
 - R6. `BottomNav` and `ViewToggle` correctly highlight the Report tab for all `/report/*` routes.
 
 ## Scope Boundaries
 
 - No `slug` field added to the Convex schema — slugs are derived client-side from `spot.name` and resolved by fetching all spots.
-- The active sport IS encoded in the share URL as a `?sport=` query parameter (e.g. `/report/guincho?sport=wingfoil`) so recipients see the same sport the sender was viewing. The best/all condition filter is NOT encoded — that remains a local preference.
-- A share button is also added to `/[sport]/[filter]` pages (e.g. `/wing/best`). These routes already encode sport and filter in the URL by design, so `window.location.href` is the correct share URL — no additional construction needed. No share button on `/dashboard` or other non-forecast pages (deferred).
+- Every page gets a share button. Public forecast pages share their own URL; user-specific pages share the app homepage (`window.location.origin`).
+- The active sport IS encoded in the share URL for `/report/[spot]` as a `?sport=` query parameter (e.g. `/report/guincho?sport=wingfoil`). The best/all condition filter is NOT encoded — that remains a local preference.
+- `/[sport]/[filter]` pages (e.g. `/wing/best`) share `window.location.href` directly — sport and filter are already in the path.
 - No share analytics or share-count tracking.
 - No custom Open Graph image generation — text-based `generateMetadata` only.
-- The `[sport]/[filter]` routes are not modified (they are already shareable by URL structure; adding a button is deferred).
 
 ## Context & Research
 
@@ -133,13 +134,22 @@ GET /report/carcavelos
                          └─ render <DaySection> for single spot
 ```
 
-**Share button behavior matrix:**
+**Share URL by page type:**
+
+| Page | URL shared |
+|------|-----------|
+| `/report` | Current page URL |
+| `/report/[spot]` | `${pathname}?sport=${activeSport}` |
+| `/[sport]/[filter]` | Current page URL |
+| `/dashboard`, `/journal`, `/settings`, etc. | `window.location.origin` (app homepage) |
+
+**Share button behaviour matrix:**
 
 | Context | `navigator.share` available | Action | Feedback |
 |---|---|---|---|
 | Mobile / supported browser | Yes | Native share sheet `{ title, url }` | Sheet opens; no extra UI |
 | Desktop / Firefox | No | `navigator.clipboard.writeText(url)` | "Copied!" label for 2 s |
-| Clipboard also unavailable | No | Best-effort (silent failure) | "Copied!" optimistically |
+| Clipboard also unavailable | No | No feedback — silent no-op | No state change |
 | User cancels share (AbortError) | Yes | Catch silently | No state change |
 | Concurrent share already open | Yes | Button disabled (`isSharing`) | Button stays disabled |
 
@@ -299,22 +309,34 @@ graph TB
 
 - [ ] **Unit 4: Wire `ShareButton` into report pages**
 
-**Goal:** Add `ShareButton` to `/report`, `/report/[spot]`, and `/[sport]/[filter]` pages so users can share from all forecast surfaces.
+**Goal:** Add `ShareButton` to every page. Public forecast pages share their own URL; user-specific pages share the app homepage.
 
-**Requirements:** R3, R4
+**Requirements:** R3, R4, R7
 
 **Dependencies:** Unit 2, Unit 3
 
 **Files:**
-- Modify: `app/report/page.js` (or `app/HomeContent.js` depending on where the header is controlled)
+- Modify: `app/report/page.js` (or `app/HomeContent.js`)
 - Modify: `app/report/[spot]/page.js`
 - Modify: `app/[sport]/[filter]/page.js`
+- Modify: `app/dashboard/page.js`
+- Modify: `app/journal/page.js` and `app/journal/[id]/page.js`
+- Modify: any remaining pages not covered above (settings, calendar, cams, etc.)
 - Modify: `components/layout/Header.js` if the `rightContent` slot needs to be exposed or extended
 
+**URL logic by page type:**
+
+| Page | Share URL |
+|------|-----------|
+| `/report` | `window.location.href` |
+| `/report/[spot]` | `${pathname}?sport=${activeSport}` (explicitly constructed) |
+| `/[sport]/[filter]` | `window.location.href` (sport + filter already in path) |
+| `/dashboard`, `/journal`, `/settings`, `/calendar`, `/cams`, etc. | `window.location.origin` (app homepage) |
+
 **Approach:**
-- On `/report`: add `<ShareButton />` with no `url` prop (defaults to `window.location.href` = `/report`). Desktop: inject via `Header`'s `rightContent` prop alongside any existing `ViewToggle` content. Mobile: render inline below the filter bar, above the first day section.
-- On `/report/[spot]`: pass an explicit `url` prop constructed from the current pathname + `?sport=<activeSport>`, e.g. `url={\`${pathname}?sport=${activeSport}\`}`. Do not use `window.location.href` directly — it may or may not already have a `?sport=` param depending on how the user arrived. Always construct from current `activeSport` state so the share URL reflects what is on screen.
-- On `/[sport]/[filter]`: add `<ShareButton />` with no `url` prop — `window.location.href` is already the fully-specified share URL (sport and filter are both in the path). Same placement as `/report`.
+- The simplest implementation: `ShareButton` accepts an optional `url` prop. The `MainLayout` or `Header` renders `ShareButton` app-wide with no `url` prop by default (falls back to `window.location.href`). Pages that need homepage sharing pass `url={window.location.origin}` explicitly. `/report/[spot]` passes the sport-scoped URL explicitly.
+- User-specific pages pass `url={window.location.origin}` — this is the only deviation from the default.
+- Placement is consistent across all pages: desktop via `Header`'s nav area, mobile inline below the page's primary filter/header area.
 - Verify whether `Header` already accepts a `rightContent` prop (per research: `ViewToggle` uses it). If so, add `ShareButton` next to the existing `rightContent` content without breaking layout. If `rightContent` needs extending to accept multiple children, make the minimal change.
 - `ShareButton` is a `'use client'` component — its parent page file can remain a server component; the boundary is at the component itself.
 
@@ -325,10 +347,10 @@ graph TB
 - `app/[sport]/[filter]/page.js` — how header props are composed in a dynamic report page
 
 **Verification:**
-- `ShareButton` is visible on `/report`, `/report/[spot]`, and `/[sport]/[filter]`.
-- Tapping on a spot page shares/copies the sport-scoped URL (e.g. `/report/carcavelos?sport=wingfoil`).
-- Tapping on `/wing/best` shares/copies `/wing/best` — already fully specified.
-- Tapping on the all-spots `/report` shares/copies the generic report URL.
+- `ShareButton` is visible on every page.
+- Tapping on `/report/carcavelos` shares `/report/carcavelos?sport=wingfoil`.
+- Tapping on `/wing/best` shares `/wing/best`.
+- Tapping on `/dashboard`, `/journal`, or other user-specific pages shares `window.location.origin`.
 - No layout shift or overflow in the header on narrow screen widths.
 
 ---
