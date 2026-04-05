@@ -67,6 +67,9 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
   const ageMinutes = Math.floor((Date.now() - liveWind.timestamp) / (60 * 1000));
   const isStale = ageMinutes > 60; // Consider stale if older than 60 minutes (stations report every 10-30 min)
 
+  // Don't show stale data — hiding is less confusing than showing old readings
+  if (isStale) return null;
+
   if (compact) {
     // Compact version for overlays on webcams - ultra minimal
     return (
