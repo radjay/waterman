@@ -28,6 +28,7 @@ export function BottomNav() {
     if (pathname === "/" || pathname === "/dashboard") return "home";
     if (
       pathname === "/report" ||
+      pathname?.startsWith("/report/") ||
       pathname?.match(/^\/(wing|kite|surf)/)
     )
       return "report";
