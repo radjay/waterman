@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ForecastSlot } from "./ForecastSlot";
 import { WebcamModal } from "../common/WebcamModal";
@@ -15,6 +16,7 @@ import { formatFullDay } from "../../lib/utils";
 import { Tooltip } from "../ui/Tooltip";
 import { LiveWindRow } from "./LiveWindRow";
 import { extractWindguruStationId } from "../wind/LiveWindIndicator";
+import { toSpotSlug } from "../../lib/spotSlug";
 
 /**
  * DaySection component displays forecast slots grouped by day and spot.
@@ -221,7 +223,12 @@ export function DaySection({
                 className={`mb-6 last:mb-0 ${firstSpot ? "mt-4" : ""}`}
               >
                 <div className="flex items-center justify-between text-[1.05rem] font-bold text-ink mb-2 px-2">
-                  <span>{spotName}</span>
+                  <Link
+                    href={`/report/${toSpotSlug(spot?.name ?? spotName)}?sport=${selectedSports?.[0] ?? "wingfoil"}`}
+                    className="hover:underline underline-offset-2 decoration-ink/30"
+                  >
+                    {spotName}
+                  </Link>
                   <div className="flex items-center gap-2">
                     {liveReportUrl && isWindSport && isTodayOrTomorrow() && (
                       <a
