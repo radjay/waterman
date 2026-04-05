@@ -94,6 +94,8 @@ export default function CamsContent({ initialData = null }) {
       if (!user) return;
     }
 
+    let stale = false;
+
     async function fetchWebcams() {
       setLoading(true);
       try {
@@ -107,6 +109,8 @@ export default function CamsContent({ initialData = null }) {
           sports: selectedSport ? [selectedSport] : userSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
+
+        if (stale) return;
 
         setWebcams(camsData.spots);
         const map = {};
@@ -128,11 +132,12 @@ export default function CamsContent({ initialData = null }) {
       } catch (error) {
         console.error("Error fetching webcams:", error);
       } finally {
-        setLoading(false);
+        if (!stale) setLoading(false);
       }
     }
 
     fetchWebcams();
+    return () => { stale = true; };
   }, [selectedSport, user]);
 
   // Toggle favorite spot

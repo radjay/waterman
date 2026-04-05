@@ -162,6 +162,8 @@ export default function SportFilterContent({ initialData = null, initialDataSpor
       if (!user) return;
     }
 
+    let stale = false;
+
     async function fetchData() {
       setLoading(true);
       try {
@@ -170,6 +172,8 @@ export default function SportFilterContent({ initialData = null, initialDataSpor
           sports: selectedSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
+
+        if (stale) return;
 
         const fetchedSpots = reportData.spots;
 
@@ -223,11 +227,12 @@ export default function SportFilterContent({ initialData = null, initialDataSpor
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        setLoading(false);
+        if (!stale) setLoading(false);
       }
     }
 
     fetchData();
+    return () => { stale = true; };
   }, [selectedSports, user]);
 
   // Filter slots based on showFilter

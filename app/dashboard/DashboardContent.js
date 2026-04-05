@@ -89,6 +89,8 @@ export default function DashboardContent({ initialData = null }) {
     // to get personalized / user-specific data.
     if (!user && !dataVersion && initialData) return;
 
+    let stale = false;
+
     async function fetchDashboardData() {
       setLoading(true);
       try {
@@ -112,6 +114,8 @@ export default function DashboardContent({ initialData = null }) {
           sports: userSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
+
+        if (stale) return;
 
         const fetchedSpots = dashboardResult.spots;
         const favIds = new Set(
@@ -146,11 +150,12 @@ export default function DashboardContent({ initialData = null }) {
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
-        setLoading(false);
+        if (!stale) setLoading(false);
       }
     }
 
     fetchDashboardData();
+    return () => { stale = true; };
   }, [selectedSport, user, sessionToken, dataVersion]);
 
   // After onboarding, mark complete AND re-fetch dashboard data with new preferences
