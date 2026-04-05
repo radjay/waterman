@@ -2038,57 +2038,146 @@ async function _getConditionScoresForSpot(
 // ─── Batched queries ────────────────────────────────────────────────────────
 
 /**
+ * Shared helper: fetch slots, configs, and scores for a single spot.
+ * Used by getDashboardData and getCamsData to avoid duplication.
+ */
+async function _buildSpotData(
+    ctx: any,
+    spot: any,
+    sports: string[],
+    userId?: string
+) {
+    const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
+    const relevantSports = spotSports.filter((s: string) => sports.includes(s));
+
+    const [slots, configValues, scoreArrays] = await Promise.all([
+        _getForecastSlotsForSpot(ctx, spot._id),
+        asyncMap(relevantSports, (sport: string) =>
+            ctx.db
+                .query("spotConfigs")
+                .withIndex("by_spot_sport", (q: any) =>
+                    q.eq("spotId", spot._id).eq("sport", sport)
+                )
+                .first()
+        ),
+        asyncMap(relevantSports, (sport: string) =>
+            _getConditionScoresForSpot(ctx, spot._id, sport, userId)
+        ),
+    ]);
+
+    const configs: Record<string, any> = {};
+    const scoresMap: Record<string, any> = {};
+    for (let i = 0; i < relevantSports.length; i++) {
+        const sport = relevantSports[i];
+        configs[sport] = configValues[i];
+        for (const score of scoreArrays[i]) {
+            scoresMap[`${score.timestamp}_${sport}`] = score;
+        }
+    }
+
+    return { slots, configs, scoresMap };
+}
+
+/**
  * Batched query for the Dashboard page.
- * Fetches slots, configs, and scores for multiple spots in a single round-trip.
+ * Accepts either explicit spotIds or a userId (server resolves favorites).
+ * Falls back to the top 10 non-webcam-only spots when neither is provided.
  *
- * @returns Record<spotId, { slots, configs: Record<sport, config>, scores: Record<"timestamp_sport", score> }>
+ * @returns { spots, data: Record<spotId, { slots, configs, scoresMap }>, scrapeTimestamp }
  */
 export const getDashboardData = query({
     args: {
-        spotIds: v.array(v.id("spots")),
+        spotIds: v.optional(v.array(v.id("spots"))),
         sports: v.array(v.string()),
         userId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const entries = await asyncMap(args.spotIds, async (spotId) => {
-            // Fetch slots and the spot record in parallel
-            const [slots, spot] = await Promise.all([
-                _getForecastSlotsForSpot(ctx, spotId),
-                ctx.db.get(spotId),
-            ]);
+        // Resolve which spots to fetch
+        let targetSpots: any[];
 
-            const spotSports = spot?.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-            const relevantSports = spotSports.filter((s: string) => args.sports.includes(s));
-
-            // Fetch configs and scores for all relevant sports in parallel
-            const [configValues, scoreArrays] = await Promise.all([
-                asyncMap(relevantSports, (sport: string) =>
-                    ctx.db
-                        .query("spotConfigs")
-                        .withIndex("by_spot_sport", (q: any) =>
-                            q.eq("spotId", spotId).eq("sport", sport)
-                        )
-                        .first()
-                ),
-                asyncMap(relevantSports, (sport: string) =>
-                    _getConditionScoresForSpot(ctx, spotId, sport, args.userId)
-                ),
-            ]);
-
-            const configs: Record<string, any> = {};
-            const scoresMap: Record<string, any> = {};
-            for (let i = 0; i < relevantSports.length; i++) {
-                const sport = relevantSports[i];
-                configs[sport] = configValues[i];
-                for (const score of scoreArrays[i]) {
-                    scoresMap[`${score.timestamp}_${sport}`] = score;
-                }
+        if (args.spotIds && args.spotIds.length > 0) {
+            // Explicit spotIds from client (anonymous users with saved favorites)
+            const results = await asyncMap(args.spotIds, (id: any) => ctx.db.get(id));
+            targetSpots = results.filter(Boolean);
+        } else if (args.userId) {
+            // Logged-in user — look up their favorite spots server-side
+            const user = await ctx.db.get(args.userId as any);
+            const favs: any[] = (user as any)?.favoriteSpots ?? [];
+            if (favs.length > 0) {
+                const results = await asyncMap(favs, (id: any) => ctx.db.get(id));
+                targetSpots = results.filter(Boolean);
+            } else {
+                // User has no favorites yet — show top 10
+                const all = await ctx.db.query("spots").collect();
+                targetSpots = all.filter((s: any) => !s.webcamOnly).slice(0, 10);
             }
+        } else {
+            // Anonymous with no saved preferences — show top 10
+            const all = await ctx.db.query("spots").collect();
+            targetSpots = all.filter((s: any) => !s.webcamOnly).slice(0, 10);
+        }
 
-            return [spotId, { slots, configs, scoresMap }] as const;
+        const [entries, mostRecentScrape] = await Promise.all([
+            asyncMap(targetSpots, async (spot: any) => {
+                const spotData = await _buildSpotData(ctx, spot, args.sports, args.userId);
+                return [spot._id, spotData] as const;
+            }),
+            ctx.db
+                .query("scrapes")
+                .withIndex("by_success_timestamp", (q: any) => q.eq("isSuccessful", true))
+                .order("desc")
+                .first(),
+        ]);
+
+        return {
+            spots: targetSpots,
+            data: Object.fromEntries(entries),
+            scrapeTimestamp: mostRecentScrape?.scrapeTimestamp ?? null,
+        };
+    },
+});
+
+/**
+ * Batched query for the Cams page.
+ * Filters to webcam-eligible spots server-side and returns spot data in one call,
+ * eliminating the listWebcams → getDashboardData two-round-trip pattern.
+ *
+ * @returns { spots, data: Record<spotId, { slots, configs, scoresMap }> }
+ */
+export const getCamsData = query({
+    args: {
+        sports: v.optional(v.array(v.string())),
+        userId: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const allSpots = await ctx.db.query("spots").collect();
+
+        // Webcam-eligible: has webcamStreamId (new format) or non-empty webcamUrl (old format)
+        let webcamSpots = allSpots.filter((spot: any) => {
+            if (spot.webcamStreamId !== undefined) return true;
+            if (spot.webcamUrl !== undefined && spot.webcamUrl.trim() !== "") return true;
+            return false;
         });
 
-        return Object.fromEntries(entries);
+        // Filter by sports if provided
+        if (args.sports && args.sports.length > 0) {
+            webcamSpots = webcamSpots.filter((spot: any) => {
+                const spotSports = spot.sports || [];
+                return args.sports!.some((s: string) => spotSports.includes(s));
+            });
+        }
+
+        const sports = args.sports && args.sports.length > 0 ? args.sports : ["wingfoil"];
+
+        const entries = await asyncMap(webcamSpots, async (spot: any) => {
+            const spotData = await _buildSpotData(ctx, spot, sports, args.userId);
+            return [spot._id, spotData] as const;
+        });
+
+        return {
+            spots: webcamSpots,
+            data: Object.fromEntries(entries),
+        };
     },
 });
 

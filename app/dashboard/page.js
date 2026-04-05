@@ -52,89 +52,57 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       setLoading(true);
       try {
-        const fetchedSpots = await client.query(api.spots.list, {});
-
-        const spotsMapObj = {};
-        fetchedSpots.forEach((spot) => {
-          spotsMapObj[spot._id] = spot;
-        });
-        setSpotsMap(spotsMapObj);
-
-        // Determine relevant spots
-        let relevantSpots = fetchedSpots;
-        let favIds = new Set();
-
-        if (user && user.favoriteSpots && user.favoriteSpots.length > 0) {
-          favIds = new Set(user.favoriteSpots);
-          relevantSpots = fetchedSpots.filter((spot) => favIds.has(spot._id));
-        } else if (!user) {
-          const preferencesStr = localStorage.getItem("waterman_preferences");
-          if (preferencesStr) {
-            try {
-              const preferences = JSON.parse(preferencesStr);
-              if (preferences.favoriteSpots && preferences.favoriteSpots.length > 0) {
-                favIds = new Set(preferences.favoriteSpots);
-                relevantSpots = fetchedSpots.filter((spot) => favIds.has(spot._id));
-              } else {
-                relevantSpots = fetchedSpots.slice(0, 10);
-              }
-              // Sports preferences from localStorage are handled via userSports below
-            } catch (e) {
-              relevantSpots = fetchedSpots.slice(0, 10);
-            }
-          } else {
-            relevantSpots = fetchedSpots.slice(0, 10);
-          }
-        } else {
-          relevantSpots = fetchedSpots.slice(0, 10);
+        // For anonymous users, read saved favorite spot IDs from localStorage
+        // synchronously before the async call so we can pass them to the server.
+        let localFavoriteIds = [];
+        if (!user) {
+          try {
+            const prefs = JSON.parse(localStorage.getItem("waterman_preferences") || "{}");
+            localFavoriteIds = prefs.favoriteSpots || [];
+          } catch (e) { /* ignore parse errors */ }
         }
 
+        const userSports = user?.favoriteSports?.length > 0 ? user.favoriteSports : ["wingfoil"];
+        const usePersonalizedScores = user && user.showPersonalizedScores !== false;
+
+        // Single call: server resolves which spots to show (favorites via userId,
+        // explicit IDs for anonymous users, or top 10 as fallback).
+        const dashboardResult = await client.query(api.spots.getDashboardData, {
+          spotIds: !user && localFavoriteIds.length > 0 ? localFavoriteIds : undefined,
+          sports: userSports,
+          userId: usePersonalizedScores && user?._id ? user._id : undefined,
+        });
+
+        const fetchedSpots = dashboardResult.spots;
+        const favIds = new Set(
+          user?.favoriteSpots ?? (localFavoriteIds.length > 0 ? localFavoriteIds : [])
+        );
         setFavoriteSpotIds(favIds);
 
-        // User's sports
-        const userSports = user?.favoriteSports?.length > 0 ? user.favoriteSports : ["wingfoil"];
-
-        const allSportsSet = new Set();
-        relevantSpots.forEach((spot) => {
-          const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-          spotSports.forEach((s) => {
-            if (userSports.includes(s)) allSportsSet.add(s);
-          });
-        });
-        const allSports = [...allSportsSet];
-
-        const usePersonalizedScores = user && user.showPersonalizedScores !== false;
-        const [batchedData, scrapeTimestamp] = await Promise.all([
-          client.query(api.spots.getDashboardData, {
-            spotIds: relevantSpots.map((s) => s._id),
-            sports: allSports,
-            userId: usePersonalizedScores && user?._id ? user._id : undefined,
-          }),
-          client.query(api.spots.getMostRecentScrapeTimestamp),
-        ]);
+        const spotsMapObj = {};
+        fetchedSpots.forEach((spot) => { spotsMapObj[spot._id] = spot; });
+        setSpotsMap(spotsMapObj);
 
         // Enrich ALL slots (not just today) for "Coming Up" section
-        const enrichedSlots = relevantSpots.flatMap((spot) => {
-          const spotData = batchedData[spot._id];
+        const enrichedSlots = fetchedSpots.flatMap((spot) => {
+          const spotData = dashboardResult.data[spot._id];
           if (!spotData || !spotData.slots) return [];
-
           const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
           const relevantSports = spotSports.filter((s) => userSports.includes(s));
           const configs = Object.values(spotData.configs);
-
           return enrichSlots(spotData.slots, spot, configs, spotData.scoresMap, relevantSports);
         });
 
         setAllEnrichedSlots(enrichedSlots);
 
-        // Webcam spots
+        // Webcam spots from the returned spot list
         if (favIds.size > 0) {
           setWebcamSpots(fetchedSpots.filter((spot) => favIds.has(spot._id) && spot.webcamUrl));
         } else {
           setWebcamSpots(fetchedSpots.filter((spot) => spot.webcamUrl).slice(0, 4));
         }
 
-        setMostRecentScrapeTimestamp(scrapeTimestamp);
+        setMostRecentScrapeTimestamp(dashboardResult.scrapeTimestamp);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {

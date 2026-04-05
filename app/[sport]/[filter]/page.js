@@ -87,15 +87,18 @@ function SportFilterPageContent() {
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] =
     useState(null);
 
-  // Fetch spots filtered by selected sports
+  // Fetch all data in a single batched round-trip (mirrors HomeContent.js pattern)
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch spots filtered by selected sports
-        const fetchedSpots = await client.query(api.spots.list, {
+        const usePersonalizedScores = user && user.showPersonalizedScores !== false;
+        const reportData = await client.query(api.spots.getReportData, {
           sports: selectedSports,
+          userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
+
+        const fetchedSpots = reportData.spots;
 
         // Order spots: favorites first for authenticated users
         let orderedSpots = fetchedSpots;
@@ -106,84 +109,32 @@ function SportFilterPageContent() {
             ...fetchedSpots.filter((spot) => !favoriteSpotIds.has(spot._id)),
           ];
         }
-
         setSpots(orderedSpots);
 
-        // Create a map of spotId to spot data for easy lookup
         const spotsMapObj = {};
-        fetchedSpots.forEach((spot) => {
-          spotsMapObj[spot._id] = spot;
-        });
+        fetchedSpots.forEach((spot) => { spotsMapObj[spot._id] = spot; });
         setSpotsMap(spotsMapObj);
 
-        // Fetch forecasts for each spot
-        const slotsPromises = fetchedSpots.map(async (spot) => {
-          // Get configs for each sport this spot supports
-          const spotSports =
-            spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"]; // Default to wingfoil if no sports
-          const relevantSports = spotSports.filter((s) =>
-            selectedSports.includes(s)
-          );
+        const allFetchedSlots = [];
+        const tidesBySpotObj = {};
 
-          const configPromises = relevantSports.map((sport) =>
-            client.query(api.spots.getSpotConfig, {
-              spotId: spot._id,
-              sport: sport,
-            })
-          );
+        for (const spot of fetchedSpots) {
+          const spotData = reportData.data[spot._id];
+          if (!spotData) continue;
 
-          // Fetch scores for each relevant sport
-          // Use personalized scores if user is logged in and has showPersonalizedScores enabled
-          const usePersonalizedScores = user && user.showPersonalizedScores !== false;
-          const scoresPromises = relevantSports.map((sport) =>
-            client.query(api.spots.getConditionScores, {
-              spotId: spot._id,
-              sport: sport,
-              userId: usePersonalizedScores && user?._id ? user._id : undefined,
-            })
-          );
+          const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
+          const relevantSports = spotSports.filter((s) => selectedSports.includes(s));
+          const configs = Object.values(spotData.configs);
 
-          // Fetch slots, tides, and configs in parallel
-          const [slotsData, tidesData, ...configs] = await Promise.all([
-            client.query(api.spots.getForecastSlots, { spotId: spot._id }),
-            client.query(api.spots.getTides, { spotId: spot._id }),
-            ...configPromises,
-          ]);
+          if (spotData.slots) {
+            const enrichedSlots = enrichSlots(spotData.slots, spot, configs, spotData.scoresMap, relevantSports);
+            allFetchedSlots.push(...enrichedSlots);
+          }
 
-          // Fetch scores separately (after slots are fetched)
-          const scoresArrays = await Promise.all(scoresPromises);
-          
-          // Create a map of timestamp -> score for quick lookup
-          // Using timestamp instead of slotId because slot IDs change with each scrape
-          // but timestamps remain consistent for the same time period
-          const scoresMap = {};
-          scoresArrays.forEach((scores, index) => {
-            const sport = relevantSports[index];
-            scores.forEach((score) => {
-              // Map by timestamp and sport (slot IDs change between scrapes)
-              const key = `${score.timestamp}_${sport}`;
-              scoresMap[key] = score;
-            });
-          });
-
-          if (!slotsData) return { slots: [], tides: tidesData || [] };
-
-          const enrichedSlots = enrichSlots(slotsData, spot, configs, scoresMap, relevantSports);
-
-          return { slots: enrichedSlots, tides: tidesData || [] };
-        });
-
-        const allFetchedData = await Promise.all(slotsPromises);
-        const allFetchedSlots = allFetchedData.map(d => d.slots).flat();
-        
-        // Collect tides by spot
-        const tidesBySpot = {};
-        allFetchedData.forEach((data, index) => {
-          const spot = fetchedSpots[index];
-          if (data.tides && data.tides.length > 0) {
-            tidesBySpot[spot._id] = {
+          if (spotData.tides && spotData.tides.length > 0) {
+            tidesBySpotObj[spot._id] = {
               spotName: spot.name,
-              tides: data.tides.map(tide => ({
+              tides: spotData.tides.map((tide) => ({
                 time: tide.time,
                 type: tide.type,
                 height: tide.height,
@@ -191,20 +142,11 @@ function SportFilterPageContent() {
               })),
             };
           }
-        });
+        }
 
-        // Include all slots (both forecast and tide-only) for grouping
-        // Tide-only entries will be filtered out from display but used for tide matching
         setAllSlots(allFetchedSlots);
-        
-        // Store tides separately
-        setTidesBySpot(tidesBySpot);
-
-        // Fetch most recent scrape timestamp
-        const scrapeTimestamp = await client.query(
-          api.spots.getMostRecentScrapeTimestamp
-        );
-        setMostRecentScrapeTimestamp(scrapeTimestamp);
+        setTidesBySpot(tidesBySpotObj);
+        setMostRecentScrapeTimestamp(reportData.mostRecentScrapeTimestamp);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
