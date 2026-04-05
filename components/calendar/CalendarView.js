@@ -242,162 +242,86 @@ export function CalendarView({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      {next9Days.map((date, index) => {
+      {next9Days.map((date) => {
         const dayStr = formatDate(date);
         const dayInfo = dayBestSpots[dayStr] || { spots: [] };
-        const bestSpots = dayInfo.spots;
-        const dayData = grouped[dayStr];
-        const hasData = dayData && Object.keys(dayData).length > 0;
-        const hasGoodConditions = bestSpots.length > 0;
+        const hasGoodConditions = dayInfo.spots.length > 0;
+
+        // RAD-31: Flat chronological list — collect all entries across all sports,
+        // sort by bestTime, then by score. Sport section headers are removed;
+        // the sport icon on the ScorePill is the sole sport indicator.
+        const flatEntries = [];
+        for (const spot of dayInfo.spots) {
+          for (const sportData of spot.sportData || []) {
+            flatEntries.push({ spot, sportData });
+          }
+        }
+        // Sort: by time ascending, then score descending as tiebreaker
+        flatEntries.sort((a, b) => {
+          const timeA = a.sportData.bestTime || "";
+          const timeB = b.sportData.bestTime || "";
+          if (timeA !== timeB) return timeA.localeCompare(timeB);
+          return (b.sportData.score || 0) - (a.sportData.score || 0);
+        });
+        // Cap at 6 entries per day
+        const visibleEntries = flatEntries.slice(0, 6);
+        const hiddenCount = flatEntries.length - visibleEntries.length;
 
         return (
           <div
             key={dayStr}
             className="border border-ink/20 rounded-lg p-5 bg-newsprint flex flex-col"
           >
-            {/* Day header */}
-            <div className="font-headline font-bold text-ink mb-3 text-base border-b border-ink/20 pb-2">
+            {/* RAD-31: Day header — single font family, weight hierarchy */}
+            <div className="font-sans font-bold text-ink mb-3 text-base border-b border-ink/20 pb-2">
               {formatDayHeader(date)}
             </div>
 
-            {/* Spots list - grouped by sport */}
+            {/* RAD-31: Flat chronological list, no sport section headers */}
             {hasGoodConditions ? (
-              <div className="space-y-5 flex-1">
-                {/* Wingfoil spots */}
-                {dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0 && (
-                  <div>
-                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Wing</div>
-                    <div className="space-y-2">
-                      {dayInfo.wingfoilSpots.slice(0, 3).map((spot) => {
-                        const sportData = spot.sportData?.find(sd => sd.sport === "wingfoil");
-                        const bestTime = sportData?.bestTime;
-                        const cd = sportData?.conditionData;
-                        return (
-                        <div
-                          key={spot.spotId}
-                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onSpotClick) onSpotClick("wingfoil", dayStr);
-                            else if (onDayClick) onDayClick(dayStr);
-                          }}
-                        >
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
-                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
-                            </span>
-                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
-                          </div>
-                          {cd && (
-                            <ConditionLine
-                              speed={cd.windSpeed}
-                              gust={cd.windGust}
-                              direction={cd.windDirection}
-                              waveHeight={cd.waveHeight}
-                              wavePeriod={cd.wavePeriod}
-                              sport="wingfoil"
-                            />
-                          )}
-                        </div>
-                        );
-                      })}
+              <div className="space-y-2 flex-1">
+                {visibleEntries.map(({ spot, sportData }, i) => {
+                  const cd = sportData.conditionData;
+                  return (
+                    <div
+                      key={`${spot.spotId}-${sportData.sport}-${i}`}
+                      className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onSpotClick) onSpotClick(sportData.sport, dayStr);
+                        else if (onDayClick) onDayClick(dayStr);
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        {/* RAD-31: Unified font — font-sans, weight-based hierarchy */}
+                        <span className="text-sm font-sans font-semibold text-ink truncate" title={spot.spotName}>
+                          {sportData.bestTime ? `${sportData.bestTime} · ${spot.spotName}` : spot.spotName}
+                        </span>
+                        {/* RAD-31: Slightly larger score badges (md instead of sm) */}
+                        <ScorePill score={sportData.score} sport={sportData.sport} size="md" />
+                      </div>
+                      {cd && (
+                        <ConditionLine
+                          speed={cd.windSpeed}
+                          gust={cd.windGust}
+                          direction={cd.windDirection}
+                          waveHeight={cd.waveHeight}
+                          wavePeriod={cd.wavePeriod}
+                          sport={sportData.sport}
+                        />
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })}
 
-                {/* Kitesurfing spots */}
-                {dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0 && (
-                  <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) ? "mt-3 pt-3 border-t border-ink/20" : ""}>
-                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Kite</div>
-                    <div className="space-y-2">
-                      {dayInfo.kitesurfingSpots.slice(0, 3).map((spot) => {
-                        const sportData = spot.sportData?.find(sd => sd.sport === "kitesurfing");
-                        const bestTime = sportData?.bestTime;
-                        const cd = sportData?.conditionData;
-                        return (
-                        <div
-                          key={spot.spotId}
-                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onSpotClick) onSpotClick("kitesurfing", dayStr);
-                            else if (onDayClick) onDayClick(dayStr);
-                          }}
-                        >
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
-                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
-                            </span>
-                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
-                          </div>
-                          {cd && (
-                            <ConditionLine
-                              speed={cd.windSpeed}
-                              gust={cd.windGust}
-                              direction={cd.windDirection}
-                              waveHeight={cd.waveHeight}
-                              wavePeriod={cd.wavePeriod}
-                              sport="kitesurfing"
-                            />
-                          )}
-                        </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Surfing spots */}
-                {dayInfo.surfingSpots && dayInfo.surfingSpots.length > 0 && (
-                    <div className={(dayInfo.wingfoilSpots && dayInfo.wingfoilSpots.length > 0) || (dayInfo.kitesurfingSpots && dayInfo.kitesurfingSpots.length > 0) ? "mt-3 pt-3 border-t border-ink/20" : ""}>
-                    <div className="text-sm font-bold text-ink/60 mb-2 uppercase">Surf</div>
-                    <div className="space-y-2">
-                      {dayInfo.surfingSpots.slice(0, 3).map((spot) => {
-                        const sportData = spot.sportData?.find(sd => sd.sport === "surfing");
-                        const bestTime = sportData?.bestTime;
-                        const cd = sportData?.conditionData;
-                        return (
-                        <div
-                          key={spot.spotId}
-                          className="border-b border-ink/10 pb-2 last:border-0 last:pb-0 cursor-pointer hover:bg-ink/5 transition-colors -mx-2 px-2 py-1 rounded"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onSpotClick) onSpotClick("surfing", dayStr);
-                            else if (onDayClick) onDayClick(dayStr);
-                          }}
-                        >
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="text-sm font-headline font-bold text-ink truncate" title={spot.spotName}>
-                              {bestTime ? `${bestTime} - ${spot.spotName}` : spot.spotName}
-                            </span>
-                            <ScorePill score={sportData?.score} sport={sportData?.sport} size="sm" />
-                          </div>
-                          {cd && (
-                            <ConditionLine
-                              speed={cd.windSpeed}
-                              gust={cd.windGust}
-                              direction={cd.windDirection}
-                              waveHeight={cd.waveHeight}
-                              wavePeriod={cd.wavePeriod}
-                              sport="surfing"
-                            />
-                          )}
-                        </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Show more spots indicator if needed */}
-                {(dayInfo.wingfoilSpots?.length > 3 || dayInfo.kitesurfingSpots?.length > 3 || dayInfo.surfingSpots?.length > 3) && (
-                  <div className="text-xs text-ink/60 pt-1">
-                    +{Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.kitesurfingSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)} more spot{(Math.max((dayInfo.wingfoilSpots?.length || 0) - 3, 0) + Math.max((dayInfo.kitesurfingSpots?.length || 0) - 3, 0) + Math.max((dayInfo.surfingSpots?.length || 0) - 3, 0)) !== 1 ? 's' : ''}
+                {hiddenCount > 0 && (
+                  <div className="text-xs font-sans text-ink/50 pt-1">
+                    +{hiddenCount} more
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-sm text-ink/40 flex-1 flex items-center">
+              <div className="text-sm font-sans text-ink/40 flex-1 flex items-center">
                 No conditions
               </div>
             )}

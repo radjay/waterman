@@ -161,10 +161,17 @@ export function Header({ className = "" }) {
         <ViewToggle
           compact={isScrolled}
           rightContent={
-            <>
-              {shareContent}
+            /* RAD-30: share icon is a round pill matching the account pill height;
+               extra gap (gap-3) separates the two. */
+            <div className="flex items-center gap-3">
+              {showShareButton && (
+                <ShareButton
+                  url={shareUrl}
+                  className="h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth"
+                />
+              )}
               {authContent}
-            </>
+            </div>
           }
           className="flex-1"
         />
