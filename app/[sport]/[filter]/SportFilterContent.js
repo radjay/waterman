@@ -1,42 +1,52 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../convex/_generated/api";
-import { MainLayout } from "../components/layout/MainLayout";
-import { Header } from "../components/layout/Header";
-import { EmptyState } from "../components/common/EmptyState";
-import { Loader } from "../components/common/Loader";
-import { DaySection } from "../components/forecast/DaySection";
-import { Footer } from "../components/layout/Footer";
-import { formatDate, formatFullDay, formatTideTime } from "../lib/utils";
-import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../lib/slots";
-import { isDaylightSlot, isContextualSlot, isAfterSunset, isNighttimeSlot } from "../lib/daylight";
-import { usePersistedState } from "../lib/hooks/usePersistedState";
-import { useAuth, useUser } from "../components/auth/AuthProvider";
-import { PillToggle } from "../components/ui/PillToggle";
-import { FilterGroup } from "../components/ui/FilterGroup";
-import { FilterBar } from "../components/ui/FilterBar";
-import { Heading } from "../components/ui/Heading";
-import { Text } from "../components/ui/Text";
-import { useOnboarding } from "../hooks/useOnboarding";
-import { OnboardingModal } from "../components/onboarding/OnboardingModal";
+import { api } from "../../../convex/_generated/api";
+import { MainLayout } from "../../../components/layout/MainLayout";
+import { Header } from "../../../components/layout/Header";
+import { EmptyState } from "../../../components/common/EmptyState";
+import { Loader } from "../../../components/common/Loader";
+import { DaySection } from "../../../components/forecast/DaySection";
+import { Footer } from "../../../components/layout/Footer";
+import { formatDate, formatFullDay, formatTideTime } from "../../../lib/utils";
+import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../../lib/slots";
+import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../../lib/daylight";
+import { useUser } from "../../../components/auth/AuthProvider";
+import { PillToggle } from "../../../components/ui/PillToggle";
+import { FilterGroup } from "../../../components/ui/FilterGroup";
+import { FilterBar } from "../../../components/ui/FilterBar";
+import { Heading } from "../../../components/ui/Heading";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
+// Map URL sport values to internal sport values
+const sportMap = {
+  wing: "wingfoil",
+  kite: "kitesurfing",
+  surf: "surfing",
+};
+
+// Map internal sport values to URL sport values
+const reverseSportMap = {
+  wingfoil: "wing",
+  kitesurfing: "kite",
+  surfing: "surf",
+};
 
 // ---------------------------------------------------------------------------
 // Helpers for initializing state from server-prefetched data
 // ---------------------------------------------------------------------------
 
-function buildSpotsMap(initialData) {
+function buildInitialSpotsMap(initialData) {
   if (!initialData) return {};
   const map = {};
   initialData.spots.forEach((spot) => { map[spot._id] = spot; });
   return map;
 }
 
-function buildSlots(initialData, sports) {
+function buildInitialSlots(initialData, sports) {
   if (!initialData) return [];
   return initialData.spots.flatMap((spot) => {
     const spotData = initialData.data[spot._id];
@@ -48,7 +58,7 @@ function buildSlots(initialData, sports) {
   });
 }
 
-function buildTidesMap(initialData) {
+function buildInitialTidesMap(initialData) {
   if (!initialData) return {};
   const result = {};
   initialData.spots.forEach((spot) => {
@@ -70,80 +80,55 @@ function buildTidesMap(initialData) {
 
 // ---------------------------------------------------------------------------
 
-export default function HomeContent({ initialData = null, initialDataSport = "wingfoil" }) {
+export default function SportFilterContent({ initialData = null, initialDataSport = "wingfoil" }) {
+  const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { sessionToken } = useAuth();
   const user = useUser();
+  // Get highlighted day and slot from URL params
+  const highlightedDay = searchParams?.get("day") || null;
+  const highlightedSlot = searchParams?.get("slot") || null;
 
-  // Onboarding state (skip for authenticated users)
-  const { needsOnboarding, isLoading: onboardingLoading, markOnboardingComplete } = useOnboarding(user);
+  // Extract sport and filter from URL params
+  const urlSport = params.sport?.toLowerCase();
+  const urlFilter = params.filter?.toLowerCase();
 
-  // Use persisted state hook for sport selection (fallback for anonymous users)
-  const [localSelectedSport, setLocalSelectedSport] = usePersistedState(
-    "waterman_selected_sport",
-    "wingfoil",
-    (val) => val === "wingfoil" || val === "kitesurfing" || val === "surfing"
-  );
-
-  // Track if we've synced with user's favorite sports (only sync once on initial load)
-  const hasSyncedWithUser = useRef(false);
-
-  // Sync localSelectedSport with user's favorite sports on initial load only
-  // Don't reset if user explicitly selects a different sport
-  useEffect(() => {
-    if (!hasSyncedWithUser.current && user && user.favoriteSports && user.favoriteSports.length > 0) {
-      const userSport = user.favoriteSports[0];
-      // Only sync if different from current selection
-      if (userSport !== localSelectedSport) {
-        setLocalSelectedSport(userSport);
-      }
-      hasSyncedWithUser.current = true;
+  // Map URL sport to internal sport value, default to wingfoil if invalid
+  const selectedSport = useMemo(() => {
+    if (urlSport && sportMap[urlSport]) {
+      return sportMap[urlSport];
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?._id]); // Only run when user ID changes (initial load or user change)
+    return "wingfoil";
+  }, [urlSport]);
 
-  // Always use localSelectedSport as the source of truth for immediate UI updates
-  // This ensures the UI updates immediately when the user changes the sport
-  const selectedSport = localSelectedSport;
+  // Validate and use filter from URL, default to best if invalid
+  const showFilter = useMemo(() => {
+    if (urlFilter === "all" || urlFilter === "best") {
+      return urlFilter;
+    }
+    return "best";
+  }, [urlFilter]);
 
   // Convert single sport to array format (used throughout the app)
-  // Memoize to prevent infinite loops in useEffect dependencies
   const selectedSports = useMemo(() => [selectedSport], [selectedSport]);
 
-  // Handle sport change from SportSelector
-  const handleSportChange = async (sportId) => {
-    // Always update local state immediately for responsive UI
-    setLocalSelectedSport(sportId);
-
-    // If user is authenticated, also save to server
-    if (sessionToken && user) {
-      try {
-        await client.mutation(api.auth.updatePreferences, {
-          sessionToken,
-          favoriteSports: [sportId],
-        });
-      } catch (error) {
-        console.error("Failed to save sport preference:", error);
-      }
-    }
+  // Handle sport change from SportSelector (navigate to new URL)
+  const handleSportChange = (sportId) => {
+    const urlSportValue = reverseSportMap[sportId] || "wing";
+    router.push(`/${urlSportValue}/${showFilter}`);
   };
 
-  // Use persisted state hook for filter
-  const [showFilter, setShowFilter] = usePersistedState(
-    "waterman_show_filter",
-    "best",
-    (val) => val === "best" || val === "all"
-  );
-
-  // Get highlighted day from URL params
-  const highlightedDay = searchParams?.get("day") || null;
+  // Handle filter change (navigate to new URL)
+  const handleFilterChange = (filterValue) => {
+    const urlSportValue = reverseSportMap[selectedSport] || "wing";
+    router.push(`/${urlSportValue}/${filterValue}`);
+  };
 
   // -----------------------------------------------------------------------
   // State — initialize from server-prefetched data when available.
-  // initialData is for `initialDataSport` (default "wingfoil").
-  // usePersistedState returns "wingfoil" on first render (before localStorage
-  // hydrates), so the initialData sport reliably matches the first render.
+  // The server fetches data for `initialDataSport`; the URL sport matches
+  // that on first render (the server reads params too), so initialData is
+  // always aligned with what the client will display.
   // -----------------------------------------------------------------------
   const canUseInitialData = !!initialData && selectedSport === initialDataSport;
 
@@ -151,13 +136,13 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
     canUseInitialData ? initialData.spots : []
   );
   const [allSlots, setAllSlots] = useState(() =>
-    canUseInitialData ? buildSlots(initialData, [initialDataSport]) : []
+    canUseInitialData ? buildInitialSlots(initialData, [initialDataSport]) : []
   );
   const [spotsMap, setSpotsMap] = useState(() =>
-    canUseInitialData ? buildSpotsMap(initialData) : {}
+    canUseInitialData ? buildInitialSpotsMap(initialData) : {}
   );
   const [tidesBySpot, setTidesBySpot] = useState(() =>
-    canUseInitialData ? buildTidesMap(initialData) : {}
+    canUseInitialData ? buildInitialTidesMap(initialData) : {}
   );
   const [loading, setLoading] = useState(!canUseInitialData);
   const [mostRecentScrapeTimestamp, setMostRecentScrapeTimestamp] = useState(
@@ -166,29 +151,25 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
 
   // Skip the very first useEffect run when we already have pre-fetched data
   // and no logged-in user (no personalization needed yet).
-  // When the user later loads, the effect re-runs and fetches personalized data.
   const skipFirstFetch = useRef(canUseInitialData);
 
-  // Fetch spots and data using batched query
+  // Fetch all data in a single batched round-trip
   useEffect(() => {
     if (skipFirstFetch.current) {
       skipFirstFetch.current = false;
-      // Only skip if there's no user yet — if user is already loaded on mount
+      // Only skip if there's no user yet; if user is already loaded on mount
       // we need to fetch personalized scores right away.
       if (!user) return;
     }
 
-    let stale = false;
     async function fetchData() {
       setLoading(true);
       try {
-        // Single batched query: fetches spots, slots, configs, scores, tides, and scrape timestamp
         const usePersonalizedScores = user && user.showPersonalizedScores !== false;
         const reportData = await client.query(api.spots.getReportData, {
           sports: selectedSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
-        if (stale) return;
 
         const fetchedSpots = reportData.spots;
 
@@ -201,17 +182,12 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
             ...fetchedSpots.filter((spot) => !favoriteSpotIds.has(spot._id)),
           ];
         }
-
         setSpots(orderedSpots);
 
-        // Create a map of spotId to spot data for easy lookup
         const spotsMapObj = {};
-        fetchedSpots.forEach((spot) => {
-          spotsMapObj[spot._id] = spot;
-        });
+        fetchedSpots.forEach((spot) => { spotsMapObj[spot._id] = spot; });
         setSpotsMap(spotsMapObj);
 
-        // Enrich slots client-side using batched data
         const allFetchedSlots = [];
         const tidesBySpotObj = {};
 
@@ -252,13 +228,11 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
     }
 
     fetchData();
-    return () => { stale = true; };
   }, [selectedSports, user]);
 
   // Filter slots based on showFilter
   // "best" shows slots with scores >= 60 (good conditions per PRD 02)
-  // "all" shows all slots regardless of score (but still filtered by daylight later)
-  // Note: Daylight filtering always applies regardless of showFilter setting
+  // "all" shows all slots regardless of score
   const filteredSlots =
     showFilter === "best"
       ? allSlots.filter((slot) => {
@@ -268,7 +242,7 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
           if (slot.isTideOnly) return true;
           return false;
         })
-      : allSlots; // "all" shows all slots (daylight filtering happens later)
+      : allSlots; // "all" shows all slots
 
   // Group by Date, then by Spot
   // Separate tide-only entries to include in tide section
@@ -287,7 +261,6 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
   }, {});
 
   // Mark contextual slots (needs all slots for the day)
-  // Use existing spotsMap state variable
   markContextualSlots(grouped, spotsMap, selectedSports);
 
   // Filter grouped slots to only show daylight + contextual slots
@@ -295,12 +268,6 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
   Object.keys(grouped).forEach(day => {
     filteredGrouped[day] = {};
     Object.keys(grouped[day]).forEach(spotId => {
-      if (spotId === '_tides') {
-        // Keep tide entries as-is
-        filteredGrouped[day][spotId] = grouped[day][spotId];
-        return;
-      }
-
       const spot = spotsMap[spotId];
       if (!spot) {
         filteredGrouped[day][spotId] = grouped[day][spotId];
@@ -309,9 +276,6 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
 
       // Filter to daylight slots + contextual slots
       // Always exclude nighttime slots regardless of showFilter setting
-      // BUT: Keep all slots for today regardless of whether they're in the past
-      const isToday = day === formatDate(new Date());
-
       filteredGrouped[day][spotId] = grouped[day][spotId].filter(slot => {
         // Always show tide-only slots
         if (slot.isTideOnly) return true;
@@ -322,8 +286,7 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
         // Show contextual slots (these are special cases)
         if (slot.isContextual) return true;
 
-        // For today: show all daylight slots regardless of current time
-        // For future days: only show slots that haven't happened yet
+        // Show daylight slots (but not if they're after sunset)
         const isDaylight = isDaylightSlot(new Date(slot.timestamp), spot);
         const afterSunset = isAfterSunset(new Date(slot.timestamp), spot);
 
@@ -344,73 +307,93 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
   // Only mark as ideal if the slot matches criteria (excludes contextual slots and slots after sunset)
   markIdealSlots(filteredGrouped, selectedSports, spotsMap);
 
-  // Scroll to highlighted day when it changes
+  // Scroll to highlighted day and slot when they change
   useEffect(() => {
-    if (highlightedDay) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        const element = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth", block: "start" });
-          // Remove the day param from URL after scrolling
+    if (highlightedDay && !loading) {
+      // Wait for DOM to be ready, with retries if element isn't found immediately
+      const scrollToDay = () => {
+        const dayElement = document.getElementById(`day-${encodeURIComponent(highlightedDay)}`);
+        if (dayElement) {
+          // Use a small additional delay to ensure layout is stable
           setTimeout(() => {
-            router.push("/", { scroll: false });
-          }, 2000);
+            dayElement.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            // If there's a specific slot to scroll to, scroll to it after scrolling to the day
+            if (highlightedSlot) {
+              setTimeout(() => {
+                const slotElement = document.getElementById(highlightedSlot) ||
+                                  document.querySelector(`[id*="${highlightedSlot}"]`);
+                if (slotElement) {
+                  slotElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                  // Highlight the slot briefly
+                  slotElement.style.transition = "background-color 0.3s";
+                  const originalBg = slotElement.style.backgroundColor;
+                  slotElement.style.backgroundColor = "rgba(59, 130, 246, 0.3)";
+                  setTimeout(() => {
+                    slotElement.style.backgroundColor = originalBg;
+                  }, 2000);
+                }
+              }, 500);
+            }
+
+            // Remove the day and slot params from URL after scrolling
+            setTimeout(() => {
+              const urlSportValue = reverseSportMap[selectedSport] || "wing";
+              router.push(`/${urlSportValue}/${showFilter}`, { scroll: false });
+            }, 2000);
+          }, 200);
+        } else {
+          // Retry after a short delay if element not found
+          setTimeout(scrollToDay, 100);
         }
-      }, 100);
+      };
+
+      // Initial delay to ensure content is rendered
+      setTimeout(scrollToDay, 300);
     }
-  }, [highlightedDay, router]);
+  }, [highlightedDay, highlightedSlot, loading, router, selectedSport, showFilter]);
 
   return (
-    <>
-      {/* Show onboarding modal on first visit (non-dismissible on homepage) */}
-      {!onboardingLoading && needsOnboarding && (
-        <OnboardingModal
-          onComplete={markOnboardingComplete}
-          isDismissible={false}
-        />
-      )}
+    <MainLayout>
+      <Header />
 
-      <MainLayout>
-        <Header />
-
-        {/* Filters — "set and forget" */}
-        <FilterBar activeFilters={[
-          { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
-          { best: "Best", all: "All" }[showFilter],
-        ].filter(Boolean)}>
-          <FilterGroup label="Sport">
-            <PillToggle
-              name="sport"
-              options={[
-                { id: "wingfoil", label: "Wing" },
-                { id: "kitesurfing", label: "Kite" },
-                { id: "surfing", label: "Surf" },
-              ]}
-              value={selectedSport}
-              onChange={handleSportChange}
-            />
-          </FilterGroup>
-          <FilterGroup label="Conditions">
-            <PillToggle
-              name="show"
-              options={[
-                { id: "best", label: "Best" },
-                { id: "all", label: "All" },
-              ]}
-              value={showFilter}
-              onChange={setShowFilter}
-            />
-          </FilterGroup>
-        </FilterBar>
+      {/* Filters — "set and forget" */}
+      <FilterBar activeFilters={[
+        { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport],
+        { best: "Best", all: "All" }[showFilter],
+      ].filter(Boolean)}>
+        <FilterGroup label="Sport">
+          <PillToggle
+            name="sport"
+            options={[
+              { id: "wingfoil", label: "Wing" },
+              { id: "kitesurfing", label: "Kite" },
+              { id: "surfing", label: "Surf" },
+            ]}
+            value={selectedSport}
+            onChange={handleSportChange}
+          />
+        </FilterGroup>
+        <FilterGroup label="Conditions">
+          <PillToggle
+            name="show"
+            options={[
+              { id: "best", label: "Best" },
+              { id: "all", label: "All" },
+            ]}
+            value={showFilter}
+            onChange={handleFilterChange}
+          />
+        </FilterGroup>
+      </FilterBar>
 
       {loading ? (
-            <Loader />
-          ) : sortedDays.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="flex flex-col gap-8 md:mt-2">
-              {sortedDays.map((day) => {
+        <Loader />
+      ) : sortedDays.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="flex flex-col gap-8">
+          {sortedDays.map((day) => {
             const dayData = filteredGrouped[day];
             // Check if there are any forecast slots (not just tide-only entries)
             const hasForecastSlots = Object.keys(dayData).some((spotId) => {
@@ -479,7 +462,7 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
 
               return (
                 <div key={day} className="mb-4">
-                  <div className="sticky top-0 md:top-[50px] bg-newsprint z-[9] flex items-center py-3 mb-2 pl-2">
+                  <div className="flex items-center h-10 mb-2 pl-2 pt-2">
                     <span className="text-sm font-semibold uppercase tracking-widest text-faded-ink">
                       {getFormattedDay()}
                     </span>
@@ -491,26 +474,23 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
               );
             }
 
-                return (
-                  <DaySection
-                    key={day}
-                    id={`day-${encodeURIComponent(day)}`}
-                    day={day}
-                    spotsData={dayData}
-                    selectedSports={selectedSports}
-                    spotsMap={spotsMap}
-                    showFilter={showFilter}
-                    tidesBySpot={tidesBySpot}
-                    isHighlighted={highlightedDay === day}
-                    isAuthenticated={!!sessionToken}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-        {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
-      </MainLayout>
-    </>
+            return (
+              <DaySection
+                key={day}
+                id={`day-${encodeURIComponent(day)}`}
+                day={day}
+                spotsData={dayData}
+                selectedSports={selectedSports}
+                spotsMap={spotsMap}
+                showFilter={showFilter}
+                tidesBySpot={tidesBySpot}
+                isHighlighted={highlightedDay === day}
+              />
+            );
+          })}
+        </div>
+      )}
+      {!loading && <Footer mostRecentScrapeTimestamp={mostRecentScrapeTimestamp} />}
+    </MainLayout>
   );
 }
