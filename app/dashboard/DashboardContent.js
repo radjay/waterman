@@ -451,7 +451,7 @@ export default function DashboardContent({ initialData = null }) {
                             <ScoreCard
                               key={`${slot.spotId}-${slot.timestamp}-${slot.sport}`}
                               score={slot.score?.value}
-                              onClick={() => router.push(`/report?day=${encodeURIComponent(day)}`)}
+                              onClick={() => router.push(`/report?day=${encodeURIComponent(day)}${slot.sport ? `&sport=${encodeURIComponent(slot.sport)}` : ""}`)}
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex-1 min-w-0">

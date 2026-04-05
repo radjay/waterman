@@ -22,6 +22,7 @@ import { Heading } from "../components/ui/Heading";
 import { Text } from "../components/ui/Text";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { OnboardingModal } from "../components/onboarding/OnboardingModal";
+import { RotateCcw } from "lucide-react";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -103,9 +104,8 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]); // Only run when user ID changes (initial load or user change)
 
-  // Always use localSelectedSport as the source of truth for immediate UI updates
-  // This ensures the UI updates immediately when the user changes the sport
-  const selectedSport = localSelectedSport;
+  // RAD-26: Use URL sport override when active, otherwise fall back to persisted value
+  const selectedSport = (sportOverrideActive && urlSportOverride) ? urlSportOverride : localSelectedSport;
 
   // Convert single sport to array format (used throughout the app)
   // Memoize to prevent infinite loops in useEffect dependencies
@@ -138,6 +138,33 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
 
   // Get highlighted day from URL params
   const highlightedDay = searchParams?.get("day") || null;
+
+  // RAD-26: Sport override from URL (deep-link from slot card in Coming Up).
+  // Does NOT permanently change the persisted sport filter.
+  const VALID_SPORTS = ["wingfoil", "kitesurfing", "surfing"];
+  const urlSportOverride = useMemo(() => {
+    const s = searchParams?.get("sport");
+    return s && VALID_SPORTS.includes(s) ? s : null;
+  }, [searchParams]);
+
+  // Whether the sport override is currently active (user hasn't cleared it)
+  const [sportOverrideActive, setSportOverrideActive] = useState(!!urlSportOverride);
+
+  // When the URL param changes (new navigation), activate override
+  useEffect(() => {
+    if (urlSportOverride) {
+      setSportOverrideActive(true);
+    }
+  }, [urlSportOverride]);
+
+  // Clear override and return to saved filter
+  const clearSportOverride = () => {
+    setSportOverrideActive(false);
+    // Remove sport param from URL without full navigation
+    const url = new URL(window.location.href);
+    url.searchParams.delete("sport");
+    window.history.replaceState(null, "", url.toString());
+  };
 
   // -----------------------------------------------------------------------
   // State — initialize from server-prefetched data when available.
@@ -380,16 +407,34 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
           { best: "Best", all: "All" }[showFilter],
         ].filter(Boolean)}>
           <FilterGroup label="Sport">
-            <PillToggle
-              name="sport"
-              options={[
-                { id: "wingfoil", label: "Wing" },
-                { id: "kitesurfing", label: "Kite" },
-                { id: "surfing", label: "Surf" },
-              ]}
-              value={selectedSport}
-              onChange={handleSportChange}
-            />
+            {/* RAD-26: Show override indicator and back-to-saved affordance */}
+            {sportOverrideActive && urlSportOverride ? (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-semibold uppercase tracking-wider">
+                  {{ wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[urlSportOverride] || urlSportOverride}
+                  <span className="text-amber-600 font-normal normal-case tracking-normal">override</span>
+                </span>
+                <button
+                  onClick={clearSportOverride}
+                  className="inline-flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-wider text-faded-ink hover:text-ink transition-colors"
+                  title="Back to saved filters"
+                >
+                  <RotateCcw size={10} />
+                  Back to saved
+                </button>
+              </div>
+            ) : (
+              <PillToggle
+                name="sport"
+                options={[
+                  { id: "wingfoil", label: "Wing" },
+                  { id: "kitesurfing", label: "Kite" },
+                  { id: "surfing", label: "Surf" },
+                ]}
+                value={selectedSport}
+                onChange={handleSportChange}
+              />
+            )}
           </FilterGroup>
           <FilterGroup label="Conditions">
             <PillToggle
