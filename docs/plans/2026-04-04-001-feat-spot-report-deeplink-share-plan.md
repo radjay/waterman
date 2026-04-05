@@ -24,7 +24,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 ## Requirements Trace
 
 - R1. A URL like `/report/carcavelos` shows only the forecast for the spot matching that slug.
-- R2. The URL is stable and shareable — the same URL resolves to the same spot regardless of the recipient's device. The displayed sport may vary based on the recipient's persisted sport preference, but the spot shown is always the same.
+- R2. The URL is stable and shareable — the same URL resolves to the same spot **and the same sport** regardless of the recipient's device or local state. The share URL encodes the active sport as a `?sport=` query parameter so recipients see exactly what the sender was viewing.
 - R3. A share button on report pages invokes the native share sheet on supported mobile browsers.
 - R4. On desktop or unsupported browsers, the share button copies the current URL to clipboard with transient visual feedback ("Copied!").
 - R5. Invalid slugs (no matching spot) redirect to `/report` gracefully.
@@ -33,7 +33,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 ## Scope Boundaries
 
 - No `slug` field added to the Convex schema — slugs are derived client-side from `spot.name` and resolved by fetching all spots.
-- Filter state (sport, best/all) is NOT encoded in the shared URL. The spot page auto-selects the spot's first supported sport when the user's persisted sport does not match — making the URL reproducible across recipients.
+- The active sport IS encoded in the share URL as a `?sport=` query parameter (e.g. `/report/guincho?sport=wingfoil`) so recipients see the same sport the sender was viewing. The best/all condition filter is NOT encoded — that remains a local preference.
 - No share button on `/dashboard`, `/[sport]/[filter]`, or other non-report pages (deferred).
 - No share analytics or share-count tracking.
 - No custom Open Graph image generation — text-based `generateMetadata` only.
@@ -72,7 +72,13 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 
 - **Two-phase data fetch on the spot page**: The spot page performs two sequential calls using `ConvexHttpClient` (matching the app's established `useEffect` + one-shot HTTP pattern — `useQuery` from `convex/react` is not used anywhere in the app). Phase 1: call `api.spots.list` to resolve the slug to a `targetSpot`. Phase 2: call `api.spots.getReportData` scoped to only `targetSpot.sports` (not `allSports`). This avoids the over-fetch that would occur by passing all three sports — `getReportData` loops over sports × spots internally and loading scores for irrelevant sports is non-trivial. If the spot list ever grows beyond ~30 entries, a targeted single-spot Convex query should replace this approach.
 
-- **Spot page sport auto-selection**: `/report/[spot]` does not encode sport in the URL. After resolving `targetSpot`, the page checks whether the user's `localStorage`-persisted sport is in `targetSpot.sports`; if yes, use it; if not, default to `targetSpot.sports[0]`. `activeSport` is display-layer state only — it does not affect which data is fetched (the query is already scoped to `targetSpot.sports`). Guard against `targetSpot.sports` being `undefined` or empty using the same defensive fallback as `getReportData`: `(spot.sports?.length > 0 ? spot.sports : ['wingfoil'])`.
+- **Sport encoding in the share URL**: The `ShareButton` on `/report/[spot]` constructs the share URL by appending the current `activeSport` as a query parameter: `/report/guincho?sport=wingfoil`. This is the URL passed to the Web Share API and copied to clipboard — not `window.location.href` directly (which only has the sport param if the user arrived via a share link, not if they navigated manually). `ShareButton` on the all-spots `/report` page shares `window.location.href` as-is (no sport to encode).
+
+- **Spot page sport selection priority**: `/report/[spot]` uses the following priority order to determine `activeSport`, highest first:
+  1. `?sport=` URL param — if present and the value is in `targetSpot.sports`, use it. This ensures share links reproduce exactly what was shared.
+  2. `localStorage`-persisted sport — if compatible with the spot's supported sports.
+  3. `targetSpot.sports[0]` — first supported sport as final fallback.
+  The `?sport=` param is read via `useSearchParams()` and is treated as one-time initial state — it is not kept in sync with the URL as the user changes the sport toggle (to avoid cluttering the URL bar during normal browsing). `activeSport` is display-layer state only — it does not affect which data is fetched (the query is already scoped to `targetSpot.sports`). Guard against `targetSpot.sports` being `undefined` or empty: `(spot.sports?.length > 0 ? spot.sports : ['wingfoil'])`.
 
 - **SSR metadata via Convex HTTP client**: `generateMetadata` in `/report/[spot]/page.js` resolves the slug server-side using `ConvexHttpClient` to call `api.spots.list` (a trivial `collect()` with no joins — safe for SSR). A `Promise.race` with a 3-second timeout is required; on timeout or error, fall back to a generic title. This is the first `generateMetadata` function in the app; `NEXT_PUBLIC_CONVEX_URL` is available during build/SSR. The `api.spots.list` query does not use `ctx.auth` and is publicly accessible.
 
@@ -86,7 +92,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 
 ### Resolved During Planning
 
-- **Should sport/filter be URL-encoded on the spot page?** No — localStorage-based sport selection with spot-sport auto-selection fallback gives a reproducible-enough experience without complicating the URL or requiring a new URL shape.
+- **Should sport be URL-encoded on the spot page?** Yes, in the share URL only. The `ShareButton` appends `?sport=<activeSport>` when constructing the URL to share/copy. The spot page reads `?sport=` on load as the highest-priority sport selector. Normal in-page sport toggling does not update the URL — the param is one-time initial state, not a live binding. The best/all condition filter is still not encoded.
 - **What renders for an invalid slug?** Redirect to `/report` (see Key Technical Decisions). Not a 404, not "NO CONDITIONS".
 - **Share button on `/report` (all spots)?** Yes — it shares the generic report URL, which is still a useful shareable link.
 - **Toast or inline feedback for clipboard copy?** Inline transient "Copied!" label — no toast. Consistent with the only existing clipboard pattern in the codebase.
@@ -113,13 +119,17 @@ GET /report/carcavelos
      │
      └─ <Suspense><SpotReportContent /></Suspense> [client]
           └─ useParams() → slug = "carcavelos"
+          └─ useSearchParams() → sportParam = "wingfoil" (or null)
           └─ useEffect: ConvexHttpClient.query(api.spots.list)   [phase 1]
                ├─ loading → skeleton
                ├─ spotFromSlug(spots, slug) → null → router.push("/report")
                └─ spot found → targetSpot
                     └─ ConvexHttpClient.query(api.spots.getReportData, { sports: targetSpot.sports })  [phase 2]
                          └─ filter slots: keep only slot.spotId === targetSpot._id
-                         └─ activeSport: persistedSport ∈ targetSpot.sports ? persistedSport : (targetSpot.sports[0] ?? 'wingfoil')
+                         └─ activeSport priority:
+                              1. sportParam ∈ targetSpot.sports → use it
+                              2. persistedSport ∈ targetSpot.sports → use it
+                              3. targetSpot.sports[0] ?? 'wingfoil'
                          └─ render <DaySection> for single spot
 ```
 
@@ -204,12 +214,12 @@ graph TB
 - Follow `app/[sport]/[filter]/page.js` structurally: an outer export default that wraps an inner `SpotReportContent` component in `<Suspense>`.
 - `generateMetadata({ params })`: instantiate `ConvexHttpClient`, race `api.spots.list` against a 3-second timeout; call `spotFromSlug()` to find the spot; return `{ title: "${spotName} — Waterman Forecast" }` on match, `{ title: "Waterman Forecast" }` on timeout/error/no match. This is the first `generateMetadata` in the app — the file must export both `generateMetadata` and a default server component that wraps the `'use client'` inner component.
 - `SpotReportContent` (inner `'use client'` component, follows the `Suspense`-inner-component pattern from `[sport]/[filter]/page.js`):
-  1. Read `slug` from `useParams()`.
-  2. **Phase 1** — `useEffect`: call `ConvexHttpClient.query(api.spots.list)`. While loading, show skeleton. On load, call `spotFromSlug()`.
-  3. If no match after load: call `router.push('/report')` (not `redirect()` — see Key Technical Decisions).
+  1. Read `slug` from `useParams()` and `sportParam` from `useSearchParams()`.
+  2. **Phase 1** — `useEffect`: call `ConvexHttpClient.query(api.spots.list)`. Track resolution as `resolvedSpot: 'loading' | 'not-found' | SpotObject` — never redirect while `'loading'`. On load, call `spotFromSlug()`.
+  3. If `resolvedSpot === 'not-found'`: call `router.push('/report')` (not `redirect()` — see Key Technical Decisions).
   4. **Phase 2** — after `targetSpot` is resolved: call `ConvexHttpClient.query(api.spots.getReportData, { sports: targetSpot.sports ?? ['wingfoil'] })`. This scopes the query to only the spot's supported sports, avoiding the over-fetch of all three sports' score data.
   5. Filter the enriched slot pipeline to only slots where `slot.spotId === targetSpot._id`.
-  6. Determine `activeSport`: use the persisted sport if it is in `targetSpot.sports`, otherwise fall back to `(targetSpot.sports?.[0] ?? 'wingfoil')`. Guard against undefined/empty `sports` array.
+  6. Determine `activeSport` using priority order: (1) `sportParam` if present and in `targetSpot.sports`; (2) localStorage-persisted sport if in `targetSpot.sports`; (3) `targetSpot.sports?.[0] ?? 'wingfoil'`. `activeSport` is display-layer state only — does not affect the query. Note: `activeSport` is one-time initial state from `sportParam`; changing the sport toggle in-page does not update the URL.
   7. Render `<MainLayout>` → `<Header>` → day sections for the single spot only.
 
 **Patterns to follow:**
@@ -223,7 +233,9 @@ graph TB
 - Happy path: `generateMetadata` with invalid slug → returns generic title without throwing
 - Error path: data loaded, slug matches no spot → `router.push("/report")` is called (not `redirect()`)
 - Edge case: spot exists but all slots are filtered out (no good conditions) → `EmptyState` renders ("NO CONDITIONS"), not a redirect
-- Edge case: user's persisted sport is not in `targetSpot.sports` → `activeSport` falls back to `targetSpot.sports[0]`
+- Edge case: `?sport=wingfoil` present and valid for the spot → `activeSport` is `wingfoil` regardless of localStorage
+- Edge case: `?sport=kitesurfing` present but spot doesn't support kitesurfing → param is ignored, falls through to localStorage then `sports[0]`
+- Edge case: no `?sport=` param, persisted sport not in `targetSpot.sports` → `activeSport` falls back to `targetSpot.sports[0]`
 - Edge case: `targetSpot.sports` is `undefined` or empty → `activeSport` falls back to `'wingfoil'` (same defensive fallback as `getReportData`)
 - Integration: navigating directly to `/report/carcavelos` in a browser renders the filtered single-spot view
 
@@ -299,8 +311,8 @@ graph TB
 - Modify: `components/layout/Header.js` if the `rightContent` slot needs to be exposed or extended
 
 **Approach:**
-- On `/report`: add `<ShareButton />` (no `url` prop needed — defaults to `window.location.href`). Desktop: inject via `Header`'s `rightContent` prop alongside any existing `ViewToggle` content. Mobile: render inline below the filter bar, above the first day section.
-- On `/report/[spot]`: same placement. No `url` prop needed — `window.location.href` is already the spot-specific URL.
+- On `/report`: add `<ShareButton />` (no `url` prop needed — defaults to `window.location.href`, which is just `/report` with no sport to encode). Desktop: inject via `Header`'s `rightContent` prop alongside any existing `ViewToggle` content. Mobile: render inline below the filter bar, above the first day section.
+- On `/report/[spot]`: pass an explicit `url` prop constructed from the current pathname + `?sport=<activeSport>`, e.g. `url={`${pathname}?sport=${activeSport}`}`. Do not use `window.location.href` directly here — it may or may not already have a `?sport=` param depending on how the user navigated to the page. Always construct the URL from the current `activeSport` state so the shared URL reflects what is actually on screen.
 - Verify whether `Header` already accepts a `rightContent` prop (per research: `ViewToggle` uses it). If so, add `ShareButton` next to the existing `rightContent` content without breaking layout. If `rightContent` needs extending to accept multiple children, make the minimal change.
 - `ShareButton` is a `'use client'` component — its parent page file can remain a server component; the boundary is at the component itself.
 
@@ -312,7 +324,7 @@ graph TB
 
 **Verification:**
 - `ShareButton` is visible on `/report` and `/report/[spot]`.
-- Tapping the button on a spot page shares/copies the spot-specific URL (e.g. `/report/carcavelos`), not `/report`.
+- Tapping the button on a spot page shares/copies the sport-scoped URL (e.g. `/report/carcavelos?sport=wingfoil`), not just `/report/carcavelos`.
 - Tapping the button on the all-spots `/report` shares/copies the generic report URL.
 - No layout shift or overflow in the header on narrow screen widths.
 
@@ -358,7 +370,7 @@ graph TB
 - **Interaction graph:** `BottomNav` and `ViewToggle` are rendered on every page via `MainLayout` — the active-tab regex change in Unit 5 affects active-tab display globally. `Header`'s `rightContent` slot is used by the share button alongside any existing controls (e.g., `ViewToggle`).
 - **Error propagation:** Invalid slugs trigger `router.push('/report')` in the client component — no unhandled errors bubble to the layout shell. `useShare` catches `AbortError` silently; other share errors are logged but not surfaced in UI. `generateMetadata` wraps its Convex call in a `Promise.race` timeout and returns generic metadata on any failure — never throws.
 - **State lifecycle risks:** `isCopied` timer cleanup — if `ShareButton` unmounts before the 2 s timeout fires, a `useEffect` cleanup calling `clearTimeout` prevents setState-on-unmounted warnings. Covered in Unit 3.
-- **API surface parity:** `ShareButton` defaults to `window.location.href`, so it correctly shares whichever page it is rendered on without callers needing to construct or pass URLs.
+- **API surface parity:** `ShareButton` on `/report/[spot]` receives an explicit `url` prop with `?sport=` appended — callers are responsible for constructing the sport-scoped URL. `ShareButton` on `/report` (all-spots) uses `window.location.href` as the default, which carries no sport param. The `url` prop is optional; when omitted, `window.location.href` is used as a safe fallback.
 - **Integration coverage:** `toSpotSlug` must produce identical results whether called server-side in `generateMetadata` (Node.js) or client-side in `SpotReportContent` (browser). Unit 1 tests validate this determinism; NFD normalization is consistent across both environments.
 - **Unchanged invariants:** `/report` (all-spots view), `/[sport]/[filter]`, `/dashboard`, and all other existing routes are not modified in behavior. The BottomNav change is additive (extends a condition, does not replace any existing behavior).
 
@@ -375,6 +387,8 @@ graph TB
 | Web Share API absent on HTTP staging environments | Note in developer setup docs that share testing requires HTTPS or localhost |
 | `useShare` `isCopied` timer leaking on unmount | `useEffect` cleanup calls `clearTimeout`; covered by Unit 3 test scenario |
 | `pathname.startsWith('/report/')` catching an unintended future route | Two-condition form `=== '/report' \|\| startsWith('/report/')` is explicit; new routes under `/report/` belong to the Report tab by design |
+| `?sport=` param in URL reflects stale sport after user changes sport toggle | Accepted — `?sport=` is one-time initial state only; changing the toggle in-page does not update the URL. The URL remains accurate for the shared moment; subsequent navigation is the user's own state. |
+| `?sport=` param value not in `targetSpot.sports` (e.g. corrupted or manually edited URL) | Param is validated against `targetSpot.sports` before use; invalid value is silently ignored and falls through to localStorage → `sports[0]` priority chain |
 
 ## Sources & References
 
