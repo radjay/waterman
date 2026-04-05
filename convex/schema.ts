@@ -180,7 +180,7 @@ export default defineSchema({
         scrapeTimestamp: v.optional(v.number()), // Denormalized for query efficiency
     })
         .index("by_slot_sport", ["slotId", "sport"])
-        .index("by_spot_timestamp_sport", ["spotId", "timestamp", "sport"])
+        .index("by_spot_sport_timestamp", ["spotId", "sport", "timestamp"])
         .index("by_user_spot_sport", ["userId", "spotId", "sport"]),
     /**
      * System prompts for sport evaluation (shared across all spots).
