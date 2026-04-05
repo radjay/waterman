@@ -19,7 +19,7 @@ Together, they let a user share a direct link to any spot's forecast — or the 
 
 ## Problem Frame
 
-All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]` (sport-scoped, all spots). There is no way to share a URL that shows the forecast for a single specific spot. RAD-16 creates that URL surface; RAD-17 provides the UI to generate and share it.
+All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]` (sport-scoped, all spots). Filtering by both sport and spot requires changing your saved favourite spots — there is no transient way to look at just one spot's forecast and share it. RAD-16 creates the URL surface for a single-spot view; RAD-17 provides the share button; and a new spot-name navigation layer (R8) makes the filtered view discoverable directly from within the report.
 
 ## Requirements Trace
 
@@ -30,6 +30,7 @@ All forecast data currently lives at `/report` (all spots) or `/[sport]/[filter]
 - R7. On public forecast pages (`/report`, `/report/[spot]`, `/[sport]/[filter]`), the shared URL is the current page URL. On user-specific pages (`/dashboard`, `/journal`, `/settings`, etc.), the shared URL is the app homepage (`window.location.origin`).
 - R5. Invalid slugs (no matching spot) redirect to `/report` gracefully.
 - R6. `BottomNav` and `ViewToggle` correctly highlight the Report tab for all `/report/*` routes.
+- R8. Spot names in the report are tappable — tapping a spot navigates to `/report/[spot]?sport=currentSport`, giving a filtered sport+spot view without requiring the user to manage favourite spots.
 
 ## Scope Boundaries
 
@@ -162,11 +163,14 @@ graph TB
   U3[Unit 3: useShare hook + ShareButton]
   U4[Unit 4: Wire ShareButton into pages]
   U5[Unit 5: BottomNav / ViewToggle fix]
+  U6[Unit 6: Tappable spot names in report]
 
   U1 --> U2
+  U1 --> U6
   U2 --> U4
   U3 --> U4
   U2 --> U5
+  U2 --> U6
 ```
 
 ---
@@ -390,6 +394,42 @@ graph TB
 
 ---
 
+- [ ] **Unit 6: Tappable spot names in report**
+
+**Goal:** Make spot names in `DaySection` tappable so users can drill from the multi-spot report directly into a single-spot filtered view, without touching favourite spot settings.
+
+**Requirements:** R8
+
+**Dependencies:** Unit 1 (slug generation), Unit 2 (destination route must exist)
+
+**Files:**
+- Modify: `components/forecast/DaySection.js`
+- Test: `components/forecast/__tests__/DaySection.test.js`
+
+**Approach:**
+- In `DaySection`, the spot name heading (currently plain text or a static element) becomes a `<button>` or `<Link>` that navigates to `/report/${toSpotSlug(spot.name)}?sport=${activeSport}`.
+- Use Next.js `<Link>` for prefetching behaviour — not `router.push` — since the target is a known route.
+- The spot name should have a subtle affordance (underline on hover/focus, or a small link icon) to signal it is tappable without visually cluttering the forecast row.
+- `activeSport` is passed down from the parent page (it is already available in `HomeContent` and `[sport]/[filter]/page.js` as the current sport selection). `DaySection` receives it as a prop and uses it to construct the link.
+- On `/report/[spot]` (single-spot view), the spot name heading is NOT a link — there is nowhere further to drill down to.
+
+**Patterns to follow:**
+- `lib/spotSlug.js` (`toSpotSlug`) — already imported for link construction
+- `components/forecast/DaySection.js` — existing spot name rendering to wrap
+
+**Test scenarios:**
+- Happy path: spot name renders as a `<Link>` with `href="/report/carcavelos?sport=wingfoil"` when `activeSport="wingfoil"` and spot name is "Carcavelos"
+- Happy path: slug is correctly derived for accented names (e.g. "Nazaré" → `"nazare"`)
+- Edge case: on `/report/[spot]` (single-spot view), spot name is NOT a link
+- Edge case: `activeSport` is `undefined` — link omits the `?sport=` param rather than appending `?sport=undefined`
+
+**Verification:**
+- Tapping a spot name in `/report` or `/wing/best` navigates to the correct `/report/[spot]?sport=` URL.
+- Spot link is keyboard-focusable and has a visible focus state.
+- On `/report/[spot]`, the spot name is not a link.
+
+---
+
 ## System-Wide Impact
 
 - **Interaction graph:** `BottomNav` and `ViewToggle` are rendered on every page via `MainLayout` — the active-tab regex change in Unit 5 affects active-tab display globally. `Header`'s `rightContent` slot is used by the share button alongside any existing controls (e.g., `ViewToggle`).
@@ -397,6 +437,7 @@ graph TB
 - **State lifecycle risks:** `isCopied` timer cleanup — if `ShareButton` unmounts before the 2 s timeout fires, a `useEffect` cleanup calling `clearTimeout` prevents setState-on-unmounted warnings. Covered in Unit 3.
 - **API surface parity:** `ShareButton` on `/report/[spot]` receives an explicit `url` prop with `?sport=` appended — callers are responsible for constructing the sport-scoped URL. `ShareButton` on `/report` (all-spots) uses `window.location.href` as the default, which carries no sport param. The `url` prop is optional; when omitted, `window.location.href` is used as a safe fallback.
 - **Integration coverage:** `toSpotSlug` must produce identical results whether called server-side in `generateMetadata` (Node.js) or client-side in `SpotReportContent` (browser). Unit 1 tests validate this determinism; NFD normalization is consistent across both environments.
+- **`DaySection` receives a new prop:** `activeSport` must be threaded down from every parent that renders `DaySection` (`HomeContent`, `[sport]/[filter]/page.js`, `report/[spot]/page.js`). On the spot page, spot names are rendered as plain text; on all other report pages, they are `<Link>` elements. This is a prop addition to an existing component — no change to rendering logic.
 - **Unchanged invariants:** `/report` (all-spots view), `/[sport]/[filter]`, `/dashboard`, and all other existing routes are not modified in behavior. The BottomNav change is additive (extends a condition, does not replace any existing behavior).
 
 ## Risks & Dependencies
