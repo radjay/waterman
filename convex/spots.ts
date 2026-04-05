@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
+import { asyncMap } from "convex-helpers";
 import Groq from "groq-sdk";
 import { buildPrompt, buildBatchPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
 import SunCalc from "suncalc";
@@ -1509,18 +1510,31 @@ export const getConditionScores = query({
         spotId: v.id("spots"),
         sport: v.optional(v.string()),
         userId: v.optional(v.string()),
+        cutoffTimestamp: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        let query = ctx.db
-            .query("condition_scores")
-            .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", args.spotId));
+        // Default to 7-day cutoff to prevent unbounded query growth.
+        // Callers can pass a custom cutoffTimestamp (or 0 to disable).
+        const cutoff = args.cutoffTimestamp ?? (Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        const scores = await query.collect();
-
-        // Filter by sport if provided
-        let filtered = scores;
+        let filtered;
         if (args.sport) {
-            filtered = filtered.filter(s => s.sport === args.sport);
+            // Full index pushdown: spotId + sport + timestamp range
+            filtered = await ctx.db
+                .query("condition_scores")
+                .withIndex("by_spot_sport_timestamp", (q) =>
+                    q.eq("spotId", args.spotId).eq("sport", args.sport!).gte("timestamp", cutoff)
+                )
+                .collect();
+        } else {
+            // No sport filter — use spotId prefix only and apply cutoff as post-index filter
+            const scores = await ctx.db
+                .query("condition_scores")
+                .withIndex("by_spot_sport_timestamp", (q) =>
+                    q.eq("spotId", args.spotId)
+                )
+                .collect();
+            filtered = scores.filter((s) => s.timestamp >= cutoff);
         }
 
         // When userId is provided, return personalized scores with system fallback
@@ -1563,9 +1577,6 @@ export const getConditionScores = query({
             }
             return Array.from(scoresByTimestamp.values()).sort((a, b) => a.timestamp - b.timestamp);
         }
-
-        // Sort by timestamp
-        return filtered.sort((a, b) => a.timestamp - b.timestamp);
     },
 });
 
@@ -1987,16 +1998,13 @@ async function _getConditionScoresForSpot(
     // Only read scores from the last 7 days to limit document reads
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-    // Use compound index and filter by timestamp range + sport
-    const scores = await ctx.db
+    // Use compound index for full pushdown: spotId + sport + timestamp range
+    const filtered = await ctx.db
         .query("condition_scores")
-        .withIndex("by_spot_timestamp_sport", (q: any) =>
-            q.eq("spotId", spotId).gte("timestamp", cutoff)
+        .withIndex("by_spot_sport_timestamp", (q: any) =>
+            q.eq("spotId", spotId).eq("sport", sport).gte("timestamp", cutoff)
         )
         .collect();
-
-    // Filter by sport in memory (index has timestamp before sport)
-    const filtered = scores.filter((s: any) => s.sport === sport);
 
     if (userId !== undefined) {
         const personalizedScores = filtered.filter((s: any) => s.userId === userId);
@@ -2042,44 +2050,45 @@ export const getDashboardData = query({
         userId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const result: Record<string, any> = {};
+        const entries = await asyncMap(args.spotIds, async (spotId) => {
+            // Fetch slots and the spot record in parallel
+            const [slots, spot] = await Promise.all([
+                _getForecastSlotsForSpot(ctx, spotId),
+                ctx.db.get(spotId),
+            ]);
 
-        for (const spotId of args.spotIds) {
-            const slots = await _getForecastSlotsForSpot(ctx, spotId);
-
-            // Get spot to determine its sports
-            const spot = await ctx.db.get(spotId);
             const spotSports = spot?.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
             const relevantSports = spotSports.filter((s: string) => args.sports.includes(s));
 
-            // Fetch configs for each relevant sport
-            const configs: Record<string, any> = {};
-            for (const sport of relevantSports) {
-                const config = await ctx.db
-                    .query("spotConfigs")
-                    .filter((q: any) =>
-                        q.and(
-                            q.eq(q.field("spotId"), spotId),
-                            q.eq(q.field("sport"), sport)
+            // Fetch configs and scores for all relevant sports in parallel
+            const [configValues, scoreArrays] = await Promise.all([
+                asyncMap(relevantSports, (sport: string) =>
+                    ctx.db
+                        .query("spotConfigs")
+                        .withIndex("by_spot_sport", (q: any) =>
+                            q.eq("spotId", spotId).eq("sport", sport)
                         )
-                    )
-                    .first();
-                configs[sport] = config;
-            }
+                        .first()
+                ),
+                asyncMap(relevantSports, (sport: string) =>
+                    _getConditionScoresForSpot(ctx, spotId, sport, args.userId)
+                ),
+            ]);
 
-            // Fetch scores for each relevant sport, build scoresMap
+            const configs: Record<string, any> = {};
             const scoresMap: Record<string, any> = {};
-            for (const sport of relevantSports) {
-                const scores = await _getConditionScoresForSpot(ctx, spotId, sport, args.userId);
-                for (const score of scores) {
+            for (let i = 0; i < relevantSports.length; i++) {
+                const sport = relevantSports[i];
+                configs[sport] = configValues[i];
+                for (const score of scoreArrays[i]) {
                     scoresMap[`${score.timestamp}_${sport}`] = score;
                 }
             }
 
-            result[spotId] = { slots, configs, scoresMap };
-        }
+            return [spotId, { slots, configs, scoresMap }] as const;
+        });
 
-        return result;
+        return Object.fromEntries(entries);
     },
 });
 
@@ -2103,53 +2112,58 @@ export const getReportData = query({
             return args.sports.some((sport: string) => spotSports.includes(sport));
         });
 
-        const data: Record<string, any> = {};
+        // Fetch per-spot data and most recent scrape timestamp in parallel
+        const [spotEntries, mostRecentScrape] = await Promise.all([
+            asyncMap(filteredSpots, async (spot: any) => {
+                const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
+                const relevantSports = spotSports.filter((s: string) => args.sports.includes(s));
 
-        for (const spot of filteredSpots) {
-            const spotSports = spot.sports && spot.sports.length > 0 ? spot.sports : ["wingfoil"];
-            const relevantSports = spotSports.filter((s: string) => args.sports.includes(s));
+                // Slots and tides in parallel
+                const [slots, tides] = await Promise.all([
+                    _getForecastSlotsForSpot(ctx, spot._id),
+                    ctx.db
+                        .query("tides")
+                        .withIndex("by_spot", (q: any) => q.eq("spotId", spot._id))
+                        .collect(),
+                ]);
 
-            const slots = await _getForecastSlotsForSpot(ctx, spot._id);
+                // Configs and scores for all relevant sports in parallel
+                const [configValues, scoreArrays] = await Promise.all([
+                    asyncMap(relevantSports, (sport: string) =>
+                        ctx.db
+                            .query("spotConfigs")
+                            .withIndex("by_spot_sport", (q: any) =>
+                                q.eq("spotId", spot._id).eq("sport", sport)
+                            )
+                            .first()
+                    ),
+                    asyncMap(relevantSports, (sport: string) =>
+                        _getConditionScoresForSpot(ctx, spot._id, sport, args.userId)
+                    ),
+                ]);
 
-            // Configs
-            const configs: Record<string, any> = {};
-            for (const sport of relevantSports) {
-                const config = await ctx.db
-                    .query("spotConfigs")
-                    .filter((q: any) =>
-                        q.and(
-                            q.eq(q.field("spotId"), spot._id),
-                            q.eq(q.field("sport"), sport)
-                        )
-                    )
-                    .first();
-                configs[sport] = config;
-            }
-
-            // Scores
-            const scoresMap: Record<string, any> = {};
-            for (const sport of relevantSports) {
-                const scores = await _getConditionScoresForSpot(ctx, spot._id, sport, args.userId);
-                for (const score of scores) {
-                    scoresMap[`${score.timestamp}_${sport}`] = score;
+                const configs: Record<string, any> = {};
+                const scoresMap: Record<string, any> = {};
+                for (let i = 0; i < relevantSports.length; i++) {
+                    const sport = relevantSports[i];
+                    configs[sport] = configValues[i];
+                    for (const score of scoreArrays[i]) {
+                        scoresMap[`${score.timestamp}_${sport}`] = score;
+                    }
                 }
-            }
 
-            // Tides
-            const tides = await ctx.db
-                .query("tides")
-                .withIndex("by_spot", (q: any) => q.eq("spotId", spot._id))
-                .collect();
+                return [spot._id, { slots, configs, scoresMap, tides: tides.sort((a: any, b: any) => a.time - b.time) }] as const;
+            }),
+            // Use index to find most recent successful scrape — avoids full table scan
+            ctx.db
+                .query("scrapes")
+                .withIndex("by_success_timestamp", (q: any) => q.eq("isSuccessful", true))
+                .order("desc")
+                .first(),
+        ]);
 
-            data[spot._id] = { slots, configs, scoresMap, tides: tides.sort((a: any, b: any) => a.time - b.time) };
-        }
-
-        // Get most recent scrape timestamp
-        const allScrapes = await ctx.db.query("scrapes").collect();
-        const successfulScrapes = allScrapes.filter((s: any) => s.isSuccessful);
-        const mostRecentScrapeTimestamp = successfulScrapes.length > 0
-            ? Math.max(...successfulScrapes.map((s: any) => s.scrapeTimestamp))
-            : null;
+        const data = Object.fromEntries(spotEntries);
+        const mostRecentScrapeTimestamp = mostRecentScrape?.scrapeTimestamp ?? null;
 
         return { spots: filteredSpots, data, mostRecentScrapeTimestamp };
     },

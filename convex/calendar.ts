@@ -141,20 +141,18 @@ export const getSportFeed = query({
         // then filter by sport in memory
         const relevantScores: Doc<"condition_scores">[] = [];
         for (const spotId of targetSpotIds) {
-            // Use indexed query to get scores for this spot in the time range
-            // We can't filter by sport in the index query since it comes after timestamp,
-            // so we'll filter in memory
-            const spotScores = await ctx.db
+            // Use indexed query to get scores for this spot in the time range.
+            // Index is ["spotId", "sport", "timestamp"], so we can push sport equality
+            // and timestamp range down to the database — no in-memory filtering needed.
+            const sportScores = await ctx.db
                 .query("condition_scores")
-                .withIndex("by_spot_timestamp_sport", (q) =>
+                .withIndex("by_spot_sport_timestamp", (q) =>
                     q.eq("spotId", spotId)
+                     .eq("sport", args.sport)
                      .gte("timestamp", now)
                      .lte("timestamp", sevenDaysFromNow)
                 )
                 .collect();
-            
-            // Filter by sport first
-            const sportScores = spotScores.filter(score => score.sport === args.sport);
             
             // Use personalized scores if enabled, otherwise system scores only
             let filtered: Doc<"condition_scores">[];
