@@ -1,4 +1,5 @@
 import './globals.css'
+import { Suspense } from 'react'
 import { ConvexProvider } from '../components/ConvexProvider'
 import { AuthProvider } from '../components/auth/AuthProvider'
 export const metadata = {
@@ -21,11 +22,13 @@ export default function RootLayout({ children }) {
             <head>
             </head>
             <body className="overflow-x-hidden">
-                <ConvexProvider>
-                    <AuthProvider>
-                        {children}
-                    </AuthProvider>
-                </ConvexProvider>
+                <Suspense>
+                    <ConvexProvider>
+                        <AuthProvider>
+                            {children}
+                        </AuthProvider>
+                    </ConvexProvider>
+                </Suspense>
             </body>
         </html>
     )

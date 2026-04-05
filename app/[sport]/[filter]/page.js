@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
 import { MainLayout } from "../../../components/layout/MainLayout";
 import { Header } from "../../../components/layout/Header";
 import { Loader } from "../../../components/common/Loader";
