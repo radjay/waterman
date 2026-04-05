@@ -1,20 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-/** Inlined from convex-helpers to avoid bundler resolution issues. */
-async function asyncMap<T, U>(
-    list: T[] | Promise<T[]>,
-    asyncTransform: (item: T, index: number) => Promise<U>
-): Promise<U[]> {
-    const promises: Promise<U>[] = [];
-    let index = 0;
-    const resolved = await list;
-    for (const item of resolved) {
-        promises.push(asyncTransform(item, index));
-        index += 1;
-    }
-    return Promise.all(promises);
-}
+import { asyncMap } from "convex-helpers";
 import Groq from "groq-sdk";
 import { buildPrompt, buildBatchPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
 import SunCalc from "suncalc";
