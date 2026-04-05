@@ -68,7 +68,7 @@ export default function DashboardPage() {
         // Single call: server resolves which spots to show (favorites via userId,
         // explicit IDs for anonymous users, or top 10 as fallback).
         const dashboardResult = await client.query(api.spots.getDashboardData, {
-          spotIds: !user && localFavoriteIds.length > 0 ? localFavoriteIds : undefined,
+          spotIds: !user && localFavoriteIds.length > 0 ? localFavoriteIds : [],
           sports: userSports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
