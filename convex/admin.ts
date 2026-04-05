@@ -242,7 +242,7 @@ export const deleteSpot = mutation({
     // 6. Delete condition scores
     const scores = await ctx.db
       .query("condition_scores")
-      .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", args.spotId))
+      .withIndex("by_spot_sport_timestamp", q => q.eq("spotId", args.spotId))
       .collect();
     for (const score of scores) {
       await ctx.db.delete(score._id);
@@ -621,7 +621,7 @@ export const getKPIs = query({
       // Get recent scores for this spot (limit to last 100 to avoid reading too many)
       const spotScores = await ctx.db
         .query("condition_scores")
-        .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", spot._id))
+        .withIndex("by_spot_sport_timestamp", q => q.eq("spotId", spot._id))
         .order("desc")
         .take(100);
       
@@ -653,7 +653,7 @@ export const getKPIs = query({
       // Get recent scores for this spot (limit to last 200 to avoid reading too many)
       const spotScores = await ctx.db
         .query("condition_scores")
-        .withIndex("by_spot_timestamp_sport", q => q.eq("spotId", spot._id))
+        .withIndex("by_spot_sport_timestamp", q => q.eq("spotId", spot._id))
         .order("desc")
         .take(200);
       
