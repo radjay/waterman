@@ -72,6 +72,7 @@ export function BottomNav() {
                 {isActive && (
                   <motion.div
                     layoutId="bottom-nav-pill"
+                    initial={false}
                     className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
                     transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                   />

@@ -331,7 +331,7 @@ export default function DashboardContent({ initialData = null }) {
       .map(([day, slots]) => ({
         day,
         slots: slots
-          .sort((a, b) => (b.score?.value || 0) - (a.score?.value || 0))
+          .sort((a, b) => a.timestamp - b.timestamp)
           .slice(0, 3),
       }));
 

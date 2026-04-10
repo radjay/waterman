@@ -124,50 +124,40 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
     );
   }
 
-  // Collapsed: sticky pill overlapping with date headers.
-  // Uses Fragment so the sticky div is a direct child of the page container,
-  // allowing it to stick for the full scroll range (not limited by a small wrapper).
-  // h-10 + -mb-10 = zero net vertical space, so content flows behind the pill.
-  // pointer-events-none on wrapper lets date headers underneath remain clickable.
+  // Collapsed: filter pill sits above content in a row, with optional actions to its left.
   return (
-    <>
-      {actions && (
-        <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
-          {actions}
-        </div>
-      )}
-      <div className="sticky top-0 md:top-[50px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
-        <motion.div
-          layoutId="filter-morph"
-          className="rounded-full bg-ink/[0.05] overflow-hidden pointer-events-auto"
-          transition={MORPH_TRANSITION}
+    <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
+      {actions}
+      <motion.div
+        layoutId="filter-morph"
+        className="rounded-full bg-ink/[0.05] overflow-hidden"
+        transition={MORPH_TRANSITION}
+      >
+        <button
+          onClick={toggle}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
+          aria-expanded={false}
         >
-          <button
-            onClick={toggle}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-            aria-expanded={false}
-          >
-            <SlidersHorizontal size={14} strokeWidth={2} />
-            {/* Collapsed: show active filter labels as mini pills */}
-            {activeFilters.length > 0 ? (
-              <span className="flex items-center gap-1">
-                {activeFilters.map((label, i) => (
-                  <span
-                    key={i}
-                    className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </span>
-            ) : (
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                Filters
-              </span>
-            )}
-          </button>
-        </motion.div>
-      </div>
-    </>
+          <SlidersHorizontal size={14} strokeWidth={2} />
+          {/* Collapsed: show active filter labels as mini pills */}
+          {activeFilters.length > 0 ? (
+            <span className="flex items-center gap-1">
+              {activeFilters.map((label, i) => (
+                <span
+                  key={i}
+                  className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
+                >
+                  {label}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Filters
+            </span>
+          )}
+        </button>
+      </motion.div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Share2, Check } from "lucide-react";
+import { Share, Check } from "lucide-react";
 import { Button } from "./Button";
 import { useShare } from "../../hooks/useShare";
 
@@ -27,7 +27,7 @@ export function ShareButton({ url, title, className = "" }) {
       aria-label={copied ? "Link copied" : "Share"}
       className={className}
     >
-      {copied ? <Check size={16} /> : <Share2 size={16} />}
+      {copied ? <Check size={16} /> : <Share size={16} />}
     </Button>
   );
 }

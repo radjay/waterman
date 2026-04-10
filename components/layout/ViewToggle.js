@@ -60,6 +60,7 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
             {isActive && (
               <motion.div
                 layoutId="nav-tab"
+                initial={false}
                 className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
                 transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
               />
