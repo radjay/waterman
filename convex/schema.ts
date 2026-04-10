@@ -129,6 +129,27 @@ export default defineSchema({
       .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"])
       .index("by_spot_timestamp", ["spotId", "timestamp"]),
     /**
+     * Archived forecast slots for historical analysis.
+     * Old slots (>48h) are moved here from forecast_slots after each scrape.
+     * Not read by the app -- only for offline analysis of forecast evolution.
+     */
+    forecast_slots_archive: defineTable({
+        spotId: v.id("spots"),
+        timestamp: v.number(),
+        scrapeTimestamp: v.optional(v.number()),
+        speed: v.number(),
+        gust: v.number(),
+        direction: v.number(),
+        waveHeight: v.optional(v.number()),
+        wavePeriod: v.optional(v.number()),
+        waveDirection: v.optional(v.number()),
+        tideHeight: v.optional(v.number()),
+        tideType: v.optional(v.string()),
+        tideTime: v.optional(v.number()),
+        archivedAt: v.number(),
+    }).index("by_spot", ["spotId"])
+      .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"]),
+    /**
      * Tide events - high and low tides for each spot.
      * Stored separately from forecast slots since tides rarely occur at exact slot times.
      * Each tide event has its own timestamp.

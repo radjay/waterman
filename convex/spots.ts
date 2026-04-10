@@ -200,6 +200,24 @@ export const saveForecastSlots = mutation({
             }
         }
 
+        // Archive old forecast slots (>48h) to history table
+        const archiveCutoff = Date.now() - 48 * 60 * 60 * 1000;
+        const oldSlots = await ctx.db
+            .query("forecast_slots")
+            .withIndex("by_spot_and_scrape_timestamp", (q: any) =>
+                q.eq("spotId", args.spotId).lt("scrapeTimestamp", archiveCutoff)
+            )
+            .collect();
+
+        if (oldSlots.length > 0) {
+            const archivedAt = Date.now();
+            for (const slot of oldSlots) {
+                const { _id, _creationTime, ...fields } = slot;
+                await ctx.db.insert("forecast_slots_archive", { ...fields, archivedAt });
+                await ctx.db.delete(slot._id);
+            }
+        }
+
         // Trigger scoring actions (fire-and-forget, non-blocking)
         if (isSuccessful && slotIds.length > 0) {
             // Get the spot to know which sports it supports
@@ -1380,7 +1398,7 @@ export const scoreForecastSlots = action({
         }
 
         const total = successCount + failureCount;
-        console.log(`Batch scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed (from ${args.slotIds.length} total slots)`);
+        console.log(`Batch scoring complete: ${successCount}/${total} successful, ${failureCount}/${total} failed (${args.slotIds.length} slots x ${sports.length} sports)`);
 
         return {
             successCount,
@@ -1847,19 +1865,28 @@ async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
 
     if (slotScrapeTimestamps.length === 0) return allSlots;
 
-    const successfulScrapes = await ctx.db
-        .query("scrapes")
-        .withIndex("by_spot_and_timestamp", (q: any) => q.eq("spotId", spotId))
-        .filter((q: any) => q.eq(q.field("isSuccessful"), true))
-        .collect();
-
+    // Find the target scrape timestamp efficiently using point lookups
+    // instead of collecting ALL scrapes for this spot.
+    // Check scrape timestamps from slots in descending order until we find a successful one.
+    const sortedScrapeTimestamps = [...slotScrapeTimestamps].sort((a, b) => b - a);
     let targetScrapeTimestamp: number | null = null;
 
-    if (successfulScrapes.length > 0) {
-        const lastSuccessfulTimestamp = Math.max(...successfulScrapes.map((s: any) => s.scrapeTimestamp));
-        targetScrapeTimestamp = Math.max(lastSuccessfulTimestamp, ...slotScrapeTimestamps);
-    } else {
-        targetScrapeTimestamp = Math.max(...slotScrapeTimestamps);
+    for (const ts of sortedScrapeTimestamps) {
+        const scrape = await ctx.db
+            .query("scrapes")
+            .withIndex("by_spot_and_timestamp", (q: any) =>
+                q.eq("spotId", spotId).eq("scrapeTimestamp", ts)
+            )
+            .first();
+        if (scrape && scrape.isSuccessful) {
+            targetScrapeTimestamp = ts;
+            break;
+        }
+    }
+
+    // Fall back to max slot timestamp if no successful scrape found
+    if (targetScrapeTimestamp === null) {
+        targetScrapeTimestamp = sortedScrapeTimestamps[0] ?? null;
     }
 
     if (targetScrapeTimestamp === null) return [];
@@ -1895,16 +1922,16 @@ async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
 /**
  * Get condition scores for a single spot and sport.
  * Optimized to limit document reads by filtering on timestamp range.
- * Only reads scores from the last 7 days to stay within Convex read limits.
+ * Reads scores within a configurable window (default 7 days, 2 days for dashboard/cams).
  */
 async function _getConditionScoresForSpot(
     ctx: any,
     spotId: Id<"spots">,
     sport: string,
-    userId?: string
+    userId?: string,
+    cutoffDays: number = 7
 ) {
-    // Only read scores from the last 7 days to limit document reads
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - cutoffDays * 24 * 60 * 60 * 1000;
 
     // Use compound index for full pushdown: spotId + sport + timestamp range
     const filtered = await ctx.db
@@ -1969,7 +1996,7 @@ async function _buildSpotData(
                 .first()
         ),
         asyncMap(relevantSports, (sport: string) =>
-            _getConditionScoresForSpot(ctx, spot._id, sport, userId)
+            _getConditionScoresForSpot(ctx, spot._id, sport, userId, 2)
         ),
     ]);
 
@@ -2120,7 +2147,11 @@ export const getReportData = query({
                     _getForecastSlotsForSpot(ctx, spot._id),
                     ctx.db
                         .query("tides")
-                        .withIndex("by_spot", (q: any) => q.eq("spotId", spot._id))
+                        .withIndex("by_spot_time", (q: any) =>
+                            q.eq("spotId", spot._id)
+                                .gte("time", Date.now() - 24 * 60 * 60 * 1000)
+                                .lte("time", Date.now() + 10 * 24 * 60 * 60 * 1000)
+                        )
                         .collect(),
                 ]);
 
