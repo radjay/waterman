@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Home, List, Video, BookOpen, MoreHorizontal } from "lucide-react";
-import { motion } from "framer-motion";
 import { MobileMenu } from "./MobileMenu";
+
+const PILL_TRANSITION = "left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1)";
 
 const tabs = [
   { id: "home", label: "Home", icon: Home, path: "/dashboard" },
@@ -17,11 +18,9 @@ const tabs = [
 
 /**
  * BottomNav — floating pill-shaped bottom tab bar for mobile.
- * Matches the desktop ViewToggle pill aesthetic.
- * Hidden on md+ (desktop uses ViewToggle in the header).
  *
- * The pill is always rendered (never conditionally mounted) and animated
- * via measured positions to avoid entrance animations from the bottom.
+ * Uses direct DOM manipulation + CSS transitions instead of Framer Motion
+ * to avoid mount/unmount animation issues.
  */
 export function BottomNav() {
   const pathname = usePathname();
@@ -29,87 +28,77 @@ export function BottomNav() {
   const [optimisticTab, setOptimisticTab] = useState(null);
   const tabRefs = useRef({});
   const barRef = useRef(null);
-  const [pillStyle, setPillStyle] = useState(null);
+  const pillRef = useRef(null);
+  const hasMounted = useRef(false);
 
   const getActiveTab = (p) => {
     if (p === "/" || p === "/dashboard") return "home";
-    if (
-      p === "/report" ||
-      p?.startsWith("/report/") ||
-      p?.match(/^\/(wing|kite|surf)/)
-    )
+    if (p === "/report" || p?.startsWith("/report/") || p?.match(/^\/(wing|kite|surf)/))
       return "report";
     if (p?.startsWith("/cams")) return "cams";
     if (p?.startsWith("/journal")) return "journal";
-    // Calendar, settings, profile etc. highlight "more"
     if (p?.startsWith("/calendar")) return "more";
     if (p?.startsWith("/settings")) return "more";
     if (p?.startsWith("/profile")) return "more";
     return "home";
   };
 
-  // Clear optimistic state once navigation completes
   useEffect(() => {
     setOptimisticTab(null);
   }, [pathname]);
 
   const activeTab = optimisticTab || getActiveTab(pathname);
 
-  // Measure the active tab and update pill position
-  const measurePill = useCallback(() => {
+  const positionPill = useCallback(() => {
     const el = tabRefs.current[activeTab];
     const bar = barRef.current;
-    if (el && bar) {
-      const barRect = bar.getBoundingClientRect();
-      const tabRect = el.getBoundingClientRect();
-      setPillStyle({
-        left: tabRect.left - barRect.left,
-        width: tabRect.width,
-      });
+    const pill = pillRef.current;
+    if (!el || !bar || !pill) return;
+
+    const barRect = bar.getBoundingClientRect();
+    const tabRect = el.getBoundingClientRect();
+
+    pill.style.transition = hasMounted.current ? PILL_TRANSITION : "none";
+    pill.style.left = `${tabRect.left - barRect.left}px`;
+    pill.style.width = `${tabRect.width}px`;
+    pill.style.opacity = "1";
+
+    if (!hasMounted.current) {
+      hasMounted.current = true;
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    measurePill();
-  }, [measurePill]);
+  useLayoutEffect(() => {
+    positionPill();
+  }, [positionPill]);
 
   useEffect(() => {
-    window.addEventListener("resize", measurePill);
-    return () => window.removeEventListener("resize", measurePill);
-  }, [measurePill]);
+    window.addEventListener("resize", positionPill);
+    return () => window.removeEventListener("resize", positionPill);
+  }, [positionPill]);
 
-  // Don't show on admin, auth, onboarding, or other non-main pages
   const hiddenPaths = ["/admin", "/auth", "/ui-kit", "/subscribe", "/request-spot", "/changelog"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
 
   return (
     <>
-      {/* Mobile menu panel — controlled by BottomNav */}
       <MobileMenu isOpen={menuOpen} onOpenChange={setMenuOpen} />
 
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 28px)" }}
       >
-        {/* Gradient fade so content doesn't peek through */}
         <div className="absolute inset-x-0 bottom-0 h-full pointer-events-none bg-gradient-to-t from-newsprint via-newsprint/80 to-transparent" />
         <div
           ref={barRef}
           className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]"
         >
-          {/* Always-rendered sliding pill — never unmounts.
-              Vertical position is pure CSS to avoid Framer Motion y-transform on mount. */}
-          {pillStyle && (
-            <motion.div
-              className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
-              initial={false}
-              animate={{
-                left: pillStyle.left,
-                width: pillStyle.width,
-              }}
-              transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-            />
-          )}
+          {/* Always-rendered pill */}
+          <div
+            ref={pillRef}
+            className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
+            style={{ opacity: 0 }}
+          />
 
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;

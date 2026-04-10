@@ -1,25 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Calendar, List, Video, BookOpen, Home } from "lucide-react";
-import { motion } from "framer-motion";
+
+const PILL_TRANSITION = "left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1)";
 
 /**
  * ViewToggle — main navigation bar with animated sliding pill indicator.
- * Full-width on desktop with nav tabs left-aligned and optional right-side content.
- * Icons-only on mobile, icons + text labels on md+.
  *
- * The pill is always rendered (never conditionally mounted) and animated
- * via measured positions to avoid entrance animations from the bottom.
+ * Uses direct DOM manipulation + CSS transitions instead of Framer Motion
+ * to avoid mount/unmount animation issues during page navigation.
+ * The pill is always rendered and positioned via useLayoutEffect (before paint).
  */
 export function ViewToggle({ compact = false, rightContent, className = "" }) {
   const pathname = usePathname();
   const [optimisticTab, setOptimisticTab] = useState(null);
   const tabRefs = useRef({});
   const navRef = useRef(null);
-  const [pillStyle, setPillStyle] = useState(null);
+  const pillRef = useRef(null);
+  const hasMounted = useRef(false);
 
   // Clear optimistic state once navigation completes
   useEffect(() => {
@@ -31,7 +32,6 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
     if (p === "/calendar") return "calendar";
     if (p === "/cams") return "cams";
     if (p?.startsWith("/journal")) return "journal";
-    // Fallback: report is active for /report, /, and anything not explicitly matched above (except /ui-kit)
     if (p === "/report" || p === "/" || (p !== "/ui-kit")) return "report";
     return null;
   };
@@ -46,49 +46,49 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
     { id: "calendar", label: "Calendar", icon: Calendar, path: "/calendar" },
   ];
 
-  // Measure the active tab and update pill position
-  const measurePill = useCallback(() => {
+  // Position the pill directly on the DOM — runs before paint via useLayoutEffect.
+  // No React state involved, so no re-render or Framer Motion mount animation.
+  const positionPill = useCallback(() => {
     const el = tabRefs.current[activeTabId];
     const nav = navRef.current;
-    if (el && nav) {
-      const navRect = nav.getBoundingClientRect();
-      const tabRect = el.getBoundingClientRect();
-      setPillStyle({
-        left: tabRect.left - navRect.left,
-        width: tabRect.width,
-      });
+    const pill = pillRef.current;
+    if (!el || !nav || !pill) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const tabRect = el.getBoundingClientRect();
+
+    // First measurement after mount: no transition (appear instantly)
+    pill.style.transition = hasMounted.current ? PILL_TRANSITION : "none";
+    pill.style.left = `${tabRect.left - navRect.left}px`;
+    pill.style.width = `${tabRect.width}px`;
+    pill.style.opacity = "1";
+
+    // After first paint, enable transitions for future changes
+    if (!hasMounted.current) {
+      hasMounted.current = true;
     }
   }, [activeTabId]);
 
-  useEffect(() => {
-    measurePill();
-  }, [measurePill, compact]);
+  useLayoutEffect(() => {
+    positionPill();
+  }, [positionPill, compact]);
 
-  // Re-measure on window resize (font/layout may shift)
   useEffect(() => {
-    window.addEventListener("resize", measurePill);
-    return () => window.removeEventListener("resize", measurePill);
-  }, [measurePill]);
+    window.addEventListener("resize", positionPill);
+    return () => window.removeEventListener("resize", positionPill);
+  }, [positionPill]);
 
   return (
     <nav
       ref={navRef}
       className={`relative flex items-center gap-0.5 p-1 bg-ink/[0.04] rounded-full ${className}`}
     >
-      {/* Always-rendered sliding pill — never unmounts.
-          Vertical position is pure CSS (top/bottom) to avoid Framer Motion
-          animating the y-transform on mount. Only left/width are animated. */}
-      {pillStyle && (
-        <motion.div
-          className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
-          initial={false}
-          animate={{
-            left: pillStyle.left,
-            width: pillStyle.width,
-          }}
-          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-        />
-      )}
+      {/* Always-rendered pill — positioned via DOM, animated via CSS transition */}
+      <div
+        ref={pillRef}
+        className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
+        style={{ opacity: 0 }}
+      />
 
       {tabs.map((tab) => {
         const isActive = activeTabId === tab.id;
@@ -122,7 +122,6 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
         );
       })}
 
-      {/* Spacer + right content (e.g. Sign In) */}
       {rightContent && (
         <>
           <div className="flex-1" />
