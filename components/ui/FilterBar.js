@@ -17,7 +17,7 @@ const STORAGE_KEY = "waterman_filters_expanded";
  *
  * @param {string[]} activeFilters - labels to show when collapsed (e.g. ["Wing", "Best"])
  */
-export function FilterBar({ children, actions, activeFilters = [], className = "" }) {
+export function FilterBar({ children, actions, activeFilters = [], stickyOverlay = false, className = "" }) {
   const [expanded, setExpanded] = useState(null);
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -110,44 +110,56 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
     );
   }
 
-  // Collapsed: sticky pill that overlaps with the day header row.
-  // h-12 + -mb-12 = zero net vertical space so content flows behind the pill.
-  // pointer-events-none on wrapper lets elements underneath remain clickable.
-  // Actions (e.g. New Session on journal) sit above in their own row.
+  // Collapsed filter pill.
+  // stickyOverlay=true: overlaps with day headers (zero vertical space via h-12 -mb-12).
+  // stickyOverlay=false: sits in normal flow above content.
+  const filterPill = (
+    <div className="rounded-full bg-ink/[0.05] overflow-hidden pointer-events-auto">
+      <button
+        onClick={toggle}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
+        aria-expanded={false}
+      >
+        <SlidersHorizontal size={14} strokeWidth={2} />
+        {activeFilters.length > 0 ? (
+          <span className="flex items-center gap-1">
+            {activeFilters.map((label, i) => (
+              <span
+                key={i}
+                className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
+              >
+                {label}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="text-xs font-semibold uppercase tracking-wider">
+            Filters
+          </span>
+        )}
+      </button>
+    </div>
+  );
+
+  if (stickyOverlay) {
+    return (
+      <>
+        {actions && (
+          <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
+            {actions}
+          </div>
+        )}
+        <div className="sticky top-0 md:top-[50px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
+          {filterPill}
+        </div>
+      </>
+    );
+  }
+
   return (
-    <>
-      {actions && (
-        <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
-          {actions}
-        </div>
-      )}
-      <div className="sticky top-0 md:top-[50px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
-        <div className="rounded-full bg-ink/[0.05] overflow-hidden pointer-events-auto">
-          <button
-            onClick={toggle}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-            aria-expanded={false}
-          >
-            <SlidersHorizontal size={14} strokeWidth={2} />
-            {activeFilters.length > 0 ? (
-              <span className="flex items-center gap-1">
-                {activeFilters.map((label, i) => (
-                  <span
-                    key={i}
-                    className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </span>
-            ) : (
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                Filters
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-    </>
+    <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
+      {actions}
+      {filterPill}
+    </div>
   );
 }

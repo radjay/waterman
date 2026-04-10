@@ -397,7 +397,7 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
         <Header />
 
         {/* Filters — "set and forget" */}
-        <FilterBar activeFilters={[
+        <FilterBar stickyOverlay activeFilters={[
           // RAD-22: Show sport labels for active selections (or "All" if none)
           ...(sportOverrideActive && urlSportOverride
             ? [{ wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[urlSportOverride] || urlSportOverride]
