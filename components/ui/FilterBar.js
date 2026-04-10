@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { ShareButton } from "./ShareButton";
 
 const STORAGE_KEY = "waterman_filters_expanded";
 
@@ -57,9 +58,10 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
   if (expanded) {
     return (
       <div className={className}>
-        {actions && (
+        {(actions || true) && (
           <div className="flex items-center justify-end gap-3 pt-3 pb-2">
             {actions}
+            <ShareButton className="md:hidden h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth" />
           </div>
         )}
 
@@ -125,9 +127,11 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
   }
 
   // Collapsed: filter pill sits above content in a row, with optional actions to its left.
+  // On mobile, a share button is shown to the left of the filter pill.
   return (
     <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
       {actions}
+      <ShareButton className="md:hidden h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth" />
       <motion.div
         layoutId="filter-morph"
         className="rounded-full bg-ink/[0.05] overflow-hidden"

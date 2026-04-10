@@ -122,14 +122,6 @@ export function Header({ className = "" }) {
         <div className="md:hidden border-b border-ink/10" />
       </motion.div>
 
-      {/* ── Mobile share bar — thin row with share button, all pages ── */}
-      {/* Desktop uses the nav bar below; this targets mobile only. */}
-      {shareContent && (
-        <div className="flex md:hidden justify-end px-4 py-1.5 border-b border-ink/5">
-          {shareContent}
-        </div>
-      )}
-
       {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}
       {/* Mobile nav is handled by BottomNav */}
       <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2">
