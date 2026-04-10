@@ -13,6 +13,10 @@ import { formatDate } from "../../lib/utils";
 import { enrichSlots, filterAndSortDays, markIdealSlots, markContextualSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { useUser } from "../../components/auth/AuthProvider";
+import { usePersistedState } from "../../lib/hooks/usePersistedState";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { FilterGroup } from "../../components/ui/FilterGroup";
+import { SportFilter, ALL_SPORT_IDS } from "../../components/ui/SportFilter";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -20,9 +24,34 @@ export default function CalendarPage() {
   const router = useRouter();
   const user = useUser();
 
-  // Calendar shows all sports, so we always fetch data for all three
-  const selectedSports = useMemo(() => ["wingfoil", "kitesurfing", "surfing"], []);
-  
+  // Multi-select sport filter — persisted per page
+  const [localSelectedSports, setLocalSelectedSports] = usePersistedState(
+    "waterman_calendar_sports",
+    [],
+    (val) => Array.isArray(val) && val.every((s) => ALL_SPORT_IDS.includes(s))
+  );
+
+  const handleSportToggle = (sportId) => {
+    setLocalSelectedSports((prev) => {
+      if (prev.includes(sportId)) {
+        return prev.filter((s) => s !== sportId);
+      } else {
+        return [...prev, sportId];
+      }
+    });
+  };
+
+  // Empty array = all sports selected
+  const selectedSports = useMemo(
+    () => (localSelectedSports.length > 0 ? localSelectedSports : ALL_SPORT_IDS),
+    [localSelectedSports]
+  );
+
+  const sportLabels = { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" };
+  const activeFilters = localSelectedSports.length === 0
+    ? []
+    : localSelectedSports.map((s) => sportLabels[s]);
+
   // Calendar always shows best conditions (score >= 60)
   const showFilter = "best";
 
@@ -125,7 +154,8 @@ export default function CalendarPage() {
     }
 
     fetchData();
-  }, [selectedSports, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSports.join(","), user]);
 
   // Filter slots based on showFilter
   const filteredSlots =
@@ -215,6 +245,15 @@ export default function CalendarPage() {
   return (
     <MainLayout>
       <Header />
+
+      <FilterBar activeFilters={activeFilters}>
+        <FilterGroup label="Sport">
+          <SportFilter
+            selectedSports={localSelectedSports}
+            onToggle={handleSportToggle}
+          />
+        </FilterGroup>
+      </FilterBar>
 
       <div className="pt-4">
         {!loading ? (

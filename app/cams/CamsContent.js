@@ -13,8 +13,9 @@ import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { Tv, MapPin, SlidersHorizontal, X } from "lucide-react";
-import { PillToggle } from "../../components/ui/PillToggle";
 import { FilterGroup } from "../../components/ui/FilterGroup";
+import { SportFilter, ALL_SPORT_IDS } from "../../components/ui/SportFilter";
+import { usePersistedState } from "../../lib/hooks/usePersistedState";
 import { enrichSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
 import { ScoreModal } from "../../components/common/ScoreModal";
@@ -68,10 +69,27 @@ export default function CamsContent({ initialData = null }) {
   const [favoriteSpots, setFavoriteSpots] = useState([]);
   const [scoreModalSlot, setScoreModalSlot] = useState(null);
   const [tvMode, setTvMode] = useState(false);
-  const [selectedSport, setSelectedSport] = useState(""); // Empty = all sports
+  const [selectedSports, setSelectedSports] = usePersistedState(
+    "waterman_cams_sports",
+    [],
+    (val) => Array.isArray(val) && val.every((s) => ALL_SPORT_IDS.includes(s))
+  );
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-  const sportLabel = { "": "All", wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[selectedSport];
+  const handleSportToggle = (sportId) => {
+    setSelectedSports((prev) => {
+      if (prev.includes(sportId)) {
+        return prev.filter((s) => s !== sportId);
+      } else {
+        return [...prev, sportId];
+      }
+    });
+  };
+
+  const sportLabels = { wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" };
+  const activeFilterLabel = selectedSports.length === 0 || selectedSports.length === ALL_SPORT_IDS.length
+    ? "All"
+    : selectedSports.map((s) => sportLabels[s]).join(", ");
 
   // Skip the first client-side fetch when we have server-prefetched data and
   // there is no authenticated user yet (no personalization to add).
@@ -102,11 +120,11 @@ export default function CamsContent({ initialData = null }) {
         const userSports = user?.favoriteSports?.length > 0
           ? user.favoriteSports
           : ["wingfoil"];
-        const sports = selectedSport ? [selectedSport] : userSports;
+        const sports = selectedSports.length > 0 ? selectedSports : userSports;
         const usePersonalizedScores = user && user.showPersonalizedScores !== false;
 
         const camsData = await client.query(api.spots.getCamsData, {
-          sports: selectedSport ? [selectedSport] : userSports,
+          sports,
           userId: usePersonalizedScores && user?._id ? user._id : undefined,
         });
 
@@ -121,9 +139,7 @@ export default function CamsContent({ initialData = null }) {
           const spotData = camsData.data[spot._id];
           if (!spotData || !spotData.slots) return [];
           const spotSports = spot.sports?.length > 0 ? spot.sports : ["wingfoil"];
-          const relevantSports = selectedSport
-            ? spotSports.filter((s) => s === selectedSport)
-            : spotSports.filter((s) => sports.includes(s));
+          const relevantSports = spotSports.filter((s) => sports.includes(s));
           const configs = Object.values(spotData.configs);
           return enrichSlots(spotData.slots, spot, configs, spotData.scoresMap, relevantSports);
         });
@@ -138,7 +154,8 @@ export default function CamsContent({ initialData = null }) {
 
     fetchWebcams();
     return () => { stale = true; };
-  }, [selectedSport, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSports.join(","), user]);
 
   // Toggle favorite spot
   const handleToggleFavorite = async (spotId, e) => {
@@ -272,16 +289,9 @@ export default function CamsContent({ initialData = null }) {
               {/* Sport filter */}
               <div className="flex flex-col md:flex-row md:items-center gap-3 mt-3 pt-3 border-t border-ink/[0.06] md:mt-0 md:pt-0 md:border-0 flex-1">
                 <FilterGroup label="Sport">
-                  <PillToggle
-                    name="sport"
-                    options={[
-                      { id: "", label: "All" },
-                      { id: "wingfoil", label: "Wing" },
-                      { id: "kitesurfing", label: "Kite" },
-                      { id: "surfing", label: "Surf" },
-                    ]}
-                    value={selectedSport}
-                    onChange={setSelectedSport}
+                  <SportFilter
+                    selectedSports={selectedSports}
+                    onToggle={handleSportToggle}
                   />
                 </FilterGroup>
               </div>
@@ -316,7 +326,7 @@ export default function CamsContent({ initialData = null }) {
             >
               <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
               <span className="text-xs font-semibold uppercase tracking-wider leading-none">
-                {sportLabel}
+                {activeFilterLabel}
               </span>
             </button>
           </div>
