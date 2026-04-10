@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
-import { ShareButton } from "./ShareButton";
 
 const STORAGE_KEY = "waterman_filters_expanded";
 
@@ -53,10 +52,11 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
   if (expanded) {
     return (
       <div className={className}>
-        <div className="flex items-center justify-end gap-3 pt-3 pb-2">
-          {actions}
-          <ShareButton className="md:hidden h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth" />
-        </div>
+        {actions && (
+          <div className="flex items-center justify-end gap-3 pt-3 pb-2">
+            {actions}
+          </div>
+        )}
 
         <div className="pb-4 pt-2">
           <div className="rounded-xl bg-ink/[0.04] px-4 md:-mx-2 py-3 overflow-hidden">
@@ -110,38 +110,44 @@ export function FilterBar({ children, actions, activeFilters = [], className = "
     );
   }
 
-  // Collapsed: filter pill sits above content in a row, with optional actions to its left.
-  // On mobile, a share button is shown to the left of the filter pill.
+  // Collapsed: sticky pill that overlaps with the day header row.
+  // h-12 + -mb-12 = zero net vertical space so content flows behind the pill.
+  // pointer-events-none on wrapper lets elements underneath remain clickable.
+  // Actions (e.g. New Session on journal) sit above in their own row.
   return (
-    <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
-      {actions}
-      <ShareButton className="md:hidden h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth" />
-      <div className="rounded-full bg-ink/[0.05] overflow-hidden">
-        <button
-          onClick={toggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-          aria-expanded={false}
-        >
-          <SlidersHorizontal size={14} strokeWidth={2} />
-          {/* Collapsed: show active filter labels as mini pills */}
-          {activeFilters.length > 0 ? (
-            <span className="flex items-center gap-1">
-              {activeFilters.map((label, i) => (
-                <span
-                  key={i}
-                  className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
-                >
-                  {label}
-                </span>
-              ))}
-            </span>
-          ) : (
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Filters
-            </span>
-          )}
-        </button>
+    <>
+      {actions && (
+        <div className={`flex items-center justify-end gap-3 pt-3 pb-2 ${className}`}>
+          {actions}
+        </div>
+      )}
+      <div className="sticky top-0 md:top-[50px] z-[10] flex items-center justify-end h-12 -mb-12 pointer-events-none pr-2">
+        <div className="rounded-full bg-ink/[0.05] overflow-hidden pointer-events-auto">
+          <button
+            onClick={toggle}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
+            aria-expanded={false}
+          >
+            <SlidersHorizontal size={14} strokeWidth={2} />
+            {activeFilters.length > 0 ? (
+              <span className="flex items-center gap-1">
+                {activeFilters.map((label, i) => (
+                  <span
+                    key={i}
+                    className="px-1.5 py-0.5 rounded bg-ink/[0.08] text-[0.65rem] font-bold uppercase tracking-wider text-ink leading-none"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Filters
+              </span>
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

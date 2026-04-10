@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
-import { User, LogOut, ChevronDown, Calendar, FileText, MapPin, Settings } from "lucide-react";
+import { User, LogOut, ChevronDown, Calendar, FileText, MapPin, Settings, Share } from "lucide-react";
+import { useShare } from "../../hooks/useShare";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -27,6 +28,8 @@ export default function UserMenu() {
       };
     }
   }, [isOpen]);
+
+  const { share, copied } = useShare();
 
   if (!user) return null;
 
@@ -120,6 +123,14 @@ export default function UserMenu() {
             >
               <MapPin className="w-4 h-4" />
               Request a Spot
+            </button>
+
+            <button
+              onClick={() => { share(); setIsOpen(false); }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+            >
+              <Share className="w-4 h-4" />
+              {copied ? "Link Copied!" : "Share Page"}
             </button>
 
             <div className="border-t border-ink/10 my-1" />

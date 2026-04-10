@@ -9,14 +9,9 @@ import { ViewToggle } from "./ViewToggle";
 import { useAuth } from "../auth/AuthProvider";
 import UserMenu from "../auth/UserMenu";
 import { useRouter, usePathname } from "next/navigation";
-import { ShareButton } from "../ui/ShareButton";
+// ShareButton removed — share is now in the UserMenu/MobileMenu
 
-// Routes where the share button shows the app homepage URL instead of the
-// current page URL (content is personalised; the URL itself has no value).
-const USER_SPECIFIC_PATHS = ["/dashboard", "/journal", "/settings", "/profile"];
-
-// Routes where no share button is shown at all.
-const NO_SHARE_PATHS = ["/admin", "/auth", "/ui-kit"];
+// Share functionality moved to UserMenu (desktop) and MobileMenu (mobile).
 
 /**
  * Header — clean sticky header.
@@ -38,18 +33,6 @@ export function Header({ className = "" }) {
   const pathname = usePathname();
   const isHome = pathname === "/dashboard";
 
-  const showShareButton = !NO_SHARE_PATHS.some((p) => pathname?.startsWith(p));
-  const isUserSpecificPath = USER_SPECIFIC_PATHS.some((p) =>
-    pathname?.startsWith(p)
-  );
-  // Resolve at render time (client only); empty string is safe for SSR.
-  const shareUrl =
-    typeof window !== "undefined"
-      ? isUserSpecificPath
-        ? window.location.origin
-        : window.location.href
-      : "";
-
   useLayoutEffect(() => {
     setIsScrolled(window.scrollY > 20);
     setHasMounted(true);
@@ -68,10 +51,6 @@ export function Header({ className = "" }) {
       router={router}
     />
   );
-
-  const shareContent = showShareButton ? (
-    <ShareButton url={shareUrl} />
-  ) : null;
 
   return (
     <header
@@ -149,22 +128,10 @@ export function Header({ className = "" }) {
           )}
         </AnimatePresence>
 
-        {/* Full-width nav bar with Share + Sign In inside */}
+        {/* Full-width nav bar with auth inside */}
         <ViewToggle
           compact={isScrolled}
-          rightContent={
-            /* RAD-30: share icon is a round pill matching the account pill height;
-               extra gap (gap-3) separates the two. */
-            <div className="flex items-center gap-3">
-              {showShareButton && (
-                <ShareButton
-                  url={shareUrl}
-                  className="h-[27px] w-[27px] rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth"
-                />
-              )}
-              {authContent}
-            </div>
-          }
+          rightContent={authContent}
           className="flex-1"
         />
       </div>

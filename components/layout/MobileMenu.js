@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
+import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings, Share } from "lucide-react";
+import { useShare } from "../../hooks/useShare";
 
 export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -18,6 +19,7 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
   const { isAuthenticated, user, logout, loading } = useAuth();
   const router = useRouter();
   const sheetRef = useRef(null);
+  const { share, copied } = useShare();
 
   // Lock body scroll when open
   useEffect(() => {
@@ -166,6 +168,14 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
                   <MapPin className="w-4 h-4" />
                   Request a Spot
                 </Link>
+
+                <button
+                  onClick={() => { share(); setIsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                >
+                  <Share className="w-4 h-4" />
+                  {copied ? "Link Copied!" : "Share Page"}
+                </button>
 
                 <div className="border-t border-ink/10 my-2" />
 
