@@ -290,11 +290,11 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center"
-      onClick={onClose}
     >
-      {/* Background layer that extends into safe areas */}
+      {/* Background layer — click to dismiss */}
       <div
-        className="absolute inset-0 bg-black/95"
+        className="absolute inset-0 bg-black/95 cursor-pointer"
+        onClick={onClose}
         style={{
           top: 'calc(-1 * env(safe-area-inset-top, 0px))',
           right: 'calc(-1 * env(safe-area-inset-right, 0px))',
@@ -304,6 +304,7 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
       />
       <div
         className="relative w-full h-full flex flex-col"
+        onClick={(e) => e.stopPropagation()}
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -323,8 +324,8 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           <X size={24} />
         </button>
 
-        {/* Video container - fills viewport with letterboxing (no cropping) */}
-        <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">
+        {/* Video container - fills viewport with letterboxing (no cropping). Click letterbox bars to close. */}
+        <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0 cursor-pointer" onClick={onClose}>
           <video
             ref={videoRef}
             className="w-full h-full object-contain"
