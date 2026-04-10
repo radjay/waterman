@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Calendar, List, Video, BookOpen, Home } from "lucide-react";
 
-const PILL_TRANSITION = "left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1)";
+// No animation — pill position updates instantly on tab change.
 
 /**
  * ViewToggle — main navigation bar with animated sliding pill indicator.
@@ -20,7 +20,6 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
   const tabRefs = useRef({});
   const navRef = useRef(null);
   const pillRef = useRef(null);
-  const hasMounted = useRef(false);
 
   // Clear optimistic state once navigation completes
   useEffect(() => {
@@ -57,16 +56,9 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
     const navRect = nav.getBoundingClientRect();
     const tabRect = el.getBoundingClientRect();
 
-    // First measurement after mount: no transition (appear instantly)
-    pill.style.transition = hasMounted.current ? PILL_TRANSITION : "none";
     pill.style.left = `${tabRect.left - navRect.left}px`;
     pill.style.width = `${tabRect.width}px`;
     pill.style.opacity = "1";
-
-    // After first paint, enable transitions for future changes
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-    }
   }, [activeTabId]);
 
   useLayoutEffect(() => {
