@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings } from "lucide-react";
 
 export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
@@ -119,57 +120,63 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
 
               {/* Navigation links */}
               <div className="space-y-1">
-                <button
-                  onClick={() => handleNavigation("/settings")}
+                <Link
+                  href="/settings"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <Settings className="w-4 h-4" />
                   Settings
-                </button>
+                </Link>
 
-                <button
-                  onClick={() => handleNavigation("/profile")}
+                <Link
+                  href="/profile"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <User className="w-4 h-4" />
                   Profile
-                </button>
+                </Link>
 
                 <div className="border-t border-ink/10 my-2" />
 
-                <button
-                  onClick={() => handleNavigation("/calendar")}
+                <Link
+                  href="/calendar"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <Calendar className="w-4 h-4" />
                   Calendar View
-                </button>
+                </Link>
 
-                <button
-                  onClick={() => handleNavigation("/subscribe")}
+                <Link
+                  href="/subscribe"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <Calendar className="w-4 h-4" />
                   Add to Calendar
-                </button>
+                </Link>
 
-                <button
-                  onClick={() => handleNavigation("/request-spot")}
+                <Link
+                  href="/request-spot"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <MapPin className="w-4 h-4" />
                   Request a Spot
-                </button>
+                </Link>
 
                 <div className="border-t border-ink/10 my-2" />
 
-                <button
-                  onClick={() => handleNavigation("/changelog")}
+                <Link
+                  href="/changelog"
+                  onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
                 >
                   <FileText className="w-4 h-4" />
                   Changelog
-                </button>
+                </Link>
 
                 {isAuthenticated && (
                   <button

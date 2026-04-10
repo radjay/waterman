@@ -1,6 +1,8 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Calendar, List, Video, BookOpen, Home } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -11,62 +13,74 @@ import { motion } from "framer-motion";
  */
 export function ViewToggle({ compact = false, rightContent, className = "" }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const [optimisticTab, setOptimisticTab] = useState(null);
 
-  const isDashboard = pathname === "/dashboard";
-  const isCalendar = pathname === "/calendar";
-  const isCams = pathname === "/cams";
-  const isJournal = pathname?.startsWith("/journal");
-  const isReport =
-    pathname === "/report" ||
-    pathname === "/" ||
-    (!isDashboard && !isCalendar && !isCams && !isJournal && pathname !== "/ui-kit");
+  // Clear optimistic state once navigation completes
+  useEffect(() => {
+    setOptimisticTab(null);
+  }, [pathname]);
+
+  const getActiveTab = (p) => {
+    if (p === "/dashboard") return "dashboard";
+    if (p === "/calendar") return "calendar";
+    if (p === "/cams") return "cams";
+    if (p?.startsWith("/journal")) return "journal";
+    // Fallback: report is active for /report, /, and anything not explicitly matched above (except /ui-kit)
+    if (p === "/report" || p === "/" || (p !== "/ui-kit")) return "report";
+    return null;
+  };
+
+  const activeTabId = optimisticTab || getActiveTab(pathname);
 
   const tabs = [
-    { id: "dashboard", label: "Home", icon: Home, active: isDashboard, path: "/dashboard" },
-    { id: "report", label: "Report", icon: List, active: isReport, path: "/report" },
-    { id: "cams", label: "Cams", icon: Video, active: isCams, path: "/cams" },
-    { id: "journal", label: "Journal", icon: BookOpen, active: isJournal, path: "/journal" },
-    { id: "calendar", label: "Calendar", icon: Calendar, active: isCalendar, path: "/calendar" },
+    { id: "dashboard", label: "Home", icon: Home, path: "/dashboard" },
+    { id: "report", label: "Report", icon: List, path: "/report" },
+    { id: "cams", label: "Cams", icon: Video, path: "/cams" },
+    { id: "journal", label: "Journal", icon: BookOpen, path: "/journal" },
+    { id: "calendar", label: "Calendar", icon: Calendar, path: "/calendar" },
   ];
 
   return (
     <nav
       className={`flex items-center gap-0.5 p-1 bg-ink/[0.04] rounded-full ${className}`}
     >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => router.push(tab.path)}
-          className={`relative flex items-center justify-center gap-1.5 transition-colors duration-fast ease-smooth focus-ring rounded-full ${
-            compact ? "px-2 md:px-2.5 py-1" : "px-2.5 md:px-3 py-1.5"
-          }`}
-          aria-label={`${tab.label} view`}
-          aria-current={tab.active ? "page" : undefined}
-        >
-          {tab.active && (
-            <motion.div
-              layoutId="nav-tab"
-              className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
-              transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-            />
-          )}
-          <span
-            className={`relative z-10 flex items-center gap-1.5 ${
-              tab.active ? "text-ink" : "text-faded-ink"
+      {tabs.map((tab) => {
+        const isActive = activeTabId === tab.id;
+        return (
+          <Link
+            key={tab.id}
+            href={tab.path}
+            onClick={() => setOptimisticTab(tab.id)}
+            className={`relative flex items-center justify-center gap-1.5 transition-colors duration-fast ease-smooth focus-ring rounded-full ${
+              compact ? "px-2 md:px-2.5 py-1" : "px-2.5 md:px-3 py-1.5"
             }`}
+            aria-label={`${tab.label} view`}
+            aria-current={isActive ? "page" : undefined}
           >
-            <tab.icon size={compact ? 14 : 15} strokeWidth={tab.active ? 2.5 : 2} />
+            {isActive && (
+              <motion.div
+                layoutId="nav-tab"
+                className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
+                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+              />
+            )}
             <span
-              className={`hidden md:inline text-xs uppercase tracking-wider leading-none font-semibold ${
-                compact ? "text-[0.65rem]" : ""
+              className={`relative z-10 flex items-center gap-1.5 ${
+                isActive ? "text-ink" : "text-faded-ink"
               }`}
             >
-              {tab.label}
+              <tab.icon size={compact ? 14 : 15} strokeWidth={isActive ? 2.5 : 2} />
+              <span
+                className={`hidden md:inline text-xs uppercase tracking-wider leading-none font-semibold ${
+                  compact ? "text-[0.65rem]" : ""
+                }`}
+              >
+                {tab.label}
+              </span>
             </span>
-          </span>
-        </button>
-      ))}
+          </Link>
+        );
+      })}
 
       {/* Spacer + right content (e.g. Sign In) */}
       {rightContent && (

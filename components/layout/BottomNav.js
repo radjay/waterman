@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Home, List, Video, BookOpen, MoreHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 import { MobileMenu } from "./MobileMenu";
@@ -21,39 +22,36 @@ const tabs = [
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [optimisticTab, setOptimisticTab] = useState(null);
 
-  const getActiveTab = () => {
-    if (pathname === "/" || pathname === "/dashboard") return "home";
+  const getActiveTab = (p) => {
+    if (p === "/" || p === "/dashboard") return "home";
     if (
-      pathname === "/report" ||
-      pathname?.startsWith("/report/") ||
-      pathname?.match(/^\/(wing|kite|surf)/)
+      p === "/report" ||
+      p?.startsWith("/report/") ||
+      p?.match(/^\/(wing|kite|surf)/)
     )
       return "report";
-    if (pathname?.startsWith("/cams")) return "cams";
-    if (pathname?.startsWith("/journal")) return "journal";
+    if (p?.startsWith("/cams")) return "cams";
+    if (p?.startsWith("/journal")) return "journal";
     // Calendar, settings, profile etc. highlight "more"
-    if (pathname?.startsWith("/calendar")) return "more";
-    if (pathname?.startsWith("/settings")) return "more";
-    if (pathname?.startsWith("/profile")) return "more";
+    if (p?.startsWith("/calendar")) return "more";
+    if (p?.startsWith("/settings")) return "more";
+    if (p?.startsWith("/profile")) return "more";
     return "home";
   };
 
-  const activeTab = getActiveTab();
+  // Clear optimistic state once navigation completes
+  useEffect(() => {
+    setOptimisticTab(null);
+  }, [pathname]);
+
+  const activeTab = optimisticTab || getActiveTab(pathname);
 
   // Don't show on admin, auth, onboarding, or other non-main pages
   const hiddenPaths = ["/admin", "/auth", "/ui-kit", "/subscribe", "/request-spot", "/changelog"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
-
-  const handleTabPress = (tab) => {
-    if (tab.id === "more") {
-      setMenuOpen(true);
-    } else {
-      router.push(tab.path);
-    }
-  };
 
   return (
     <>
@@ -69,14 +67,8 @@ export function BottomNav() {
         <div className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabPress(tab)}
-                className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors duration-fast ease-smooth"
-                aria-label={tab.label}
-                aria-current={isActive ? "page" : undefined}
-              >
+            const inner = (
+              <>
                 {isActive && (
                   <motion.div
                     layoutId="bottom-nav-pill"
@@ -98,6 +90,36 @@ export function BottomNav() {
                     {tab.label}
                   </span>
                 </span>
+              </>
+            );
+
+            const sharedClass =
+              "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors duration-fast ease-smooth";
+
+            if (tab.path) {
+              return (
+                <Link
+                  key={tab.id}
+                  href={tab.path}
+                  onClick={() => setOptimisticTab(tab.id)}
+                  className={sharedClass}
+                  aria-label={tab.label}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {inner}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setMenuOpen(true)}
+                className={sharedClass}
+                aria-label={tab.label}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {inner}
               </button>
             );
           })}
