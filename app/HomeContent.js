@@ -18,6 +18,7 @@ import { useAuth, useUser } from "../components/auth/AuthProvider";
 import { PillToggle } from "../components/ui/PillToggle";
 import { FilterGroup } from "../components/ui/FilterGroup";
 import { FilterBar } from "../components/ui/FilterBar";
+import { SportFilter } from "../components/ui/SportFilter";
 import { Heading } from "../components/ui/Heading";
 import { Text } from "../components/ui/Text";
 import { useOnboarding } from "../hooks/useOnboarding";
@@ -424,32 +425,10 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
                 </button>
               </div>
             ) : (
-              /* RAD-22: Multi-select sport pills — each toggles independently */
-              <div className="inline-flex items-center gap-0.5 p-1 bg-ink/[0.04] rounded-full">
-                {[
-                  { id: "wingfoil", label: "Wing" },
-                  { id: "kitesurfing", label: "Kite" },
-                  { id: "surfing", label: "Surf" },
-                ].map((option) => {
-                  // A sport is "active" if it's in localSelectedSports,
-                  // OR if localSelectedSports is empty (all active = no filter)
-                  const isActive = localSelectedSports.length === 0 || localSelectedSports.includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => handleSportToggle(option.id)}
-                      className="relative px-3 py-1 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-fast ease-smooth"
-                    >
-                      {isActive && (
-                        <span className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10" />
-                      )}
-                      <span className={`relative z-10 ${isActive ? "text-ink" : "text-faded-ink hover:text-ink"}`}>
-                        {option.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <SportFilter
+                selectedSports={localSelectedSports}
+                onToggle={handleSportToggle}
+              />
             )}
           </FilterGroup>
           <FilterGroup label="Conditions">
