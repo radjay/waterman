@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Home, List, Video, BookOpen, MoreHorizontal } from "lucide-react";
@@ -19,11 +19,17 @@ const tabs = [
  * BottomNav — floating pill-shaped bottom tab bar for mobile.
  * Matches the desktop ViewToggle pill aesthetic.
  * Hidden on md+ (desktop uses ViewToggle in the header).
+ *
+ * The pill is always rendered (never conditionally mounted) and animated
+ * via measured positions to avoid entrance animations from the bottom.
  */
 export function BottomNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [optimisticTab, setOptimisticTab] = useState(null);
+  const tabRefs = useRef({});
+  const barRef = useRef(null);
+  const [pillStyle, setPillStyle] = useState(null);
 
   const getActiveTab = (p) => {
     if (p === "/" || p === "/dashboard") return "home";
@@ -49,6 +55,30 @@ export function BottomNav() {
 
   const activeTab = optimisticTab || getActiveTab(pathname);
 
+  // Measure the active tab and update pill position
+  const measurePill = useCallback(() => {
+    const el = tabRefs.current[activeTab];
+    const bar = barRef.current;
+    if (el && bar) {
+      const barRect = bar.getBoundingClientRect();
+      const tabRect = el.getBoundingClientRect();
+      setPillStyle({
+        left: tabRect.left - barRect.left,
+        width: tabRect.width,
+        height: tabRect.height,
+      });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    measurePill();
+  }, [measurePill]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measurePill);
+    return () => window.removeEventListener("resize", measurePill);
+  }, [measurePill]);
+
   // Don't show on admin, auth, onboarding, or other non-main pages
   const hiddenPaths = ["/admin", "/auth", "/ui-kit", "/subscribe", "/request-spot", "/changelog"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
@@ -64,34 +94,42 @@ export function BottomNav() {
       >
         {/* Gradient fade so content doesn't peek through */}
         <div className="absolute inset-x-0 bottom-0 h-full pointer-events-none bg-gradient-to-t from-newsprint via-newsprint/80 to-transparent" />
-        <div className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        <div
+          ref={barRef}
+          className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]"
+        >
+          {/* Always-rendered sliding pill — never unmounts */}
+          {pillStyle && (
+            <motion.div
+              className="absolute bg-newsprint rounded-full shadow-card border border-ink/10"
+              initial={false}
+              animate={{
+                left: pillStyle.left,
+                width: pillStyle.width,
+                height: pillStyle.height,
+              }}
+              transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+              style={{ top: "50%", y: "-50%" }}
+            />
+          )}
+
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const inner = (
-              <>
-                {isActive && (
-                  <motion.div
-                    layoutId="bottom-nav-pill"
-                    initial={false}
-                    className="absolute inset-0 bg-newsprint rounded-full shadow-card border border-ink/10"
-                    transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                  />
-                )}
-                <span className="relative z-10 flex flex-col items-center gap-0.5">
-                  <tab.icon
-                    size={18}
-                    strokeWidth={isActive ? 2.5 : 1.5}
-                    className={isActive ? "text-ink" : "text-faded-ink"}
-                  />
-                  <span
-                    className={`text-[0.55rem] font-semibold uppercase tracking-wider leading-none ${
-                      isActive ? "text-ink" : "text-faded-ink"
-                    }`}
-                  >
-                    {tab.label}
-                  </span>
+              <span className="relative z-10 flex flex-col items-center gap-0.5">
+                <tab.icon
+                  size={18}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  className={isActive ? "text-ink" : "text-faded-ink"}
+                />
+                <span
+                  className={`text-[0.55rem] font-semibold uppercase tracking-wider leading-none ${
+                    isActive ? "text-ink" : "text-faded-ink"
+                  }`}
+                >
+                  {tab.label}
                 </span>
-              </>
+              </span>
             );
 
             const sharedClass =
@@ -101,6 +139,7 @@ export function BottomNav() {
               return (
                 <Link
                   key={tab.id}
+                  ref={(el) => { tabRefs.current[tab.id] = el; }}
                   href={tab.path}
                   onClick={() => setOptimisticTab(tab.id)}
                   className={sharedClass}
@@ -115,6 +154,7 @@ export function BottomNav() {
             return (
               <button
                 key={tab.id}
+                ref={(el) => { tabRefs.current[tab.id] = el; }}
                 onClick={() => setMenuOpen(true)}
                 className={sharedClass}
                 aria-label={tab.label}
