@@ -65,7 +65,6 @@ export function BottomNav() {
       setPillStyle({
         left: tabRect.left - barRect.left,
         width: tabRect.width,
-        height: tabRect.height,
       });
     }
   }, [activeTab]);
@@ -98,18 +97,17 @@ export function BottomNav() {
           ref={barRef}
           className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]"
         >
-          {/* Always-rendered sliding pill — never unmounts */}
+          {/* Always-rendered sliding pill — never unmounts.
+              Vertical position is pure CSS to avoid Framer Motion y-transform on mount. */}
           {pillStyle && (
             <motion.div
-              className="absolute bg-newsprint rounded-full shadow-card border border-ink/10"
+              className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
               initial={false}
               animate={{
                 left: pillStyle.left,
                 width: pillStyle.width,
-                height: pillStyle.height,
               }}
               transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-              style={{ top: "50%", y: "-50%" }}
             />
           )}
 

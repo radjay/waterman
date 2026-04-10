@@ -56,7 +56,6 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
       setPillStyle({
         left: tabRect.left - navRect.left,
         width: tabRect.width,
-        height: tabRect.height,
       });
     }
   }, [activeTabId]);
@@ -76,18 +75,18 @@ export function ViewToggle({ compact = false, rightContent, className = "" }) {
       ref={navRef}
       className={`relative flex items-center gap-0.5 p-1 bg-ink/[0.04] rounded-full ${className}`}
     >
-      {/* Always-rendered sliding pill — never unmounts */}
+      {/* Always-rendered sliding pill — never unmounts.
+          Vertical position is pure CSS (top/bottom) to avoid Framer Motion
+          animating the y-transform on mount. Only left/width are animated. */}
       {pillStyle && (
         <motion.div
-          className="absolute bg-newsprint rounded-full shadow-card border border-ink/10"
+          className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
           initial={false}
           animate={{
             left: pillStyle.left,
             width: pillStyle.width,
-            height: pillStyle.height,
           }}
           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-          style={{ top: "50%", y: "-50%" }}
         />
       )}
 
