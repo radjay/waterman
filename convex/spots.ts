@@ -1092,19 +1092,20 @@ export const scoreSingleSlot = action({
 });
 
 /**
- * Helper: Check if a slot is within daylight hours
+ * Helper: Check if a slot overlaps with daylight hours.
+ * A slot is daylight if any part of its 3-hour window has sunlight.
+ * Only filters out slots entirely before sunrise or entirely after sunset.
  */
-function isDaylightSlot(timestamp: number, spot: { latitude?: number; longitude?: number }): boolean {
+function isDaylightSlot(timestamp: number, spot: { latitude?: number; longitude?: number }, slotDurationHours: number = 3): boolean {
     if (!spot.latitude || !spot.longitude) {
-        // Fallback: hardcoded 9 AM - 6 PM if no coordinates
-        const date = new Date(timestamp);
-        const hour = date.getHours();
-        return hour >= 9 && hour <= 18;
+        const hour = new Date(timestamp).getHours();
+        return hour >= 6 && hour < 20;
     }
-    
+
     const times = SunCalc.getTimes(new Date(timestamp), spot.latitude, spot.longitude);
-    const slotDate = new Date(timestamp);
-    return slotDate >= times.sunrise && slotDate <= times.sunset;
+    const slotStart = timestamp;
+    const slotEnd = slotStart + (slotDurationHours * 60 * 60 * 1000);
+    return slotEnd > times.sunrise.getTime() && slotStart < times.sunset.getTime();
 }
 
 /**
