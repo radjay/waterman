@@ -200,8 +200,8 @@ export const saveForecastSlots = mutation({
             }
         }
 
-        // Archive old forecast slots (>48h) to history table
-        const archiveCutoff = Date.now() - 48 * 60 * 60 * 1000;
+        // Archive old forecast slots (>7 days) to history table
+        const archiveCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
         const oldSlots = await ctx.db
             .query("forecast_slots")
             .withIndex("by_spot_and_scrape_timestamp", (q: any) =>
@@ -1847,8 +1847,9 @@ export const addSpotCoordinates = mutation({
  * Optimized: only reads slots from scrapes in the last 48 hours.
  */
 async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
-    // Only read recent scrape data (last 48h) to limit document reads
-    const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
+    // Read scrape data from last 7 days to limit document reads while ensuring
+    // data remains visible even when scraper is down for a few days.
+    const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     const allSlots = await ctx.db
         .query("forecast_slots")
