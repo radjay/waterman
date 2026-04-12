@@ -200,14 +200,15 @@ export const saveForecastSlots = mutation({
             }
         }
 
-        // Archive old forecast slots (>7 days) to history table
+        // Archive old forecast slots (>7 days) to history table.
+        // Process in small batches to avoid hitting Convex document read limits.
         const archiveCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
         const oldSlots = await ctx.db
             .query("forecast_slots")
             .withIndex("by_spot_and_scrape_timestamp", (q: any) =>
                 q.eq("spotId", args.spotId).lt("scrapeTimestamp", archiveCutoff)
             )
-            .collect();
+            .take(200);
 
         if (oldSlots.length > 0) {
             const archivedAt = Date.now();
