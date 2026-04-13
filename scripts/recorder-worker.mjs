@@ -145,7 +145,6 @@ async function startRecording(recordingId, streamUrl) {
         "-rw_timeout", "15000000",
         "-i", streamUrl,
         "-c", "copy",
-        "-bsf:a", "aac_adtstoasc",
         "-movflags", "frag_keyframe+empty_moov",
         "-t", String(MAX_DURATION),
         "-y",
@@ -167,9 +166,15 @@ async function startRecording(recordingId, streamUrl) {
     // Update Convex status to "recording"
     await updateConvexStatus(recordingId, { status: "recording" });
 
-    // Monitor stderr for progress
+    // Monitor stderr for progress and log errors
+    let lastStderr = "";
     proc.stderr.on("data", (chunk) => {
         rec.lastActivity = Date.now();
+        lastStderr = chunk.toString();
+        // Log ffmpeg errors (not routine progress)
+        if (lastStderr.includes("Error") || lastStderr.includes("error")) {
+            console.error(`Recording ${recordingId} ffmpeg:`, lastStderr.trim());
+        }
     });
 
     // Stale stream watchdog — if no stderr for 2 minutes, stop
