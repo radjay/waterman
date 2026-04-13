@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 
 /**
  * Start a new recording — creates a "pending" record.
@@ -95,8 +95,9 @@ export const stopRecording = mutation({
         const recording = await ctx.db.get(args.recordingId);
         if (!recording) throw new Error("Recording not found");
         if (recording.userId !== session.userId) throw new Error("Not your recording");
+        // If already stopped/failed/ready, just return success silently
         if (recording.status !== "recording" && recording.status !== "pending") {
-            throw new Error("Recording is not active");
+            return { success: true };
         }
 
         await ctx.db.patch(args.recordingId, {
@@ -195,5 +196,23 @@ export const getActiveRecording = query({
         }
 
         return active;
+    },
+});
+
+/**
+ * Delete all failed recordings. Admin utility.
+ */
+export const cleanupFailed = mutation({
+    handler: async (ctx) => {
+        // Delete all non-ready recordings (failed, pending, etc.)
+        const all = await ctx.db.query("recordings").collect();
+        let deleted = 0;
+        for (const rec of all) {
+            if (rec.status !== "ready") {
+                await ctx.db.delete(rec._id);
+                deleted++;
+            }
+        }
+        return { deleted, total: all.length };
     },
 });
