@@ -133,6 +133,7 @@ export default function NewJournalEntryPage() {
         conditionNotes: conditionNotes.trim() || undefined,
       });
 
+      setSaving(false);
       router.push("/journal");
     } catch (err) {
       console.error("Error creating entry:", err);
@@ -200,6 +201,7 @@ export default function NewJournalEntryPage() {
             <Text variant="label" as="label" className="block mb-2">Date & Time</Text>
             <input
               type="datetime-local"
+              step="300"
               value={sessionDate}
               onChange={(e) => setSessionDate(e.target.value)}
               className="w-full px-4 py-2 border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink"

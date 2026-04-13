@@ -318,7 +318,7 @@ export const createSubscription = mutation({
 
         if (existing) {
             // Return existing subscription
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waterman.radx.dev";
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.watermanreport.com";
             return {
                 subscriptionId: existing._id,
                 token: existing.token,
@@ -340,7 +340,7 @@ export const createSubscription = mutation({
         });
 
         // 5. Build feed URL
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waterman.radx.dev";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.watermanreport.com";
         const feedUrl = `${appUrl}/api/calendar/${args.sport}/feed.ics?token=${token}`;
 
         return {
@@ -387,7 +387,7 @@ export const regenerateToken = mutation({
         await ctx.db.patch(args.subscriptionId, { token });
 
         // 5. Build feed URL
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waterman.radx.dev";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.watermanreport.com";
         const feedUrl = `${appUrl}/api/calendar/${subscription.sport}/feed.ics?token=${token}`;
 
         return {
@@ -464,7 +464,7 @@ export const getUserSubscriptions = query({
             .collect();
 
         // 3. Build feed URLs
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waterman.radx.dev";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.watermanreport.com";
         
         return subscriptions.map(sub => ({
             subscriptionId: sub._id,

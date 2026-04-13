@@ -13,8 +13,17 @@ import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindInd
  * @param {Array} webcams - Array of webcam spot objects
  * @param {Function} onClose - Callback when TV mode is exited
  */
+const TV_COLUMNS_KEY = "waterman_tv_columns";
+const GRID_CLASSES = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
+
 export function TvMode({ webcams, onClose }) {
   const [focusedSpot, setFocusedSpot] = useState(null);
+  const [columns, setColumns] = useState(3);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(TV_COLUMNS_KEY);
+    if (stored && GRID_CLASSES[stored]) setColumns(parseInt(stored));
+  }, []);
   // Get stream URL for a spot
   const getStreamUrl = (spot) => {
     // New format: webcamStreamId + webcamStreamSource
@@ -84,17 +93,31 @@ export function TvMode({ webcams, onClose }) {
   // Grid view
   return (
     <div className="fixed inset-0 z-[200] bg-black">
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-        aria-label="Exit TV mode"
-      >
-        <X className="w-6 h-6 text-white" />
-      </button>
+      {/* Controls: column selector + close button */}
+      <div className="absolute top-4 right-4 z-[201] flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-white/10 rounded-md p-1">
+          {[2, 3, 4].map(n => (
+            <button
+              key={n}
+              onClick={() => { setColumns(n); localStorage.setItem(TV_COLUMNS_KEY, String(n)); }}
+              className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${columns === n ? "bg-white/30 text-white" : "text-white/50 hover:text-white/80"}`}
+              aria-label={`${n} columns`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+          aria-label="Exit TV mode"
+        >
+          <X className="w-6 h-6 text-white" />
+        </button>
+      </div>
 
-      {/* 3-column grid with auto rows based on content, scrollable */}
-      <div className="grid grid-cols-3 auto-rows-min gap-0 overflow-y-auto h-full">
+      {/* Dynamic grid, scrollable */}
+      <div className={`grid ${GRID_CLASSES[columns]} auto-rows-min gap-0 overflow-y-auto h-full`}>
         {webcams.map((webcam) => (
           <TvWebcamCell
             key={webcam._id}

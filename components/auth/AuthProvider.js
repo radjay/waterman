@@ -41,9 +41,11 @@ export function AuthProvider({ children }) {
           setSessionToken(null);
         }
       } catch (error) {
+        // Don't clear the token on transient errors (network issues, Convex deploys).
+        // Only log the error — the token stays in localStorage and will be
+        // re-validated on next page load. The user stays "logged in" visually
+        // even if verification temporarily fails.
         console.error("Error loading session:", error);
-        localStorage.removeItem("waterman_session_token");
-        setSessionToken(null);
       } finally {
         setLoading(false);
       }
