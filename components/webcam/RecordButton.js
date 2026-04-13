@@ -98,10 +98,10 @@ export function RecordButton({ spotId, className = "" }) {
         return (
             <button
                 onClick={(e) => { e.stopPropagation(); handleStart(); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-semibold uppercase tracking-wider hover:bg-red-700 active:scale-[0.98] transition-all ${className}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all shadow-sm ${className}`}
                 aria-label="Start recording"
             >
-                <Circle size={10} fill="currentColor" />
+                <Circle size={10} className="text-red-500" fill="currentColor" />
                 Record
             </button>
         );
@@ -109,7 +109,7 @@ export function RecordButton({ spotId, className = "" }) {
 
     if (status === "starting") {
         return (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600/70 text-white text-xs font-semibold uppercase tracking-wider ${className}`}>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider ${className}`}>
                 <span className="animate-pulse">Starting...</span>
             </div>
         );
