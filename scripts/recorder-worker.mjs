@@ -141,7 +141,6 @@ async function startRecording(recordingId, streamUrl) {
         "-reconnect_at_eof", "1",
         "-reconnect_on_network_error", "1",
         "-reconnect_delay_max", "30",
-        "-reconnect_max_retries", "10",
         "-rw_timeout", "15000000",
         "-i", streamUrl,
         "-c", "copy",
