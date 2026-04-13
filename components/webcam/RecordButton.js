@@ -80,17 +80,23 @@ export function RecordButton({ spotId, className = "" }) {
     const handleStop = async () => {
         setStatus("stopping");
         try {
-            await fetch("/api/recordings/stop", {
+            const res = await fetch("/api/recordings/stop", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ recordingId, sessionToken }),
             });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                console.error("Stop recording error:", data.error);
+            }
             setStatus("idle");
             setRecordingId(null);
             setElapsed(0);
         } catch (err) {
             console.error("Failed to stop recording:", err);
-            setStatus("recording"); // Revert to recording state
+            setStatus("idle");
+            setRecordingId(null);
+            setElapsed(0);
         }
     };
 
@@ -118,16 +124,16 @@ export function RecordButton({ spotId, className = "" }) {
     if (status === "recording") {
         return (
             <div className={`flex items-center gap-2 ${className}`}>
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600/10 text-red-700 text-xs font-bold tabular-nums">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-bold tabular-nums shadow-sm">
                     <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                     </span>
                     {formatTime(elapsed)}
                 </span>
                 <button
                     onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-ink/10 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink/20 active:scale-[0.98] transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all shadow-sm"
                     aria-label="Stop recording"
                 >
                     <Square size={10} fill="currentColor" />
