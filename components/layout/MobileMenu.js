@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../auth/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings, Share } from "lucide-react";
+import { LogIn, User, LogOut, Calendar, FileText, MapPin, Settings, Share, Video } from "lucide-react";
 import { useShare } from "../../hooks/useShare";
 
 export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
@@ -122,6 +122,17 @@ export function MobileMenu({ isOpen: controlledOpen, onOpenChange }) {
 
               {/* Navigation links */}
               <div className="space-y-1">
+                {isAuthenticated && (
+                  <Link
+                    href="/recordings"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-ink hover:bg-warm-highlight rounded-ui transition-all duration-fast ease-smooth"
+                  >
+                    <Video className="w-4 h-4" />
+                    My Recordings
+                  </Link>
+                )}
+
                 <Link
                   href="/settings"
                   onClick={() => setIsOpen(false)}

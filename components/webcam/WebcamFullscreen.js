@@ -9,6 +9,7 @@ import { WindGroup } from "../forecast/WindGroup";
 import { WaveGroup } from "../forecast/WaveGroup";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 import { formatTideTime } from "../../lib/utils";
+import { RecordButton } from "./RecordButton";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -311,17 +312,17 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           paddingLeft: 'env(safe-area-inset-left, 0px)',
         }}
       >
-        {/* Close button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="absolute top-4 right-4 z-20 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
-          aria-label="Close webcam"
-        >
-          <X size={24} />
-        </button>
+        {/* Top controls: record button + close */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <RecordButton spotId={spot._id} />
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
+            aria-label="Close webcam"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
         {/* Video container - fills viewport with letterboxing (no cropping). Click letterbox bars to close. */}
         <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">

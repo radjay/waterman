@@ -8,6 +8,27 @@ services:
       - key: NEXT_PUBLIC_CONVEX_URL
         sync: false
 
+  - type: worker
+    name: waterman-recorder
+    env: node
+    buildCommand: npm install
+    startCommand: node scripts/recorder-worker.mjs
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+      - key: CF_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: RECORDER_WORKER_SECRET
+        sync: false
+
   - type: cron
     name: waterman-scraper
     schedule: "0 0,6,12,18 * * *"  # Run at midnight, 6 AM, noon, and 6 PM UTC (4 times per day)
