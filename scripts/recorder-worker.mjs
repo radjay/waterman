@@ -139,7 +139,6 @@ async function startRecording(recordingId, streamUrl) {
     const args = [
         "-i", streamUrl,
         "-c", "copy",
-        "-movflags", "frag_keyframe+empty_moov",
         "-t", String(MAX_DURATION),
         "-y",
         outputPath,
