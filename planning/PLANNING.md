@@ -71,4 +71,5 @@ See [architecture.md](architecture.md) for full system documentation.
 ## References
 
 - [Architecture](architecture.md) - Full system documentation
+- [Forecast experiment — model analysis learnings](../docs/forecast-experiment-model-analysis-learnings.md) - Cascais model skill backtest notes
 - [Future Features PRD](prds/04-future-features.md) - Aspirational features list

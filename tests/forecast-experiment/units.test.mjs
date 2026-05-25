@@ -7,6 +7,8 @@ import {
   degreesToCompass8,
   circularDirectionError,
   effectiveWindKnots,
+  isUsableForecastPoint,
+  parseNumericKnots,
 } from "../../lib/forecast-experiment/units.js";
 
 test("converts wind speeds to knots", () => {
@@ -29,4 +31,16 @@ test("computes circular direction error", () => {
 test("computes effective wind from speed and gust", () => {
   assert.equal(effectiveWindKnots({ windSpeedKnots: 10, windGustKnots: 14 }), 12);
   assert.equal(effectiveWindKnots({ windSpeedKnots: 10 }), 10);
+});
+
+test("parseNumericKnots ignores null and undefined", () => {
+  assert.equal(parseNumericKnots(null), undefined);
+  assert.equal(parseNumericKnots(undefined), undefined);
+  assert.equal(parseNumericKnots(12.4), 12.4);
+});
+
+test("isUsableForecastPoint rejects null-ingested gaps", () => {
+  assert.equal(isUsableForecastPoint({ windSpeedKnots: 0, windGustKnots: 0 }), false);
+  assert.equal(isUsableForecastPoint({ windSpeedKnots: 10, windGustKnots: 14 }), true);
+  assert.equal(isUsableForecastPoint({ windSpeedKnots: 0, windGustKnots: 12 }), true);
 });

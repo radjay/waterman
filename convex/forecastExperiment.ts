@@ -506,3 +506,55 @@ export const debugSummary = query({
     };
   },
 });
+
+export const purgeUnusableForecastPoints = mutation({
+  args: {
+    cursor: v.optional(v.string()),
+    pageSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const pageSize = args.pageSize ?? 500;
+    const page = await ctx.db
+      .query("fx_forecast_points")
+      .order("asc")
+      .paginate({ numItems: pageSize, cursor: args.cursor ?? null });
+
+    let deleted = 0;
+    for (const point of page.page) {
+      const speed = point.windSpeedKnots;
+      const gust = point.windGustKnots;
+      const unusable =
+        (speed == null && gust == null) ||
+        (speed === 0 && gust === 0);
+      if (!unusable) continue;
+      await ctx.db.delete(point._id);
+      deleted += 1;
+    }
+
+    return {
+      deleted,
+      scanned: page.page.length,
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+    };
+  },
+});
+
+export const purgeEmptyForecastRuns = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const runs = await ctx.db.query("fx_forecast_runs").collect();
+    let deletedRuns = 0;
+    for (const run of runs) {
+      const remaining = await ctx.db
+        .query("fx_forecast_points")
+        .withIndex("by_run", (q) => q.eq("forecastRunId", run._id))
+        .take(1);
+      if (remaining.length === 0) {
+        await ctx.db.delete(run._id);
+        deletedRuns += 1;
+      }
+    }
+    return { deletedRuns };
+  },
+});

@@ -6,6 +6,8 @@ import {
   localDateKey,
   candidateGlobalRuns,
   dateRangeWeeks,
+  isoWeekDateRange,
+  localDayWindowMs,
 } from "../../lib/forecast-experiment/time.js";
 
 test("formats UTC model runs without seconds", () => {
@@ -35,4 +37,18 @@ test("splits date ranges into weeks", () => {
     { from: "2025-05-01", to: "2025-05-07" },
     { from: "2025-05-08", to: "2025-05-10" },
   ]);
+});
+
+test("computes local day window for Lisbon", () => {
+  const winter = localDayWindowMs("2025-01-15");
+  assert.equal(winter.endAt - winter.startAt, 24 * 3_600_000);
+  const summer = localDayWindowMs("2025-07-15");
+  assert.equal(summer.endAt - summer.startAt, 24 * 3_600_000);
+});
+
+test("returns ISO week date range", () => {
+  const week = isoWeekDateRange(2025, 28);
+  assert.equal(week.dates.length, 7);
+  assert.equal(week.startDateLocal, "2025-07-07");
+  assert.equal(week.endDateLocal, "2025-07-13");
 });

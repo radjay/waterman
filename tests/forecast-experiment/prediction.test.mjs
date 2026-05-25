@@ -19,6 +19,23 @@ test("reduces confidence when models disagree", () => {
   assert.equal(prediction.confidence < 0.7, true);
 });
 
+test("buildBaselinePrediction ignores null-ingested 0/0 forecast gaps", () => {
+  const now = Date.UTC(2026, 6, 1, 10);
+  const prediction = buildBaselinePrediction({
+    targetLocationSlug: "cascais-bay",
+    forecastDateLocal: "2026-07-01",
+    generatedAt: now,
+    points: [
+      point(now + 6 * 60 * 60_000, "ecmwf", 0, 0),
+      point(now + 6 * 60 * 60_000, "gfs", 16, 18),
+    ],
+    caboRasoObservations: [],
+    thresholdKnots: 12,
+  });
+  assert.equal(prediction.inputs.pointCount, 1);
+  assert.ok(prediction.kickInP50At);
+});
+
 test("estimates shorter bay lag when Cabo Raso is already strong", () => {
   assert.equal(bayLagMinutesFromCaboRaso({ windSpeedKnots: 22, windGustKnots: 24, windDirectionDeg: 330 }), 45);
   assert.equal(bayLagMinutesFromCaboRaso({ windSpeedKnots: 14, windGustKnots: 14, windDirectionDeg: 330 }), 90);

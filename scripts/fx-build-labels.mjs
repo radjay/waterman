@@ -2,7 +2,7 @@ import { ConvexHttpClient } from "convex/browser";
 import dotenv from "dotenv";
 import { api } from "../convex/_generated/api.js";
 import { FX_LOCATIONS } from "../lib/forecast-experiment/locations.js";
-import { localDateKey } from "../lib/forecast-experiment/time.js";
+import { localDateKey, localDayWindowMs } from "../lib/forecast-experiment/time.js";
 import { buildDailyLabel } from "../lib/forecast-experiment/labels.js";
 
 dotenv.config({ path: ".env.local" });
@@ -22,8 +22,9 @@ try {
     const dayMs = now - offset * 24 * 60 * 60_000;
     for (const location of FX_LOCATIONS.filter((item) => item.role !== "context")) {
       const dateLocal = localDateKey(dayMs, location.timezone);
-      const startAt = Date.parse(`${dateLocal}T00:00:00+00:00`) - 2 * 60 * 60_000;
-      const endAt = startAt + 30 * 60 * 60_000;
+      const { startAt: dayStart, endAt: dayEnd } = localDayWindowMs(dateLocal, location.timezone);
+      const startAt = dayStart - 2 * 60 * 60_000;
+      const endAt = dayEnd + 2 * 60 * 60_000;
       attemptedCount += 1;
       const observations = await convex.query(api.forecastExperiment.listObservationsForWindow, {
         locationSlug: location.slug,
