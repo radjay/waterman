@@ -39,3 +39,34 @@ services:
       - key: NEXT_PUBLIC_CONVEX_URL
         sync: false
 
+  - type: cron
+    name: waterman-fx-openmeteo
+    schedule: "30 * * * *"
+    env: node
+    buildCommand: npm install
+    startCommand: npm run fx:fetch:openmeteo
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+
+  - type: cron
+    name: waterman-fx-labels
+    schedule: "10 * * * *"
+    env: node
+    buildCommand: npm install
+    startCommand: npm run fx:build:labels && npm run fx:score:models && npm run fx:predict
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+
+  - type: worker
+    name: waterman-fx-observations
+    env: node
+    buildCommand: npm install
+    startCommand: sh -c 'while true; do npm run fx:fetch:observations; sleep ${FX_OBSERVATION_POLL_SECONDS:-300}; done'
+    envVars:
+      - key: NEXT_PUBLIC_CONVEX_URL
+        sync: false
+      - key: FX_OBSERVATION_POLL_SECONDS
+        value: "300"
+
