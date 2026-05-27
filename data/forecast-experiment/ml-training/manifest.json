@@ -1,7 +1,8 @@
 {
-  "exportedAt": "2026-05-26T17:18:00.845Z",
+  "exportedAt": "2026-05-27T21:00:42.320Z",
   "seasonId": "average",
   "observedOnly": true,
+  "nowcast": true,
   "window": {
     "startDateLocal": "2024-05-01",
     "endDateLocal": "2025-09-30",

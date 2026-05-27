@@ -48,11 +48,17 @@ export default function NowcastVerificationPage() {
       <section className="rounded-lg border border-ink/15 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold">Phase 5 — Nowcast verification</h2>
         <p className="mt-2 text-sm text-ink/70">
-          Historical uplift: compare conservative day-ahead Forecast (07:00) vs same-day Nowcast (11:00)
-          on marina-validated rideable days when Cabo Raso was already strong before noon.
+          Historical uplift: compare conservative day-ahead Forecast (07:00) vs same-day Nowcast (12:00, tuned)
+          using the dedicated nowcast ML head on marina-validated rideable days with strong early Cabo.
         </p>
         <p className="mt-2 text-sm text-ink/60">
-          Live loop: run{" "}
+          CLI sweep:{" "}
+          <code className="rounded bg-ink/5 px-1">FX_BACKTEST_SEASON=2025 npm run fx:nowcast:uplift -- --sweep-cutoffs</code>
+          · Nortada filter:{" "}
+          <code className="rounded bg-ink/5 px-1">--regime nortada</code> (sparse in dev DB today).
+        </p>
+        <p className="mt-2 text-sm text-ink/60">
+          Live loop:{" "}
           <code className="rounded bg-ink/5 px-1">npm run fx:verify:nowcast-loop</code> with observation
           polling active.
         </p>
@@ -92,6 +98,9 @@ export default function NowcastVerificationPage() {
             <h3 className="text-base font-semibold">
               {summary.passesVerification ? "Pass" : "Needs work"} — uplift summary
             </h3>
+            <p className="mt-2 text-sm">
+              Nowcast model: {result.nowcastModelVersion} · regime: {result.regimeFilter ?? "all"}
+            </p>
             <p className="mt-2 text-sm">
               Qualifying days: {summary.qualifyingDayCount} · Comparable: {summary.comparableDayCount} ·
               Improved: {summary.improvedCount}

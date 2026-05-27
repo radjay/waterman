@@ -8,6 +8,7 @@ import {
 import {
   DEFAULT_FORECAST_CUTOFF_HOUR,
   DEFAULT_NOWCAST_CUTOFF_HOUR,
+  REGIME_FILTER_NORTADA,
   runNowcastUpliftBacktest,
 } from "../../../../lib/forecast-experiment/nowcastUpliftBacktest.js";
 import {
@@ -52,6 +53,7 @@ export async function GET(request) {
 
   const forecastCutoffHour = Number(searchParams.get("forecastHour") ?? DEFAULT_FORECAST_CUTOFF_HOUR);
   const nowcastCutoffHour = Number(searchParams.get("nowcastHour") ?? DEFAULT_NOWCAST_CUTOFF_HOUR);
+  const regimeFilter = searchParams.get("regime") === "nortada" ? REGIME_FILTER_NORTADA : "all";
 
   const cacheKey = buildNowcastUpliftCacheKey({
     locationSlug: "cascais-bay",
@@ -74,6 +76,7 @@ export async function GET(request) {
     preset,
     forecastCutoffHour,
     nowcastCutoffHour,
+    regimeFilter,
   });
 
   if (!result.ok) {

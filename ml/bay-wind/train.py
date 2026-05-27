@@ -24,15 +24,17 @@ except OSError:
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data" / "forecast-experiment" / "ml-training"
 OUTPUT_PATH = REPO_ROOT / "data" / "forecast-experiment" / "bay-wind-v3-model.json"
+NOWCAST_OUTPUT_PATH = REPO_ROOT / "data" / "forecast-experiment" / "bay-wind-v3-nowcast-model.json"
 FEATURE_HOURS = list(range(6, 22))
 THRESHOLD_KNOTS_PRESETS = [10, 12, 15]
 DEFAULT_HOLDOUT_YEAR = 2025
 
 
-def load_rows() -> tuple[pd.DataFrame, list[str]]:
-    all_path = DATA_DIR / "all.jsonl"
+def load_rows(*, nowcast: bool = False) -> tuple[pd.DataFrame, list[str]]:
+    all_path = DATA_DIR / ("all-nowcast.jsonl" if nowcast else "all.jsonl")
     if not all_path.exists():
-        print(f"Missing {all_path}. Run: npm run fx:export:ml-dataset -- --all-presets", file=sys.stderr)
+        hint = "npm run fx:export:nowcast-dataset" if nowcast else "npm run fx:export:ml-dataset -- --all-presets"
+        print(f"Missing {all_path}. Run: {hint}", file=sys.stderr)
         sys.exit(1)
 
     rows = []
@@ -56,6 +58,7 @@ def load_rows() -> tuple[pd.DataFrame, list[str]]:
         record["thresholdKnots"] = row["thresholdKnots"]
         record["actualKickInMinutes"] = row.get("actualKickInMinutes")
         record["labelStatus"] = row.get("labelStatus")
+        record["nowcastMode"] = row.get("nowcastMode", False)
         for hour in FEATURE_HOURS:
             record[f"h{hour}Rideable"] = row.get("hourlyRideable", {}).get(f"h{hour}Rideable", 0)
         records.append(record)
@@ -499,6 +502,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional path to write the trained model JSON (default: data/forecast-experiment/bay-wind-v3-model.json)",
     )
+    parser.add_argument(
+        "--nowcast",
+        action="store_true",
+        help="Train dedicated nowcast head from all-nowcast.jsonl export",
+    )
     return parser.parse_args()
 
 
@@ -508,8 +516,10 @@ def main() -> None:
     if not HAS_LIGHTGBM:
         print("LightGBM unavailable (missing libomp) — using scikit-learn gradient boosting.", file=sys.stderr)
 
-    df, feature_names = load_rows()
+    df, feature_names = load_rows(nowcast=args.nowcast)
     print(f"Loaded {len(df)} rows, {df['actualKickInMinutes'].notna().sum()} kick-in labels")
+    if args.nowcast:
+        print(f"Nowcast training rows: {int(df['nowcastMode'].sum()) if 'nowcastMode' in df.columns else len(df)}")
 
     kick_in_model, kick_in_cv, kick_in_backend = train_kick_in_regressor(df, feature_names)
     session_model, session_backend = train_rideable_day_classifier(df, feature_names)
@@ -526,7 +536,7 @@ def main() -> None:
 
     artifact = {
         "version": 2,
-        "modelVersion": "bay-wind-v3.5-ml",
+        "modelVersion": "bay-wind-v3.5-ml-nowcast" if args.nowcast else "bay-wind-v3.5-ml",
         "featureNames": feature_names,
         "featureHours": FEATURE_HOURS,
         "kickInRegressor": kick_in_model,
@@ -536,6 +546,7 @@ def main() -> None:
         "trainingMeta": {
             "rowCount": int(len(df)),
             "labeledKickInCount": int(df["actualKickInMinutes"].notna().sum()),
+            "nowcastMode": bool(args.nowcast),
             "kickInLeaveOneSummerMaeMinutes": kick_in_cv,
             "hourlyRideableAccuracy": hourly_cv,
             "backend": {
@@ -546,7 +557,11 @@ def main() -> None:
         },
     }
 
-    out_path = Path(args.model_out) if args.model_out else OUTPUT_PATH
+    if args.nowcast:
+        artifact["nowcastCalibration"] = calibration
+
+    default_out = NOWCAST_OUTPUT_PATH if args.nowcast else OUTPUT_PATH
+    out_path = Path(args.model_out) if args.model_out else default_out
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(artifact, indent=2) + "\n")
     print(f"Wrote {out_path}")

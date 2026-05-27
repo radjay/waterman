@@ -5,7 +5,7 @@ import { buildBayWindPredictionV2 } from "../lib/forecast-experiment/bayWindPred
 import { buildBayWindPredictionV3 } from "../lib/forecast-experiment/bayWindPredictionMl.js";
 import { buildBayWindPredictionV4 } from "../lib/forecast-experiment/bayWindPredictionV4.js";
 import { loadBayWindCoefficients } from "../lib/forecast-experiment/loadBayWindCoefficients.js";
-import { loadBayWindMlModel } from "../lib/forecast-experiment/loadBayWindMlModel.js";
+import { loadBayWindMlModel, loadBayWindNowcastMlModel } from "../lib/forecast-experiment/loadBayWindMlModel.js";
 import { FX_LOCATIONS } from "../lib/forecast-experiment/locations.js";
 import { buildBaselinePrediction } from "../lib/forecast-experiment/prediction.js";
 import {
@@ -60,6 +60,7 @@ try {
   const predictionVersion = process.env.FX_PREDICTION_VERSION ?? "v3.5";
   const coefficients = await loadBayWindCoefficients();
   const mlModel = loadBayWindMlModel();
+  const nowcastMlModel = loadBayWindNowcastMlModel();
 
   const points = await convex.query(api.forecastExperiment.listRecentForecastPoints, {
     locationSlug: TARGET_SLUG,
@@ -113,8 +114,9 @@ try {
         thresholdKnots,
         preset,
         model: mlModel,
-        conservative: mode === "day-ahead", // higher sessionThreshold for planning horizons
-        mode, // Phase 5 nowcast prep: wires the existing heuristic (Cabo obs present?) through to the v3.5 stub for dynamic Cabo features on same-day runs. Fully backward for day-ahead Forecast.
+        nowcastModel: nowcastMlModel,
+        conservative: mode === "day-ahead",
+        mode,
       })
     );
 

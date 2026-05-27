@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   computeUpliftMinutes,
   hadStrongCaboBeforeHour,
+  pickBestNowcastCutoff,
   summarizeNowcastUplift,
 } from "../../lib/forecast-experiment/nowcastUpliftBacktest.js";
 import { localDayWindowMs } from "../../lib/forecast-experiment/time.js";
@@ -98,6 +99,15 @@ test("summarizeNowcastUplift passes when uplift and improved share meet bar", ()
   assert.equal(summary.meanUpliftMinutes, 25);
   assert.equal(summary.improvedShare, 1);
   assert.equal(summary.passesVerification, true);
+});
+
+test("pickBestNowcastCutoff selects highest mean uplift hour", () => {
+  const sweep = [
+    { nowcastCutoffHour: 10, summary: { meanUpliftMinutes: 5, improvedShare: 0.4 } },
+    { nowcastCutoffHour: 12, summary: { meanUpliftMinutes: 22, improvedShare: 0.55 } },
+    { nowcastCutoffHour: 11, summary: { meanUpliftMinutes: 18, improvedShare: 0.6 } },
+  ];
+  assert.equal(pickBestNowcastCutoff(sweep).nowcastCutoffHour, 12);
 });
 
 function obs(observedAt, speed, gust) {

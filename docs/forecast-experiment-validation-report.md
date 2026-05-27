@@ -497,3 +497,22 @@ Negative mean uplift means the 11:00 nowcast path is **less accurate** than the 
 - Rerun recommendation: 15 min
 
 **Conclusion:** Phase 5 **plumbing and live loop verified**. Phase 5 **historical accuracy target not met** — next work should tune nowcast cutoff/calibration or train a dedicated nowcast head (`fx:export:ml-dataset --nowcast`) before claiming sub-60 min same-day accuracy.
+
+### Tuning follow-up (2026-05-27)
+
+Three improvement tracks executed in order:
+
+**1. Cutoff sweep (hours 9–13)** — dedicated nowcast model + retuned calibration:
+
+| Season | Best hour | Mean uplift | Improved share |
+|--------|-----------|-------------|----------------|
+| 2025 | **12:00** | **+6 min** | **63%** (42/67) |
+| 2024 | 12:00 | −1 min | 51% |
+
+Default nowcast backtest hour updated **11 → 12**. Still below acceptance bar (mean uplift ≥ 15 min).
+
+**2. Dedicated nowcast ML head** — `npm run fx:export:nowcast-dataset` + `npm run fx:train:bay-nowcast-ml` → `bay-wind-v3-nowcast-model.json`, wired into live `fx:predict` and uplift backtest.
+
+**3. Nortada-only regime filter** — `--regime nortada` implemented; **0 qualifying days** in dev Convex (regime classifier yields mostly `other` — same label sparsity noted in Phase 1.2).
+
+**Revised conclusion:** Nowcast layer shows **modest uplift on 2025** (+6 min, 63% improved) but **not material enough** to pass Phase 5 bar. Forecast conservative path remains stronger on average. Continue iteration via nowcast-specific calibration on holdout or richer regime labels when marina returns.

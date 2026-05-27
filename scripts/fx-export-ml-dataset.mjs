@@ -138,7 +138,7 @@ writeFileSync(
   )}\n`
 );
 
-writeFileSync(join(OUTPUT_DIR, "all.jsonl"), `${rows.map(rowToJsonl).join("\n")}\n`);
+writeFileSync(join(OUTPUT_DIR, nowcast ? "all-nowcast.jsonl" : "all.jsonl"), `${rows.map(rowToJsonl).join("\n")}\n`);
 
 for (const [year, yearRows] of Object.entries(bySummerYear)) {
   writeFileSync(join(OUTPUT_DIR, `${year}.jsonl`), `${yearRows.map(rowToJsonl).join("\n")}\n`);

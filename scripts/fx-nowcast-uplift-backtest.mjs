@@ -2,7 +2,8 @@
  * Phase 5 verification — historical nowcast uplift vs day-ahead Forecast.
  *
  * FX_BACKTEST_SEASON=2025 npm run fx:nowcast:uplift
- * FX_BACKTEST_SEASON=2024 npm run fx:nowcast:uplift -- --nowcast-hour 11
+ * FX_BACKTEST_SEASON=2025 npm run fx:nowcast:uplift -- --sweep-cutoffs
+ * FX_BACKTEST_SEASON=2025 npm run fx:nowcast:uplift -- --regime nortada
  */
 import { ConvexHttpClient } from "convex/browser";
 import dotenv from "dotenv";
@@ -10,7 +11,11 @@ import {
   DEFAULT_ANALYSIS_SEASON_ID,
   resolveAnalysisSeason,
 } from "../lib/forecast-experiment/analysisSeasons.js";
-import { runNowcastUpliftBacktest } from "../lib/forecast-experiment/nowcastUpliftBacktest.js";
+import {
+  REGIME_FILTER_NORTADA,
+  runNowcastCutoffSweep,
+  runNowcastUpliftBacktest,
+} from "../lib/forecast-experiment/nowcastUpliftBacktest.js";
 import {
   DEFAULT_RIDEABILITY_PRESET,
   resolveRideabilityThreshold,
@@ -24,6 +29,8 @@ function parseArgs(argv) {
   let forecastHour = 7;
   let nowcastHour = 11;
   let strongCaboBeforeHour = 12;
+  let sweepCutoffs = false;
+  let regime = "all";
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -42,10 +49,31 @@ function parseArgs(argv) {
     } else if (arg === "--strong-cabo-before" && argv[index + 1]) {
       strongCaboBeforeHour = Number(argv[index + 1]);
       index += 1;
+    } else if (arg === "--sweep-cutoffs") {
+      sweepCutoffs = true;
+    } else if (arg === "--regime" && argv[index + 1]) {
+      regime = argv[index + 1];
+      index += 1;
     }
   }
 
-  return { preset, thresholdKnots, forecastHour, nowcastHour, strongCaboBeforeHour };
+  return {
+    preset,
+    thresholdKnots,
+    forecastHour,
+    nowcastHour,
+    strongCaboBeforeHour,
+    sweepCutoffs,
+    regime,
+  };
+}
+
+function printSummaryLine(label, summary) {
+  console.log(
+    `${label}: comparable ${summary.comparableDayCount}, uplift ${summary.meanUpliftMinutes ?? "—"} min, improved ${summary.improvedCount}/${summary.comparableDayCount}` +
+      (summary.improvedShare != null ? ` (${Math.round(summary.improvedShare * 100)}%)` : "") +
+      (summary.passesVerification ? " PASS" : "")
+  );
 }
 
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
@@ -58,6 +86,8 @@ const {
   forecastHour,
   nowcastHour,
   strongCaboBeforeHour,
+  sweepCutoffs,
+  regime,
 } = parseArgs(process.argv.slice(2));
 
 const seasonId = process.env.FX_BACKTEST_SEASON || DEFAULT_ANALYSIS_SEASON_ID;
@@ -66,11 +96,44 @@ const thresholdKnots = resolveRideabilityThreshold({
   thresholdKnots: thresholdArg,
   preset: presetArg ?? process.env.FX_BACKTEST_PRESET ?? DEFAULT_RIDEABILITY_PRESET,
 });
+const regimeFilter = regime === "nortada" ? REGIME_FILTER_NORTADA : "all";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-console.log(`Phase 5 nowcast uplift backtest — ${season.label}`);
-console.log(`Threshold: ${thresholdKnots} kt · model ${"v3.5"}`);
+console.log(`Phase 5 nowcast uplift — ${season.label}`);
+console.log(`Threshold: ${thresholdKnots} kt · regime: ${regimeFilter}`);
+console.log("");
+
+if (sweepCutoffs) {
+  console.log(`Sweeping nowcast cutoff hours (Forecast fixed @ ${forecastHour}:00)…`);
+  const sweepResult = await runNowcastCutoffSweep(convex, {
+    seasonId: season.id,
+    thresholdKnots,
+    preset: presetArg ?? process.env.FX_BACKTEST_PRESET ?? DEFAULT_RIDEABILITY_PRESET,
+    forecastCutoffHour: forecastHour,
+    strongCaboBeforeHour,
+    regimeFilter,
+  });
+
+  if (!sweepResult.ok) {
+    console.error(sweepResult.error);
+    process.exit(1);
+  }
+
+  for (const row of sweepResult.sweep) {
+    printSummaryLine(`Nowcast @ ${row.nowcastCutoffHour}:00`, row.summary);
+  }
+
+  console.log("");
+  if (sweepResult.best) {
+    console.log(
+      `Best cutoff: ${sweepResult.best.nowcastCutoffHour}:00 (mean uplift ${sweepResult.best.summary.meanUpliftMinutes ?? "—"} min)`
+    );
+    process.exit(sweepResult.best.summary.passesVerification ? 0 : 1);
+  }
+  process.exit(1);
+}
+
 console.log(
   `Cutoffs: Forecast ${forecastHour}:00 · Nowcast ${nowcastHour}:00 · strong Cabo before ${strongCaboBeforeHour}:00`
 );
@@ -83,6 +146,7 @@ const result = await runNowcastUpliftBacktest(convex, {
   forecastCutoffHour: forecastHour,
   nowcastCutoffHour: nowcastHour,
   strongCaboBeforeHour,
+  regimeFilter,
 });
 
 if (!result.ok) {
@@ -95,14 +159,14 @@ const { summary } = result;
 console.log(
   `Window: ${result.window.startDateLocal} – ${result.window.endDateLocal} (${result.window.daysInRange} days)`
 );
+console.log(`Nowcast model: ${result.nowcastModelVersion}`);
 console.log("");
-console.log(`Qualifying days (observed kick-in + strong early Cabo): ${summary.qualifyingDayCount}`);
-console.log(`Comparable (both layers predicted kick-in): ${summary.comparableDayCount}`);
+console.log(`Qualifying days: ${summary.qualifyingDayCount}`);
+console.log(`Comparable: ${summary.comparableDayCount}`);
 console.log("");
 console.log(`Forecast MAE: ${summary.meanForecastErrorMinutes ?? "—"} min`);
 console.log(`Nowcast MAE:  ${summary.meanNowcastErrorMinutes ?? "—"} min`);
-console.log(`Mean uplift:  ${summary.meanUpliftMinutes ?? "—"} min (positive = nowcast tighter)`);
-console.log(`Median uplift: ${summary.medianUpliftMinutes ?? "—"} min`);
+console.log(`Mean uplift:  ${summary.meanUpliftMinutes ?? "—"} min`);
 console.log(
   `Improved: ${summary.improvedCount}/${summary.comparableDayCount}` +
     (summary.improvedShare != null ? ` (${Math.round(summary.improvedShare * 100)}%)` : "")
@@ -110,18 +174,8 @@ console.log(
 console.log("");
 console.log(
   summary.passesVerification
-    ? "PASS — nowcast materially tighter than day-ahead Forecast on strong-Cabo days"
-    : "FAIL — does not meet Phase 5 uplift bar (mean uplift ≥ 15 min, ≥50% days improved, ≥5 comparable days)"
+    ? "PASS — nowcast materially tighter than day-ahead Forecast"
+    : "FAIL — does not meet Phase 5 uplift bar"
 );
-
-if (summary.comparableDayCount > 0 && summary.comparableDayCount <= 15) {
-  console.log("");
-  console.log("Per-day uplift (min, positive = nowcast better):");
-  for (const day of result.days.filter((d) => d.forecast?.kickInP50At && d.nowcast?.kickInP50At)) {
-    console.log(
-      `  ${day.dateLocal}: forecast err ${day.forecastErrorMinutes ?? "—"}, nowcast err ${day.nowcastErrorMinutes ?? "—"}, uplift ${day.upliftMinutes ?? "—"}`
-    );
-  }
-}
 
 process.exit(summary.passesVerification ? 0 : 1);
