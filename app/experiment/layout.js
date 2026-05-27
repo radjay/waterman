@@ -16,6 +16,7 @@ export default function ExperimentLayout({ children }) {
             <a href="/experiment" className="text-ink/70 hover:text-ink">Dashboard</a>
             <a href="/experiment/backtest" className="text-ink/70 hover:text-ink">Backtest</a>
             <a href="/experiment/prediction-models" className="text-ink/70 hover:text-ink">Kick-in models</a>
+            <a href="/experiment/nowcast-verification" className="text-ink/70 hover:text-ink">Nowcast verify</a>
             <a href="/experiment/model-analysis" className="text-ink/70 hover:text-ink">Model skill</a>
             <a href="/experiment/model-analysis-nortada" className="text-ink/70 hover:text-ink">Nortada skill</a>
             <a href="/experiment/admin" className="text-ink/70 hover:text-ink">Admin</a>

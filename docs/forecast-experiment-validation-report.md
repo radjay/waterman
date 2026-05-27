@@ -457,3 +457,43 @@ All work followed the established safe patterns (unique anchors for search_repla
 **This fire (batch) handoff.** Continuing the phases autonomously per the plan and the explicit “Recommended Focus”. All loops left active. Ready for the next scheduler fire. 💪
 
 **End of batch 019e6775da5f / 019e672670f4 / 019e6605fca9 (and multiples) handoff.** Continuing the phases autonomously per the plan. Ready for next scheduler fire. 💪
+
+---
+
+## Phase 5 Verification (2026-05-27)
+
+**Status:** Implemented and run on dev Convex (`adorable-anteater-323`).
+
+### Tooling added
+
+| Artifact | Purpose |
+|----------|---------|
+| `lib/forecast-experiment/nowcastUpliftBacktest.js` | Compare Forecast (07:00 conservative) vs Nowcast (11:00 dynamic Cabo) on qualifying days |
+| `npm run fx:nowcast:uplift` | CLI historical uplift backtest (marina seasons 2024–2025) |
+| `npm run fx:verify:nowcast-loop` | Live E2E: fetch obs → hook → predict → assert `mode=nowcast` |
+| `GET /api/experiment/nowcast-uplift` | Cached API for UI |
+| `/experiment/nowcast-verification` | Results table + pass/fail banner |
+
+**Qualifying day filter:** marina `observed` kick-in + Cabo sustained ≥ threshold before 12:00 Lisbon.
+
+**Acceptance bar:** mean uplift ≥ 15 min, ≥ 50% of comparable days improved, ≥ 5 comparable days.
+
+### Historical uplift results @ 12 kt (wingfoil-light)
+
+| Season | Qualifying | Comparable | Forecast MAE | Nowcast MAE | Mean uplift | Improved | Result |
+|--------|------------|------------|--------------|-------------|-------------|----------|--------|
+| 2025 | 69 | 67 | −3 min | 7 min | **−10 min** | 20/67 (30%) | **FAIL** |
+| 2024 | 85 | 81 | 4 min | 20 min | **−16 min** | 21/81 (26%) | **FAIL** |
+
+Negative mean uplift means the 11:00 nowcast path is **less accurate** than the conservative 07:00 Forecast on these strong-Cabo rideable days with the current v3.5 calibration bump. The day-ahead conservative operating point is already very tight (2–3 FP/summer); the modest nowcast calibration bump does not yet deliver tighter kick-in timing in backtest.
+
+### Live loop verification
+
+`npm run fx:verify:nowcast-loop` — **PASS** (2026-05-27):
+
+- Fresh Cabo ingested (< 30 min old)
+- `requestNowcastFollowUpIfRecommended` returns `acted=true` (after `api` import fix)
+- Latest prediction: `bay-wind-v3.5-ml`, `inputs.mode=nowcast`, fresh-Cabo metadata present
+- Rerun recommendation: 15 min
+
+**Conclusion:** Phase 5 **plumbing and live loop verified**. Phase 5 **historical accuracy target not met** — next work should tune nowcast cutoff/calibration or train a dedicated nowcast head (`fx:export:ml-dataset --nowcast`) before claiming sub-60 min same-day accuracy.

@@ -367,6 +367,12 @@ After plan approval, a focused implementation pass delivered the bulk of Phase 5
 
 All 84 forecast-experiment tests remained green throughout the session. The conservative day-ahead Forecast path was left completely untouched (as required).
 
-**Result**: A working "refining today" loop now exists (event-driven + safety net), the UI presents a continuous prediction experience, scoring can separate the layers, and the ML pipeline can produce nowcast-style training data. Full historical uplift backtest + manual live-Cabo demo on dev Convex are the natural next verification steps.
+**Result**: A working "refining today" loop now exists (event-driven + safety net), the UI presents a continuous prediction experience, scoring can separate the layers, and the ML pipeline can produce nowcast-style training data.
 
-*Session completed 2026-05-26.*
+### Phase 5 verification (2026-05-27)
+
+- **Historical uplift:** `npm run fx:nowcast:uplift` — FAIL on 2024+2025 (nowcast @ 11:00 worse than conservative Forecast @ 07:00 on strong-Cabo days; see validation report).
+- **Live loop:** `npm run fx:verify:nowcast-loop` — PASS (fresh Cabo → hook → nowcast prediction).
+- **UI:** `/experiment/nowcast-verification` shows season uplift table and pass/fail banner.
+
+*Session completed 2026-05-26. Verification completed 2026-05-27.*
