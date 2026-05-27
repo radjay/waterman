@@ -22,7 +22,9 @@ export default function ExperimentPage() {
   const saveReport = useMutation(api.forecastExperiment.saveUserReport);
 
   const cabo = dashboard?.latestCaboRaso;
-  const prediction = dashboard?.latestPredictions?.[0];
+  const prediction =
+    dashboard?.latestBayPrediction ??
+    dashboard?.latestPredictions?.find((row) => row.targetLocationSlug === "cascais-bay");
   const caboEffective = cabo ? effectiveWindKnots(cabo) : undefined;
 
   const caboDirection = useMemo(() => {
@@ -93,8 +95,16 @@ export default function ExperimentPage() {
         <h2 className="text-base font-semibold">Latest bay prediction</h2>
         {prediction ? (
           <div className="mt-3 space-y-2 text-sm">
+            <p className="text-ink/60">
+              Model{" "}
+              <span className="font-medium text-ink">{prediction.modelVersion}</span>
+              {prediction.inputs?.mode ? ` · ${prediction.inputs.mode === 'nowcast' ? 'Nowcast (live Cabo)' : 'Forecast (day-ahead, conservative)'}` : ""}
+            </p>
             <p>{prediction.summary}</p>
             <p className="text-ink/70">
+              Model {prediction.modelVersion}
+              {prediction.inputs?.mode ? ` (${prediction.inputs.mode === 'nowcast' ? 'Nowcast (live Cabo)' : 'Forecast (day-ahead, conservative)'})` : ""}
+              {" · "}
               Confidence {Math.round(prediction.confidence * 100)}% · threshold {prediction.thresholdKnots} kt effective
             </p>
             {prediction.kickInP50At && (
@@ -107,6 +117,69 @@ export default function ExperimentPage() {
           <p className="mt-3 text-sm text-ink/60">No predictions yet.</p>
         )}
       </section>
+
+      {dashboard.latestBayLabel && (
+        <section className="rounded-lg border border-ink/15 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold">Today's label source (cascais-bay)</h2>
+          <div className="mt-3 text-sm">
+            <span className="font-medium">{dashboard.latestBayLabel.labelStatus}</span>
+            {dashboard.latestBayLabel.sourceSummary && (
+              <span className="text-ink/70"> — {dashboard.latestBayLabel.sourceSummary}</span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-ink/50">
+            Used for training and backtesting. "observed" = real marina anemometer data (currently unavailable since ~April 2026). 
+            <strong>Forecast layer</strong> (day-ahead / multi-day planning): v3.5 ML with conservative thresholds (NWP-driven, low false positives). 
+            <strong>Nowcast layer</strong> (same-day refining): uses live Cabo observations for tighter windows as conditions develop. 
+            Predictions below show their layer (<code>day-ahead</code> or <code>nowcast</code> via <code>inputs.mode</code>).
+          </p>
+          <div className="mt-3 rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-sky-900">Today’s Nowcast — Phase 5 (live refining)</div>
+              <div className="rounded bg-sky-200 px-2 py-0.5 text-[10px] font-medium text-sky-800">Continuous</div>
+            </div>
+
+            <p className="mt-2 text-sky-800">
+              Starts as the conservative day-ahead Forecast in the morning. As fresh Cabo Raso observations arrive, the same v3.5 model (with dynamic Cabo features) produces tighter, higher-confidence windows for <strong>today</strong>. This is the high-accuracy same-day layer.
+            </p>
+
+            {cabo ? (
+              <div className="mt-3 rounded border border-sky-200 bg-white/60 p-2.5 text-xs">
+                <div className="font-medium text-sky-900">Live data driving this layer</div>
+                <div className="mt-1 text-sky-700">
+                  Cabo Raso: <span className="font-semibold">{new Date(cabo.observedAt).toLocaleString('en-GB', { timeZone: 'Europe/Lisbon' })}</span>
+                  <span className="ml-2 text-sky-500">({Math.max(0, Math.round((Date.now() - cabo.observedAt) / 60000))} min ago)</span>
+                </div>
+                <div className="mt-1 text-[10px] text-sky-600">
+                  Predictions labeled “Nowcast (live Cabo)” use the dynamic-Cabo path. The conservative day-ahead Forecast above is intentionally less aggressive for planning.
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-sky-700">No live Cabo yet — Nowcast activates automatically when fresh observations arrive for today.</p>
+            )}
+
+            {/* Phase 5 rerun recommendation surfaced from the latest successful generator run */}
+            {(() => {
+              const latestGenRun = (dashboard.recentWorkerRuns || []).find(
+                (r) => r.workerName === 'fx-generate-predictions' && r.status === 'success' && r.metadata?.rerunRecommendation
+              );
+              const rec = latestGenRun?.metadata?.rerunRecommendation;
+              if (rec && rec.nextRunInMinutes) {
+                return (
+                  <p className="mt-2 text-[11px] font-medium text-sky-900">
+                    Next automatic tightening recommended in ~{rec.nextRunInMinutes} min (event-driven + 20-min safety-net cron).
+                  </p>
+                );
+              }
+              return null;
+            })()}
+
+            <div className="mt-3 text-[10px] text-sky-600">
+              This block is part of the continuous prediction experience. The morning conservative Forecast remains visible above for multi-day planning.
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
         <h2 className="text-base font-semibold">Report conditions</h2>

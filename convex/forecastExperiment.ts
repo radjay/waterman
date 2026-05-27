@@ -288,7 +288,7 @@ export const saveSkillScores = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     for (const score of args.scores) {
-      await ctx.db.insert("fx_model_skill_scores", { ...score, updatedAt: now });
+      await ctx.db.insert("fx_model_skill_scores", { ...score, updatedAt: now }); // mode (if present) is already on the score object
     }
     return { inserted: args.scores.length };
   },
@@ -337,6 +337,64 @@ export const listLatestPredictions = query({
       .order("desc")
       .take(args.limit ?? 20);
     return all.filter((prediction) => prediction.targetLocationSlug === args.targetLocationSlug);
+  },
+});
+
+export const listPredictionsForWindow = query({
+  args: {
+    targetLocationSlug: v.string(),
+    startDateLocal: v.string(),
+    endDateLocal: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("fx_predictions")
+      .withIndex("by_target_date", (q) => q.eq("targetLocationSlug", args.targetLocationSlug))
+      .collect();
+    return rows.filter(
+      (row) =>
+        row.forecastDateLocal >= args.startDateLocal &&
+        row.forecastDateLocal <= args.endDateLocal
+    );
+  },
+});
+
+export const savePredictionScores = mutation({
+  args: {
+    scores: v.array(v.object({
+      modelVersion: v.string(),
+      locationSlug: v.string(),
+      sport: v.string(),
+      season: v.string(),
+      thresholdKnots: v.number(),
+      // Phase 5: optional mode tag (day-ahead | nowcast) for separate scoring tracking.
+      mode: v.optional(v.string()),
+      sampleCount: v.number(),
+      kickInMaeMinutes: v.optional(v.number()),
+      rideableHitRate: v.optional(v.number()),
+      rideableBrier: v.optional(v.number()),
+      falsePositiveCount: v.optional(v.number()),
+      falseNegativeCount: v.optional(v.number()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const score of args.scores) {
+      await ctx.db.insert("fx_model_skill_scores", {
+        provider: "prediction",
+        model: score.modelVersion,
+        locationSlug: score.locationSlug,
+        sport: score.sport,
+        season: score.season,
+        regime: "all",
+        leadBucketHours: `${score.thresholdKnots}kt`,
+        sampleCount: score.sampleCount,
+        onsetMaeMinutes: score.kickInMaeMinutes,
+        rideableBrier: score.rideableBrier,
+        updatedAt: now,
+      });
+    }
+    return { inserted: args.scores.length };
   },
 });
 
@@ -476,7 +534,17 @@ export const experimentDashboard = query({
       .query("fx_predictions")
       .withIndex("by_generated")
       .order("desc")
-      .take(3);
+      .take(10);
+    const latestBayPrediction =
+      predictions.find((prediction) => prediction.targetLocationSlug === "cascais-bay") ?? null;
+
+    // Latest daily label for the bay (used to show label source: observed / report-assisted / lag-inferred / insufficient)
+    const latestBayLabel = await ctx.db
+      .query("fx_daily_labels")
+      .withIndex("by_location_date", (q) => q.eq("locationSlug", "cascais-bay"))
+      .order("desc")
+      .first();
+
     const workerRuns = await ctx.db
       .query("fx_worker_runs")
       .withIndex("by_status_started")
@@ -486,8 +554,69 @@ export const experimentDashboard = query({
       latestCaboRaso: caboRasoObs[0] ?? null,
       recentBayReports: bayReports,
       latestPredictions: predictions,
+      latestBayPrediction,
+      latestBayLabel: latestBayLabel ?? null,
       recentWorkerRuns: workerRuns,
     };
+  },
+});
+
+/**
+ * Phase 5 5.2 — dedicated, clean query for the latest rerun recommendation.
+ * Any future scheduler, UI poller, or external system can call this instead of
+ * digging through recentWorkerRuns. Returns the most recent recommendation
+ * from a successful fx-generate-predictions run (or null).
+ */
+export const getLatestNowcastRerunRecommendation = query({
+  args: {},
+  handler: async (ctx) => {
+    const runs = await ctx.db
+      .query("fx_worker_runs")
+      .withIndex("by_status_started")
+      .order("desc")
+      .take(20);
+
+    const latest = runs.find(
+      (r) =>
+        r.workerName === "fx-generate-predictions" &&
+        r.status === "success" &&
+        r.metadata?.rerunRecommendation
+    );
+
+    return latest?.metadata?.rerunRecommendation ?? null;
+  },
+});
+
+/**
+ * Phase 5 5.2 stub — the hook point for the actual frequent re-run mechanism.
+ * Future work (Convex scheduled function, higher-frequency Render job, or
+ * on-demand trigger) can call this when the recommendation says "nowcast today".
+ * For now it is a safe, observable no-op that records intent and returns the rec.
+ */
+export const requestNowcastFollowUpIfRecommended = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const rec = await ctx.runQuery(api.forecastExperiment.getLatestNowcastRerunRecommendation);
+    if (rec && rec.nextRunInMinutes) {
+      // Phase 5 5.2 — the observations worker (and future safety-net cron) will
+      // call this when fresh Cabo for "today" exists. We record an explicit
+      // lightweight workerRun marker so the intent is visible in the DB even
+      // if the immediate follow-up generation is performed by the caller.
+      // The actual prediction is produced by spawning the generator script
+      // (see fx-fetch-observations.mjs event-driven path).
+      await ctx.db.insert("fx_worker_runs", {
+        workerName: "fx-nowcast-followup-requested",
+        startedAt: Date.now(),
+        status: "success",
+        finishedAt: Date.now(),
+        metadata: {
+          reason: "Phase 5 event-driven nowcast trigger from fresh Cabo",
+          recommendation: rec,
+        },
+      });
+      return { acted: true, recommendation: rec };
+    }
+    return { acted: false };
   },
 });
 

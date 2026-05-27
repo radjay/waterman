@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "forecastModel": "icon-eu-previous-day1",
+  "thresholdKnots": 12,
+  "minedAt": "2026-05-25T17:29:37.668Z",
+  "tuningNote": "Mined lag retained; bias reverted to conservative defaults after Summer 2025 backtest showed aggressive mined bias raised v2 MAE from 257 to 298 min vs v1 211 min.",
+  "biasByRegimeHour": {
+    "nortada": {
+      "6-11": 0,
+      "12-17": -1,
+      "18-21": -0.5
+    },
+    "non-nortada": {
+      "6-11": 0,
+      "12-17": 0,
+      "18-21": 0
+    }
+  },
+  "lagMinutesByForecastPeak": [
+    {
+      "minKnots": 0,
+      "maxKnots": 16,
+      "lagMinutes": 75
+    },
+    {
+      "minKnots": 16,
+      "maxKnots": 20,
+      "lagMinutes": 25
+    },
+    {
+      "minKnots": 20,
+      "maxKnots": 999,
+      "lagMinutes": 35
+    }
+  ],
+  "sampleCounts": {
+    "biasByRegimeHour": {
+      "nortada": {
+        "6-11": 898,
+        "12-17": 1120,
+        "18-21": 749
+      },
+      "non-nortada": {
+        "6-11": 805,
+        "12-17": 583,
+        "18-21": 386
+      }
+    },
+    "lagMinutesByForecastPeak": {
+      "0-16": 12,
+      "16-20": 24,
+      "20+": 26
+    }
+  }
+}

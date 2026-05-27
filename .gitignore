@@ -30,3 +30,6 @@ poc.js
 # Temporary files
 *.tmp
 *.log
+
+# Python venv (local ML training)
+ml/bay-wind/.venv/

@@ -9,6 +9,7 @@ import {
   computeSkillMetrics,
   computeWindSpeedRegimeBreakdown,
   computeMonthlyWindSpeedBreakdown,
+  computeRideabilityAnomalies,
   detrendSeries,
   isNortadaDirection,
   pairHourlyModelObs,
@@ -69,6 +70,46 @@ test("computeWindSpeedRegimeBreakdown counts days by regime peak effective wind"
   assert.equal(breakdown.nortada.daysByBucket["20-25"], 1);
   assert.equal(breakdown.nonNortada.daysWithWind, 2);
   assert.equal(breakdown.nonNortada.daysByBucket["10-15"], 2);
+});
+
+test("computeRideabilityAnomalies flags false positives and false negatives", () => {
+  const falsePositiveDay = "2025-07-07";
+  const falseNegativeDay = "2025-07-08";
+  const { startAt: fpStart } = localDayWindowMs(falsePositiveDay);
+  const { startAt: fnStart } = localDayWindowMs(falseNegativeDay);
+  const kickInAt = fnStart + 11 * 3_600_000;
+  const model = "gfs-global-previous-day1";
+
+  const fpForecast = [];
+  for (let hour = 6; hour <= 20; hour += 1) {
+    const validTime = fpStart + hour * 3_600_000;
+    const speed = hour < 12 ? 8 : 16;
+    fpForecast.push(forecastPoint(model, fpStart - 12 * 3_600_000, validTime, speed, speed + 2));
+  }
+
+  const fnForecast = [];
+  for (let hour = 6; hour <= 20; hour += 1) {
+    const validTime = fnStart + hour * 3_600_000;
+    fnForecast.push(forecastPoint(model, fnStart - 12 * 3_600_000, validTime, 8, 9));
+  }
+
+  const anomalies = computeRideabilityAnomalies({
+    datesLocal: [falsePositiveDay, falseNegativeDay],
+    observations: [
+      obs(fpStart + 12 * 3_600_000, 8, 9),
+      obs(kickInAt - 15 * 60_000, 10, 11),
+      obs(kickInAt, 13, 15),
+      obs(kickInAt + 15 * 60_000, 14, 16),
+      obs(kickInAt + 30 * 60_000, 15, 17),
+    ],
+    forecastPoints: [...fpForecast, ...fnForecast],
+    models: [model],
+  });
+
+  assert.equal(anomalies.byModel[model].falsePositiveCount, 1);
+  assert.equal(anomalies.byModel[model].falseNegativeCount, 1);
+  assert.equal(anomalies.byModel[model].falsePositives[0].dateLocal, falsePositiveDay);
+  assert.equal(anomalies.byModel[model].falseNegatives[0].dateLocal, falseNegativeDay);
 });
 
 test("computeMonthlyWindSpeedBreakdown groups regime day counts by month", () => {

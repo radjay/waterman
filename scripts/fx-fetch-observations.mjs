@@ -76,6 +76,43 @@ try {
   insertedCount = result.inserted;
   skippedCount += result.skipped;
 
+  // Phase 5 5.2 — event-driven nowcast trigger from fresh Cabo observations.
+  // After ingesting new Cabo Raso data for the current Lisbon local day,
+  // ask the Convex hook if a nowcast follow-up is recommended. If yes,
+  // immediately run the generator (it will produce a nowcast-mode prediction
+  // because fresh Cabo will be visible, and it is cheap to no-op otherwise).
+  // This gives rapid tightening of the "today" window as live station data arrives.
+  // The 15–30 min Render safety-net cron (to be added) guarantees progress even
+  // if this path is delayed.
+  const hasFreshCaboRasoToday = observations.some((o) => {
+    if (o.locationSlug !== "cabo-raso") return false;
+    const obsDate = new Date(o.observedAt).toLocaleDateString("en-CA", { timeZone: "Europe/Lisbon" });
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Lisbon" });
+    return obsDate === today;
+  });
+
+  if (hasFreshCaboRasoToday) {
+    try {
+      const trigger = await convex.mutation(api.forecastExperiment.requestNowcastFollowUpIfRecommended);
+      if (trigger?.acted && trigger.recommendation?.nextRunInMinutes) {
+        console.log(
+          `[fx-observations] Phase 5 Nowcast follow-up recommended (${trigger.recommendation.nextRunInMinutes} min) — spawning immediate generator run`
+        );
+        // Spawn the generator synchronously for the follow-up. It re-queries fresh Cabo
+        // and will emit a nowcast prediction + a fresh rerunRecommendation if still applicable.
+        // Using the same script keeps all mode / conservative / calibration logic in one place.
+        const { execSync } = await import("child_process");
+        execSync("node scripts/fx-generate-predictions.mjs", {
+          stdio: "inherit",
+          env: process.env,
+        });
+      }
+    } catch (triggerErr) {
+      // Non-fatal — the safety-net cron will still pick up the recommendation later.
+      console.error("[fx-observations] Nowcast follow-up trigger failed (non-fatal):", triggerErr.message);
+    }
+  }
+
   await convex.mutation(api.forecastExperiment.finishWorkerRun, {
     workerRunId,
     status: "success",

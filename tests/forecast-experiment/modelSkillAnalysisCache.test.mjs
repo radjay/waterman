@@ -9,23 +9,23 @@ import {
 test("buildModelSkillAnalysisCacheKey varies with all analysis params", () => {
   const base = {
     locationSlug: "cascais-bay",
-    startDateLocal: "2025-05-01",
-    endDateLocal: "2025-09-30",
+    seasonId: "2025",
     filterMode: "all",
     minObservedEffectiveKnots: 12,
   };
   const keyA = buildModelSkillAnalysisCacheKey(base);
   const keyB = buildModelSkillAnalysisCacheKey({ ...base, filterMode: "windy-nortada" });
   const keyC = buildModelSkillAnalysisCacheKey({ ...base, minObservedEffectiveKnots: 15 });
+  const keyD = buildModelSkillAnalysisCacheKey({ ...base, seasonId: "2024" });
   assert.notEqual(keyA, keyB);
   assert.notEqual(keyA, keyC);
+  assert.notEqual(keyA, keyD);
 });
 
 test("getCachedModelSkillAnalysis returns stored value until expired", () => {
   const key = buildModelSkillAnalysisCacheKey({
     locationSlug: "cascais-bay",
-    startDateLocal: "2025-06-01",
-    endDateLocal: "2025-06-30",
+    seasonId: "2026",
     filterMode: "all",
     minObservedEffectiveKnots: 12,
   });

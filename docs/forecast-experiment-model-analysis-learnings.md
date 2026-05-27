@@ -204,7 +204,9 @@ Re-run analysis after backfill changes; rankings are data-dependent, not fixed t
 npm run fx:backfill:openmeteo      # Previous Runs → Convex (all enabled FX_MODELS)
 npm run fx:backfill:windguru        # Windguru history → Convex
 npm run fx:analyze:model-skill      # CLI skill analysis
-npm run test:fx                     # Unit tests (50 tests)
+npm run fx:backtest:predictions     # v1 vs v2 kick-in backtest
+npm run fx:score:predictions        # Score stored predictions vs labels
+npm run test:fx                     # Unit tests
 ```
 
 ### Small backfill window
@@ -251,6 +253,60 @@ If step 2 fails, document why in this file or in a comment near `FX_MODELS` — 
 
 ---
 
+## Bay wind prediction v1 vs v2 (Summer 2025 backtest)
+
+Kick-in prediction backtest compares **baseline-ensemble-v1** (blended multi-model + Cabo lag boost) against **bay-wind-v2** (ICON7 previous-day1 + bias/lag tables). Run:
+
+```bash
+FX_BACKTEST_SEASON=2025 npm run fx:backtest:predictions
+```
+
+**Baseline (wingfoil-light / 12 kt, dev Convex, 2026-05-25):**
+
+| Version | Kick-in MAE | Within ±1h | False + | False − | Days comparable |
+|---------|-------------|------------|---------|---------|-----------------|
+| v1 `baseline-ensemble-v1` | **211 min** | 22/88 | 26 | 12 | 88 |
+| v2 `bay-wind-v2` (pre-tune) | 298 min | 9/53 | 11 | 47 | 53 |
+| v2 `bay-wind-v2` (zero nortada bias) | **257 min** | 24/91 | 28 | 9 | 91 |
+
+**Findings:**
+
+- v2 day-ahead mode uses a **single model** (`icon-eu-previous-day1`) while v1 blends all available models — most of the remaining gap vs v1 (257 vs 211 min MAE) is structural.
+- v1 applies a Cabo nowcast boost whenever Cabo obs exist before the 07:00 cutoff; v2 only applies Cabo lag in explicit **nowcast** mode (live worker switches when Cabo obs are &lt;6 h old).
+- Zeroing mined nortada afternoon bias (-1 kt) improved v2 MAE from 298 → **257 min** and false negatives from 47 → 9, but v2 still trails v1 on day-ahead kick-in until live nowcast scoring accumulates or Phase 6 ML ships.
+- Live worker writes v2 by default (`FX_PREDICTION_VERSION=v2`); set `FX_PREDICTION_VERSION=v1` to keep baseline only. Threshold preset via `FX_RIDEABILITY_PRESET` (`windfoil` 10 / `wingfoil-light` 12 / `wingfoil-heavy` 15 kt).
+- Stored predictions are scored hourly via `fx:score:predictions` against `fx_daily_labels` (marina obs, user reports as weak labels, Cabo lag inference).
+
+**Related:** [Cascais Bay wind prediction plan](superpowers/plans/2026-05-25-cascais-bay-wind-prediction.md), `/experiment/backtest?season=2025&model=v2`.
+
+---
+
+## Bay wind prediction v3 ML (`bay-wind-v3-ml`)
+
+Phase 6 adds a multi-model ML pipeline: export day-level rows (`npm run fx:export:ml-dataset -- --all-presets`), train locally (`npm run fx:train:bay-ml` — LightGBM when `libomp` is available, otherwise scikit-learn gradient boosting with the same JSON tree export), and score via Node inference (`buildBayWindPredictionV3`).
+
+**Summer 2025 kick-in MAE (dev Convex, 2026-05-25):**
+
+| Preset | kt | v1 MAE | v2 MAE | v3 MAE | v3 vs v2 |
+|--------|-----|--------|--------|--------|----------|
+| `windfoil` | 10 | 235 min | 233 min | **90 min** | −143 min |
+| `wingfoil-light` | 12 | 211 min | 257 min | **89 min** | −168 min |
+| `wingfoil-heavy` | 15 | 224 min | 207 min | **97 min** | −110 min |
+
+Run:
+
+```bash
+FX_BACKTEST_SEASON=2025 npm run fx:backtest:predictions -- --preset wingfoil-light
+```
+
+**Findings:**
+
+- v3 uses GFS + ICON13 + ICON7 previous-day1 hourly features, Cabo state at 07:00, calendar fields, and `thresholdKnots` as inputs — no hand-tuned bias tables.
+- Kick-in MAE improves sharply vs v1/v2 on Summer 2025, but v3 reports more **false positives** (predicted kick-in when marina obs never sustained threshold). Treat MAE gains alongside false+/− counts before promoting v3 to the live worker.
+- Trained artifact: `data/forecast-experiment/bay-wind-v3-model.json`. Compare in UI: `/experiment/backtest?season=2025&model=v3&preset=wingfoil-light`.
+
+---
+
 ## Open questions / next steps
 
 - **ECMWF / ARPEGE Previous Runs at Cascais:** intermittent or empty `previous_dayN` — worth a dedicated audit if we rely on them for skill rankings.
@@ -260,4 +316,4 @@ If step 2 fails, document why in this file or in a comment near `FX_MODELS` — 
 
 ---
 
-*Last updated: 2026-05-25 — reflects model-domain verification, removal of ICON-D2/AROME/HARMONIE/ICON 2I from `FX_MODELS`, and Model skill UI/API work.*
+*Last updated: 2026-05-25 — reflects model-domain verification, removal of ICON-D2/AROME/HARMONIE/ICON 2I from `FX_MODELS`, Model skill UI/API work, and bay-wind-v2 live prediction + backtest baseline.*

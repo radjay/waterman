@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  DEFAULT_ANALYSIS_SEASON_ID,
+  listAnalysisSeasonOptions,
+} from "../../../lib/forecast-experiment/analysisSeasons.js";
 import { formatForecastModelLabel } from "../../../lib/forecast-experiment/modelLabels.js";
+import { formatLisbonDateTime, localDayWindowMs } from "../../../lib/forecast-experiment/time.js";
 import { ForecastAccuracySection } from "./ForecastAccuracyCharts.js";
 import { HorizontalMaeChart, WindSpeedRegimeBreakdown } from "./ModelSkillCharts.js";
 
@@ -14,23 +19,21 @@ export default function ModelSkillAnalysisView({
   description,
   apiFilter = "all",
   minKt = 12,
-  defaultStart,
-  defaultEnd,
-  rangePresets,
+  defaultSeasonId = DEFAULT_ANALYSIS_SEASON_ID,
   showWindClimatology = true,
   showComparison = false,
   buildSummary = buildDefaultSummary,
 }) {
-  const [startDateLocal, setStartDateLocal] = useState(defaultStart);
-  const [endDateLocal, setEndDateLocal] = useState(defaultEnd);
+  const seasonOptions = listAnalysisSeasonOptions();
+  const [seasonId, setSeasonId] = useState(defaultSeasonId);
   const [result, setResult] = useState(undefined);
   const [loadError, setLoadError] = useState(null);
 
   const loadAnalysis = useCallback(
-    async (start, end, signal) => {
+    async (nextSeasonId, signal) => {
       setResult(undefined);
       setLoadError(null);
-      const params = new URLSearchParams({ start, end });
+      const params = new URLSearchParams({ season: nextSeasonId });
       if (apiFilter !== "all") {
         params.set("filter", apiFilter);
         params.set("minKt", String(minKt));
@@ -46,16 +49,32 @@ export default function ModelSkillAnalysisView({
 
   useEffect(() => {
     const controller = new AbortController();
-    loadAnalysis(startDateLocal, endDateLocal, controller.signal)
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 4 * 60 * 1000);
+
+    loadAnalysis(seasonId, controller.signal)
       .then((payload) => {
         if (!controller.signal.aborted) setResult(payload);
       })
       .catch((error) => {
-        if (controller.signal.aborted || error.name === "AbortError") return;
+        if (controller.signal.aborted && !timedOut) return;
+        if (error.name === "AbortError" && timedOut) {
+          setLoadError("Analysis timed out. Try a single summer instead of Average.");
+          return;
+        }
+        if (error.name === "AbortError") return;
         setLoadError(error.message);
-      });
-    return () => controller.abort();
-  }, [startDateLocal, endDateLocal, loadAnalysis]);
+      })
+      .finally(() => clearTimeout(timeoutId));
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [seasonId, loadAnalysis]);
 
   const analysis = result?.analysis ?? null;
   const winner = analysis?.models[0] ?? null;
@@ -86,44 +105,32 @@ export default function ModelSkillAnalysisView({
         <h2 className="text-base font-semibold">{title}</h2>
         <p className="mt-1 text-sm text-ink/60">{description}</p>
 
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="text-sm">
-            <span className="block text-ink/50">From</span>
-            <input
-              type="date"
-              value={startDateLocal}
-              onChange={(event) => setStartDateLocal(event.target.value)}
-              className="mt-1 rounded border border-ink/20 px-2 py-1"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="block text-ink/50">To</span>
-            <input
-              type="date"
-              value={endDateLocal}
-              onChange={(event) => setEndDateLocal(event.target.value)}
-              className="mt-1 rounded border border-ink/20 px-2 py-1"
-            />
-          </label>
-          <div className="flex flex-wrap gap-2 pb-1">
-            {rangePresets.map((preset) => (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {seasonOptions.map((option) => {
+            const active = option.id === seasonId;
+            return (
               <button
-                key={preset.label}
+                key={option.id}
                 type="button"
-                onClick={() => {
-                  setStartDateLocal(preset.start);
-                  setEndDateLocal(preset.end);
-                }}
-                className="rounded border border-ink/15 px-2 py-1 text-xs text-ink/70 hover:bg-ink/5"
+                onClick={() => setSeasonId(option.id)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? "border-ink bg-ink text-white"
+                    : "border-ink/15 text-ink/70 hover:bg-ink/5"
+                }`}
               >
-                {preset.label}
+                {option.label}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </header>
 
-      {loading && <p className="text-sm text-ink/60">Checking forecasts…</p>}
+      {loading && (
+        <p className="text-sm text-ink/60">
+          Checking forecasts… large ranges can take a couple of minutes on first load.
+        </p>
+      )}
       {loadError && <p className="text-sm text-red-700">{loadError}</p>}
       {!loading && !analysis && !loadError && (
         <p className="text-sm text-ink/60">No data for these dates.</p>
@@ -163,6 +170,12 @@ export default function ModelSkillAnalysisView({
             </div>
           </section>
 
+          <RideabilityAnomaliesSection
+            anomalies={result?.rideabilityAnomalies}
+            winnerModel={winner.model}
+            formatLabel={formatForecastModelLabel}
+          />
+
           {showWindClimatology ? (
             <WindSpeedRegimeBreakdown climatology={result?.windClimatology} />
           ) : null}
@@ -176,6 +189,153 @@ export default function ModelSkillAnalysisView({
       )}
     </div>
   );
+}
+
+function RideabilityAnomaliesSection({ anomalies, winnerModel, formatLabel }) {
+  if (!anomalies?.byModel) return null;
+
+  const { thresholdKnots, daysScored, byModel } = anomalies;
+  const modelRows = Object.entries(byModel)
+    .map(([model, stats]) => ({ model, ...stats }))
+    .sort(
+      (a, b) =>
+        b.falsePositiveCount +
+        b.falseNegativeCount -
+        (a.falsePositiveCount + a.falseNegativeCount)
+    );
+
+  const spotlight = byModel[winnerModel] ?? modelRows[0];
+  const totalFp = modelRows.reduce((sum, row) => sum + row.falsePositiveCount, 0);
+  const totalFn = modelRows.reduce((sum, row) => sum + row.falseNegativeCount, 0);
+
+  return (
+    <section className="rounded-lg border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
+      <h3 className="text-sm font-semibold text-amber-950">Rideability surprises</h3>
+      <p className="mt-2 text-sm leading-relaxed text-amber-950/90">
+        Day-level mismatches at the {thresholdKnots}+ kt rideable bar (forecast P50 kick-in vs marina
+        sustained crossing), across {daysScored} scored days.
+      </p>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-md border border-amber-200/80 bg-white px-3 py-2">
+          <dt className="text-[11px] uppercase tracking-wide text-ink/45">False positives</dt>
+          <dd className="mt-1 text-sm text-ink">
+            Forecast expected rideable wind, but the gauge never sustained {thresholdKnots}+ kt.
+          </dd>
+          <p className="mt-2 tabular-nums text-lg font-semibold text-amber-950">
+            {totalFp} day{totalFp === 1 ? "" : "s"}
+          </p>
+        </div>
+        <div className="rounded-md border border-amber-200/80 bg-white px-3 py-2">
+          <dt className="text-[11px] uppercase tracking-wide text-ink/45">False negatives</dt>
+          <dd className="mt-1 text-sm text-ink">
+            The gauge reached rideable wind, but the forecast did not predict a kick-in.
+          </dd>
+          <p className="mt-2 tabular-nums text-lg font-semibold text-amber-950">
+            {totalFn} day{totalFn === 1 ? "" : "s"}
+          </p>
+        </div>
+      </dl>
+
+      {spotlight &&
+      (spotlight.falsePositiveCount > 0 || spotlight.falseNegativeCount > 0) ? (
+        <div className="mt-4 rounded-md border border-amber-200/80 bg-white px-3 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-ink/45">
+            {formatLabel(winnerModel)} examples
+          </p>
+          <AnomalyDayLists stats={spotlight} />
+        </div>
+      ) : null}
+
+      {modelRows.some((row) => row.falsePositiveCount + row.falseNegativeCount > 0) ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[20rem] text-left text-sm">
+            <thead>
+              <tr className="border-b border-amber-200/80 text-[11px] uppercase tracking-wide text-ink/45">
+                <th className="py-2 pr-3 font-medium">Model</th>
+                <th className="py-2 px-3 font-medium">False +</th>
+                <th className="py-2 pl-3 font-medium">False −</th>
+              </tr>
+            </thead>
+            <tbody>
+              {modelRows.map((row) => (
+                <tr key={row.model} className="border-b border-amber-100/80 last:border-0">
+                  <td className="py-2 pr-3 text-ink">{formatLabel(row.model)}</td>
+                  <td className="py-2 px-3 tabular-nums text-ink/80">{row.falsePositiveCount}</td>
+                  <td className="py-2 pl-3 tabular-nums text-ink/80">{row.falseNegativeCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function AnomalyDayLists({ stats }) {
+  return (
+    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+      <AnomalyDayList
+        title="False positive days"
+        emptyLabel="None in sample"
+        days={stats.falsePositives}
+        renderDetail={(day) =>
+          [
+            day.maxObservedWindKnots != null
+              ? `peak ${day.maxObservedWindKnots.toFixed(0)} kt`
+              : null,
+            day.predictedKickInAt
+              ? `forecast kick-in ${formatLisbonDateTime(day.predictedKickInAt, { includeTime: true })}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        }
+      />
+      <AnomalyDayList
+        title="False negative days"
+        emptyLabel="None in sample"
+        days={stats.falseNegatives}
+        renderDetail={(day) =>
+          [
+            day.maxObservedWindKnots != null
+              ? `peak ${day.maxObservedWindKnots.toFixed(0)} kt`
+              : null,
+            day.actualKickInAt
+              ? `observed ${formatLisbonDateTime(day.actualKickInAt, { includeTime: true })}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        }
+      />
+    </div>
+  );
+}
+
+function AnomalyDayList({ title, emptyLabel, days, renderDetail }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-ink/60">{title}</p>
+      {days.length === 0 ? (
+        <p className="mt-1 text-sm text-ink/45">{emptyLabel}</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5 text-sm">
+          {days.map((day) => (
+            <li key={day.dateLocal} className="text-ink">
+              <span className="font-medium">{formatAnomalyDayLabel(day.dateLocal)}</span>
+              <span className="text-ink/60"> — {renderDetail(day)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function formatAnomalyDayLabel(dateLocal) {
+  const { startAt } = localDayWindowMs(dateLocal);
+  return formatLisbonDateTime(startAt + 12 * 3_600_000, { includeWeekday: true, includeTime: false });
 }
 
 function FilterComparisonCard({ comparison, formatLabel }) {
