@@ -465,4 +465,206 @@ export default defineSchema({
         .index("by_user", ["userId"])
         .index("by_user_status", ["userId", "status"])
         .index("by_status", ["status"]),
+
+    // =========================================================================
+    // Forecast experiment (fx_*) — isolated from production forecast/scoring
+    // =========================================================================
+
+    fx_locations: defineTable({
+        slug: v.string(),
+        name: v.string(),
+        role: v.string(),
+        latitude: v.number(),
+        longitude: v.number(),
+        timezone: v.string(),
+        defaultRideableWindKnots: v.number(),
+        enabled: v.boolean(),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_slug", ["slug"])
+        .index("by_enabled", ["enabled"]),
+
+    fx_observation_sources: defineTable({
+        slug: v.string(),
+        provider: v.string(),
+        providerStationId: v.string(),
+        locationSlug: v.string(),
+        name: v.string(),
+        cadenceMinutes: v.number(),
+        enabled: v.boolean(),
+        metadata: v.optional(v.any()),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+        .index("by_slug", ["slug"])
+        .index("by_provider_station", ["provider", "providerStationId"])
+        .index("by_enabled", ["enabled"]),
+
+    fx_worker_runs: defineTable({
+        workerName: v.string(),
+        startedAt: v.number(),
+        finishedAt: v.optional(v.number()),
+        status: v.string(),
+        attemptedCount: v.optional(v.number()),
+        insertedCount: v.optional(v.number()),
+        skippedCount: v.optional(v.number()),
+        errorMessage: v.optional(v.string()),
+        metadata: v.optional(v.any()),
+    })
+        .index("by_worker_started", ["workerName", "startedAt"])
+        .index("by_status_started", ["status", "startedAt"]),
+
+    fx_forecast_runs: defineTable({
+        provider: v.string(),
+        model: v.string(),
+        providerModel: v.string(),
+        runStartedAt: v.number(),
+        runAvailableAt: v.optional(v.number()),
+        fetchedAt: v.number(),
+        status: v.string(),
+        sourceUrl: v.optional(v.string()),
+        responseHash: v.optional(v.string()),
+        forecastDays: v.number(),
+        variables: v.array(v.string()),
+        errorMessage: v.optional(v.string()),
+    })
+        .index("by_provider_model_run", ["provider", "model", "runStartedAt"])
+        .index("by_run_started", ["runStartedAt"])
+        .index("by_status_fetched", ["status", "fetchedAt"]),
+
+    fx_forecast_points: defineTable({
+        forecastRunId: v.id("fx_forecast_runs"),
+        provider: v.string(),
+        model: v.string(),
+        locationSlug: v.string(),
+        runStartedAt: v.number(),
+        validTime: v.number(),
+        leadHours: v.number(),
+        intervalMinutes: v.number(),
+        windSpeedKnots: v.optional(v.number()),
+        windGustKnots: v.optional(v.number()),
+        windDirectionDeg: v.optional(v.number()),
+        temperatureC: v.optional(v.number()),
+        cloudCoverPct: v.optional(v.number()),
+        pressureMslHpa: v.optional(v.number()),
+        shortwaveRadiation: v.optional(v.number()),
+        boundaryLayerHeightM: v.optional(v.number()),
+        raw: v.optional(v.any()),
+        createdAt: v.number(),
+    })
+        .index("by_run", ["forecastRunId"])
+        .index("by_location_valid", ["locationSlug", "validTime"])
+        .index("by_location_model_valid", ["locationSlug", "model", "validTime"])
+        .index("by_provider_model_run_valid", ["provider", "model", "runStartedAt", "validTime"]),
+
+    fx_observations: defineTable({
+        sourceSlug: v.string(),
+        provider: v.string(),
+        providerStationId: v.string(),
+        locationSlug: v.string(),
+        observedAt: v.number(),
+        receivedAt: v.number(),
+        windSpeedKnots: v.optional(v.number()),
+        windGustKnots: v.optional(v.number()),
+        windDirectionDeg: v.optional(v.number()),
+        temperatureC: v.optional(v.number()),
+        pressureMslHpa: v.optional(v.number()),
+        humidityPct: v.optional(v.number()),
+        radiationKjM2: v.optional(v.number()),
+        quality: v.string(),
+        raw: v.optional(v.any()),
+        createdAt: v.number(),
+    })
+        .index("by_source_observed", ["sourceSlug", "observedAt"])
+        .index("by_location_observed", ["locationSlug", "observedAt"])
+        .index("by_provider_station_observed", ["provider", "providerStationId", "observedAt"]),
+
+    fx_user_reports: defineTable({
+        userId: v.union(v.id("users"), v.null()),
+        locationSlug: v.string(),
+        sport: v.string(),
+        reportedAt: v.number(),
+        observedAt: v.number(),
+        status: v.string(),
+        windSpeedEstimateKnots: v.optional(v.number()),
+        windDirectionEstimateDeg: v.optional(v.number()),
+        notes: v.optional(v.string()),
+        confidence: v.number(),
+        createdAt: v.number(),
+    })
+        .index("by_location_observed", ["locationSlug", "observedAt"])
+        .index("by_user_observed", ["userId", "observedAt"]),
+
+    fx_daily_labels: defineTable({
+        locationSlug: v.string(),
+        sport: v.string(),
+        dateLocal: v.string(),
+        thresholdKnots: v.number(),
+        actualKickInAt: v.optional(v.number()),
+        actualKickOutAt: v.optional(v.number()),
+        peakStartAt: v.optional(v.number()),
+        peakEndAt: v.optional(v.number()),
+        maxWindKnots: v.optional(v.number()),
+        maxGustKnots: v.optional(v.number()),
+        sourceConfidence: v.number(),
+        labelStatus: v.string(),
+        sourceSummary: v.string(),
+        dayRegime: v.optional(v.string()),
+        regimeSummary: v.optional(v.string()),
+        computedAt: v.number(),
+    })
+        .index("by_location_date", ["locationSlug", "dateLocal"])
+        .index("by_status_date", ["labelStatus", "dateLocal"])
+        .index("by_location_regime_date", ["locationSlug", "dayRegime", "dateLocal"]),
+
+    fx_model_skill_scores: defineTable({
+        provider: v.string(),
+        model: v.string(),
+        locationSlug: v.string(),
+        sport: v.string(),
+        season: v.string(),
+        regime: v.string(),
+        leadBucketHours: v.string(),
+        sampleCount: v.number(),
+        windSpeedMae: v.optional(v.number()),
+        windSpeedRmse: v.optional(v.number()),
+        directionMae: v.optional(v.number()),
+        onsetMaeMinutes: v.optional(v.number()),
+        rideableBrier: v.optional(v.number()),
+        updatedAt: v.number(),
+    })
+        .index("by_model_location", ["provider", "model", "locationSlug"])
+        .index("by_location_regime", ["locationSlug", "regime"]),
+
+    fx_predictions: defineTable({
+        targetLocationSlug: v.string(),
+        sport: v.string(),
+        generatedAt: v.number(),
+        forecastDateLocal: v.string(),
+        modelVersion: v.string(),
+        mode: v.optional(v.string()),
+        thresholdKnots: v.number(),
+        predictedKickInAt: v.optional(v.number()),
+        predictedStrongKickInAt: v.optional(v.number()),
+        // Legacy field names (pre-rename); kept so existing prod documents validate
+        kickInP50At: v.optional(v.number()),
+        kickInP75At: v.optional(v.number()),
+        peakStartAt: v.optional(v.number()),
+        peakEndAt: v.optional(v.number()),
+        probabilityTimeline: v.array(v.object({
+            time: v.number(),
+            rideableProbability: v.number(),
+            expectedWindKnots: v.optional(v.number()),
+            p10WindKnots: v.optional(v.number()),
+            p90WindKnots: v.optional(v.number()),
+        })),
+        confidence: v.number(),
+        summary: v.string(),
+        inputs: v.any(),
+        createdAt: v.number(),
+    })
+        .index("by_target_date", ["targetLocationSlug", "forecastDateLocal"])
+        .index("by_target_date_mode", ["targetLocationSlug", "forecastDateLocal", "mode"])
+        .index("by_generated", ["generatedAt"]),
 });

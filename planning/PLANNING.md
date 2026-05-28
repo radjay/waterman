@@ -51,7 +51,12 @@
 
 ### Later (Backlog)
 
-
+- [x] **Cascais Bay wind prediction v2 (Phases 1–5)** — live `bay-wind-v2` worker, backtest UI, prediction scoring; v2 day-ahead MAE still trails v1 on Summer 2025 (211 vs 257 min after bias tune) — see [learnings](../docs/forecast-experiment-model-analysis-learnings.md#bay-wind-prediction-v1-vs-v2-summer-2025-backtest)
+- [x] **Cascais Bay wind prediction v3 ML (Phase 6)** — v3.5 calibration shipped: MAE ~90 min, false+ 2 @ 12 kt Summer 2025 — see [improvement plan](../docs/superpowers/plans/2026-05-25-bay-wind-prediction-improvements.md)
+- [x] **Bay wind v4 rule ensemble** — wired; Summer 2025 @ 12 kt: MAE 133 min, false+ 28 (did not beat v3.5) — see [improvement plan](../docs/superpowers/plans/2026-05-25-bay-wind-prediction-improvements.md)
+- [ ] **Bay wind Phase 2** — marina 2026 unusable; LOOCV 2024↔2025, ship v3.5, season hygiene, optional v4.1 — see [phase 2 plan](../docs/superpowers/plans/2026-05-25-bay-wind-prediction-phase-2.md) and [branch work doc](../docs/forecast-experiment-predictions-work-on-branch.md)
+- [x] **Bay wind forecast/nowcast split (experiment dashboard)** — day-ahead `bay-wind-forecast-v1`: analog kick-in windows + ML v3 session gate; nowcast: ML timeline + Cabo lag floor; UI shows p25–p75 windows for upcoming days — `lib/forecast-experiment/bayWindForecast.js`, `analogKickIn.js`, `weekOutlook.js`, `todayOutlook.js`
+- [ ] **Bay wind analog holdout tuning** — 2024→2025 backtest: analog MAE 219 min vs v3.6 247 min but ±1h 25/100 vs 42/99; tighten false positives (flat regime block, 0.6 session gate) — `npm run fx:backtest:analog-kickin`
 
 ---
 
@@ -71,4 +76,5 @@ See [architecture.md](architecture.md) for full system documentation.
 ## References
 
 - [Architecture](architecture.md) - Full system documentation
+- [Forecast experiment — model analysis learnings](../docs/forecast-experiment-model-analysis-learnings.md) - Cascais model skill backtest notes
 - [Future Features PRD](prds/04-future-features.md) - Aspirational features list
