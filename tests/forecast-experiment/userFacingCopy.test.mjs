@@ -62,12 +62,13 @@ test("describeBayDay shows future kick-in during the day", () => {
   assert.ok(copy.kickInTimePlain);
 });
 
-test("describeBayDay marks done for today after riding hours", () => {
+test("describeBayDay marks done for today after riding hours but keeps kick-in marker", () => {
   const night = Date.parse("2026-05-27T21:49:00Z");
+  const kickInAt = Date.parse("2026-05-27T13:49:00Z");
   const copy = describeBayDay(
     {
       forecastDateLocal: "2026-05-27",
-      predictedKickInAt: Date.parse("2026-05-27T13:49:00Z"),
+      predictedKickInAt: kickInAt,
       confidence: 0.78,
       inputs: { sessionProbability: 1 },
     },
@@ -75,7 +76,32 @@ test("describeBayDay marks done for today after riding hours", () => {
   );
 
   assert.equal(copy.headline, "Done for today");
-  assert.equal(copy.kickInTime, null);
+  assert.equal(copy.kickInAtMs, kickInAt);
+  assert.equal(copy.kickInPassed, true);
+});
+
+test("describeBayDay keeps kick-in after predicted time passes", () => {
+  const afternoon = Date.parse("2026-05-27T13:33:00Z");
+  const kickInAt = Date.parse("2026-05-27T13:09:00Z");
+  const copy = describeBayDay(
+    {
+      forecastDateLocal: "2026-05-27",
+      predictedKickInAt: kickInAt,
+      confidence: 0.78,
+      inputs: { sessionProbability: 0.8, sessionThreshold: 0.55, kickInThreshold: 0.5 },
+      probabilityTimeline: [{ time: kickInAt, rideableProbability: 0.8 }],
+    },
+    {
+      isLive: true,
+      referenceMs: afternoon,
+      caboObservation: { windSpeedKnots: 18, windGustKnots: 20 },
+    }
+  );
+
+  assert.equal(copy.headline, "Good now");
+  assert.equal(copy.kickInAtMs, kickInAt);
+  assert.equal(copy.kickInPassed, true);
+  assert.ok(copy.kickInTimePlain);
 });
 
 test("describeBayDay marks flat days", () => {
@@ -93,14 +119,14 @@ test("describeBayDay marks flat days", () => {
   assert.equal(copy.headline, "Flat");
 });
 
-test("describeCaboLine formats wind", () => {
-  assert.match(
+test("describeCaboLine formats wind from direction", () => {
+  assert.equal(
     describeCaboLine({
       windSpeedKnots: 8,
       windGustKnots: 12,
       windDirectionDeg: 135,
     }),
-    /^Cabo \d+ kt/
+    "Cabo 10 kt SE"
   );
 });
 

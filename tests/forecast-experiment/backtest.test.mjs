@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   aggregateHourlyForecast,
   aggregateHourlyObservations,
+  aggregateIntervalObservations,
   BACKTEST_FORECAST_MODEL_BLENDED,
   buildDayBacktest,
   computeErrorMinutes,
@@ -119,10 +120,28 @@ test("aggregateHourlyObservations averages 5-minute readings per hour", () => {
     ],
     dateLocal
   );
-  const row = hourly.find((entry) => entry.hourLocal === 10);
+  const row = hourly.find((entry) => entry.hourLocal === 10 && entry.minuteLocal === 0);
   assert.equal(row.windSpeedKnots, 12);
   assert.equal(row.windGustKnots, 14);
   assert.equal(row.effectiveWindKnots, 13);
+  assert.equal(row.sampleCount, 2);
+});
+
+test("aggregateIntervalObservations buckets readings every 15 minutes", () => {
+  const dateLocal = "2025-07-07";
+  const { startAt } = localDayWindowMs(dateLocal);
+  const slotStart = startAt + 10 * 3_600_000 + 15 * 60_000;
+  const slots = aggregateIntervalObservations(
+    [
+      obs(slotStart + 2 * 60_000, 11, 13),
+      obs(slotStart + 10 * 60_000, 13, 15),
+    ],
+    dateLocal,
+    { intervalMinutes: 15 }
+  );
+  const row = slots.find((entry) => entry.hourLocal === 10 && entry.minuteLocal === 15);
+  assert.equal(row.windSpeedKnots, 12);
+  assert.equal(row.windGustKnots, 14);
   assert.equal(row.sampleCount, 2);
 });
 

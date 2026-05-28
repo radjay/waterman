@@ -1,6 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
-import { buildWeekOutlook } from "../../../../lib/forecast-experiment/weekOutlook.js";
+import { buildWeekOutlook, OUTLOOK_SCAN_DAYS } from "../../../../lib/forecast-experiment/weekOutlook.js";
 
 export const maxDuration = 60;
 
@@ -12,7 +12,7 @@ export async function GET() {
 
   try {
     const convex = new ConvexHttpClient(convexUrl);
-    const result = await buildWeekOutlook(convex, { days: 7 });
+    const result = await buildWeekOutlook(convex, { days: OUTLOOK_SCAN_DAYS });
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

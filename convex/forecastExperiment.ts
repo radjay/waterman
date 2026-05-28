@@ -535,7 +535,7 @@ export const experimentDashboard = query({
       .query("fx_user_reports")
       .withIndex("by_location_observed", (q) => q.eq("locationSlug", "cascais-bay"))
       .order("desc")
-      .take(5);
+      .take(200);
     const predictions = await ctx.db
       .query("fx_predictions")
       .withIndex("by_generated")

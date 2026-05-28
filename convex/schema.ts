@@ -647,6 +647,9 @@ export default defineSchema({
         thresholdKnots: v.number(),
         predictedKickInAt: v.optional(v.number()),
         predictedStrongKickInAt: v.optional(v.number()),
+        // Legacy field names (pre-rename); kept so existing prod documents validate
+        kickInP50At: v.optional(v.number()),
+        kickInP75At: v.optional(v.number()),
         peakStartAt: v.optional(v.number()),
         peakEndAt: v.optional(v.number()),
         probabilityTimeline: v.array(v.object({

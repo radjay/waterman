@@ -4,17 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { BayDayWindChart } from "./BayDayWindChart.js";
+import { BayReportsLog } from "./BayReportsLog.js";
 import { experimentDisplayForecastWindyLabel } from "../../lib/forecast-experiment/modelLabels.js";
 import {
   REPORT_OPTIONS,
   describeCaboLine,
+  formatKickInHistoryPlain,
+  formatLisbonTime,
   formatRelativeMinutes,
-  verdictBg,
   verdictDot,
 } from "../../lib/forecast-experiment/userFacingCopy.js";
 
 export function BayForecastDashboard({ dashboard }) {
   const [outlook, setOutlook] = useState(null);
+  const [weekOutlookLoading, setWeekOutlookLoading] = useState(true);
+  const [weekOutlookError, setWeekOutlookError] = useState("");
   const [todayOutlook, setTodayOutlook] = useState(null);
   const [todayOutlookLoading, setTodayOutlookLoading] = useState(true);
   const [todayChart, setTodayChart] = useState(null);
@@ -51,10 +55,28 @@ export function BayForecastDashboard({ dashboard }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setWeekOutlookLoading(true);
+    setWeekOutlookError("");
     fetch("/api/experiment/week-outlook")
       .then((r) => r.json())
-      .then((data) => data.ok && setOutlook(data))
-      .catch(() => {});
+      .then((data) => {
+        if (cancelled) return;
+        if (data.ok) {
+          setOutlook(data);
+        } else {
+          setWeekOutlookError(data.error || "Could not load upcoming days.");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setWeekOutlookError("Could not load upcoming days.");
+      })
+      .finally(() => {
+        if (!cancelled) setWeekOutlookLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -144,23 +166,42 @@ export function BayForecastDashboard({ dashboard }) {
 
   return (
     <div className="space-y-6">
-      <section className={`rounded-xl p-5 ring-1 ${verdictBg(todayDisplay?.verdict ?? "skip")}`}>
-        <p className="text-xs text-ink/45">Today</p>
-        {todayOutlookLoading && !todayDisplay && (
-          <p className="mt-3 text-sm text-ink/40">Loading today&apos;s outlook…</p>
-        )}
-        {todayDisplay && (
-          <>
-            <p className="mt-1 text-2xl font-semibold text-ink">{todayDisplay.headline}</p>
-            {todayDisplay.kickInTimePlain && (
+      <section className="rounded-xl bg-white p-5 ring-1 ring-ink/10">
+        <div className="flex items-start gap-2.5">
+          <span
+            className={`mt-1 h-2 w-2 shrink-0 rounded-full ${verdictDot(todayDisplay?.verdict ?? "skip")}`}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-ink/45">Today</p>
+            {todayOutlookLoading && !todayDisplay && (
+              <p className="mt-3 text-sm text-ink/40">Loading today&apos;s outlook…</p>
+            )}
+            {todayDisplay && (
+              <>
+                <p className="mt-1 text-2xl font-semibold text-ink">{todayDisplay.headline}</p>
+            {todayDisplay &&
+              (todayDisplay.showBoth ||
+                todayDisplay.kickInTimePlain ||
+                todayDisplay.earliestKickInAtMs ||
+                todayDisplay.latestKickInAtMs) && (
               <p className="mt-1 text-sm font-medium text-ink/70">
-                {todayDisplay.likelihoodPct != null ? `${todayDisplay.likelihoodPct}% · ` : ""}
-                Wind from ~{todayDisplay.kickInTimePlain}
+                {todayDisplay.likelihoodPct != null &&
+                !todayDisplay.kickInPassed &&
+                !todayDisplay.showBoth
+                  ? `${todayDisplay.likelihoodPct}% · `
+                  : ""}
+                {todayDisplay.kickInPassed || todayDisplay.showBoth ? "Predicted" : "Wind from"} ~
+                {formatKickInHistoryPlain(
+                  todayDisplay.earliestKickInAtMs ?? todayDisplay.kickInAtMs,
+                  todayDisplay.latestKickInAtMs ?? todayDisplay.kickInAtMs
+                )}
               </p>
             )}
-          </>
-        )}
-        {meta && <p className="mt-2 text-sm text-ink/45">{meta}</p>}
+              </>
+            )}
+            {meta && <p className="mt-2 text-sm text-ink/45">{meta}</p>}
+          </div>
+        </div>
         <div className="mt-4 border-t border-ink/10 pt-4">
           <p className="text-xs text-ink/45">{forecastLabel} marina forecast + Cabo Raso</p>
           {todayChartLoading && <p className="mt-3 text-xs text-ink/40">Loading chart…</p>}
@@ -169,17 +210,52 @@ export function BayForecastDashboard({ dashboard }) {
               chart={todayChart}
               showCabo
               kickInAtMs={todayDisplay?.kickInAtMs}
+              earliestKickInAtMs={todayDisplay?.earliestKickInAtMs}
+              latestKickInAtMs={todayDisplay?.latestKickInAtMs}
             />
           )}
           {!todayChartLoading && !todayChart?.hasForecast && (
             <p className="mt-3 text-xs text-ink/40">No forecast data yet.</p>
           )}
+
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <p className="text-sm font-medium text-ink">How&apos;s the bay?</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {REPORT_OPTIONS.map((option) => (
+                <button
+                  key={option.status}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => submit(option.status)}
+                  className="rounded-lg border border-ink/10 py-2.5 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <label className="mt-3 flex items-center gap-2 text-xs text-ink/50">
+              <input
+                type="checkbox"
+                checked={caboFlatNote}
+                onChange={(e) => setCaboFlatNote(e.target.checked)}
+              />
+              Cabo windy, bay still flat
+            </label>
+            {message && <p className="mt-2 text-xs text-ink/50">{message}</p>}
+          </div>
         </div>
       </section>
 
-      {week.length > 0 && (
+      {(weekOutlookLoading || week.length > 0 || weekOutlookError) && (
         <section className="rounded-xl bg-white ring-1 ring-ink/10">
           <p className="border-b border-ink/8 px-5 py-3 text-xs text-ink/45">Upcoming days</p>
+          {weekOutlookLoading && week.length === 0 && (
+            <p className="px-5 py-4 text-sm text-ink/40">Loading upcoming days…</p>
+          )}
+          {weekOutlookError && week.length === 0 && !weekOutlookLoading && (
+            <p className="px-5 py-4 text-sm text-amber-700">{weekOutlookError}</p>
+          )}
+          {week.length > 0 && (
           <ul className="divide-y divide-ink/8">
             {week.map((day) => {
               const isToday = day.dateLocal === todayKey;
@@ -196,13 +272,21 @@ export function BayForecastDashboard({ dashboard }) {
                     <span className="w-16 shrink-0 text-ink/70">{day.dayLabel}</span>
                     <span className={`h-2 w-2 shrink-0 rounded-full ${verdictDot(day.verdict)}`} />
                     <span className="flex-1 text-ink">{day.headline}</span>
-                    <span className="tabular-nums text-ink/45">{day.kickInTime ?? "—"}</span>
+                    <span className="tabular-nums text-ink/45">
+                      {day.kickInWindowPlain ?? day.kickInTime ?? "—"}
+                    </span>
                   </button>
                   {expanded && !isToday && (
                     <div className="border-t border-ink/8 bg-ink/[0.02] px-5 pb-4">
                       <p className="pt-3 text-xs text-ink/45">
                         {day.dayLabel} · {(forecastChart?.forecastModelLabel ?? forecastLabel)} marina forecast
                       </p>
+                      {forecastChart?.partialForecast && forecastChart.forecastEndsAtMs && (
+                        <p className="pt-1 text-xs text-amber-700">
+                          Forecast data through {formatLisbonTime(forecastChart.forecastEndsAtMs)} — beyond
+                          that is outside the current model ingest horizon.
+                        </p>
+                      )}
                       {forecastChartLoading && (
                         <p className="mt-3 text-xs text-ink/40">Loading chart…</p>
                       )}
@@ -210,7 +294,13 @@ export function BayForecastDashboard({ dashboard }) {
                         <BayDayWindChart
                           chart={forecastChart}
                           showCabo={false}
-                          kickInAtMs={day.kickInAtMs}
+                          kickInAtMs={
+                            forecastChart.forecastEndsAtMs &&
+                            day.kickInAtMs &&
+                            day.kickInAtMs > forecastChart.forecastEndsAtMs
+                              ? null
+                              : day.kickInAtMs
+                          }
                         />
                       )}
                       {!forecastChartLoading && !forecastChart?.hasForecast && (
@@ -222,34 +312,11 @@ export function BayForecastDashboard({ dashboard }) {
               );
             })}
           </ul>
+          )}
         </section>
       )}
 
-      <section className="rounded-xl bg-white p-5 ring-1 ring-ink/10">
-        <p className="text-sm font-medium text-ink">How&apos;s the bay?</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {REPORT_OPTIONS.map((option) => (
-            <button
-              key={option.status}
-              type="button"
-              disabled={submitting}
-              onClick={() => submit(option.status)}
-              className="rounded-lg border border-ink/10 py-2.5 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <label className="mt-3 flex items-center gap-2 text-xs text-ink/50">
-          <input
-            type="checkbox"
-            checked={caboFlatNote}
-            onChange={(e) => setCaboFlatNote(e.target.checked)}
-          />
-          Cabo windy, bay still flat
-        </label>
-        {message && <p className="mt-2 text-xs text-ink/50">{message}</p>}
-      </section>
+      <BayReportsLog reports={dashboard.recentBayReports ?? []} />
     </div>
   );
 }

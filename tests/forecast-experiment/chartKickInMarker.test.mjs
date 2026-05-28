@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   kickInMarkerIndex,
   kickInMarkerSvgX,
+  resolveKickInChartMarkerMs,
 } from "../../lib/forecast-experiment/chartKickInMarker.js";
 
 test("kickInMarkerIndex maps kick-in time to fractional hour index", () => {
@@ -29,4 +30,18 @@ test("kickInMarkerIndex clamps kick-in before 8am to riding window start", () =>
   const early = Date.parse("2026-05-27T06:30:00Z");
   const index = kickInMarkerIndex(early, hours);
   assert.equal(index, 2);
+});
+
+test("resolveKickInChartMarkerMs clamps early kick-in to 8am for labels", () => {
+  const hours = Array.from({ length: 16 }, (_, i) => ({
+    hourLocal: 6 + i,
+    validTime: Date.parse("2026-05-27T06:00:00Z") + i * 3_600_000,
+  }));
+  const early = Date.parse("2026-05-27T03:15:00Z");
+  const markerMs = resolveKickInChartMarkerMs(early, hours);
+  const indexMs = resolveKickInChartMarkerMs(
+    Date.parse("2026-05-27T06:00:00Z") + 2 * 3_600_000,
+    hours
+  );
+  assert.equal(markerMs, indexMs);
 });

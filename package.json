@@ -20,6 +20,7 @@
     "fx:analyze:nortada-winds": "node scripts/fx-analyze-nortada-winds.mjs",
     "fx:mine:bay": "node scripts/fx-mine-bay-coefficients.mjs",
     "fx:backtest:predictions": "node scripts/fx-backtest-predictions.mjs",
+    "fx:backtest:analog-kickin": "node scripts/fx-backtest-analog-kickin.mjs",
     "fx:nowcast:uplift": "node scripts/fx-nowcast-uplift-backtest.mjs",
     "fx:verify:nowcast-loop": "node scripts/fx-verify-nowcast-loop.mjs",
     "fx:export:ml-dataset": "node scripts/fx-export-ml-dataset.mjs",
