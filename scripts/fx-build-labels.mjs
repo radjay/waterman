@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api.js";
 import { FX_LOCATIONS } from "../lib/forecast-experiment/locations.js";
 import { localDateKey, localDayWindowMs } from "../lib/forecast-experiment/time.js";
 import { buildDailyLabel } from "../lib/forecast-experiment/labels.js";
+import { buildDayRegimeTag } from "../lib/forecast-experiment/dayRegimes.js";
 
 dotenv.config({ path: ".env.local" });
 
@@ -43,6 +44,13 @@ try {
             endAt,
           })
         : [];
+      const guinchoObservations = location.slug === "cascais-bay"
+        ? await convex.query(api.forecastExperiment.listObservationsForWindow, {
+            locationSlug: "guincho",
+            startAt,
+            endAt,
+          })
+        : [];
       const label = buildDailyLabel({
         locationSlug: location.slug,
         dateLocal,
@@ -51,7 +59,21 @@ try {
         caboRasoObservations,
         thresholdKnots: location.defaultRideableWindKnots,
       });
-      await convex.mutation(api.forecastExperiment.saveDailyLabel, label);
+      const savePayload =
+        location.slug === "cascais-bay"
+          ? {
+              ...label,
+              ...buildDayRegimeTag({
+                label,
+                caboObservations: caboRasoObservations,
+                marinaObservations: observations,
+                guinchoObservations,
+                thresholdKnots: location.defaultRideableWindKnots,
+                timezone: location.timezone,
+              }),
+            }
+          : label;
+      await convex.mutation(api.forecastExperiment.saveDailyLabel, savePayload);
       insertedCount += 1;
     }
   }

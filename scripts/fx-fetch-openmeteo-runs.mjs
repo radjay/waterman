@@ -9,7 +9,7 @@ dotenv.config({ path: ".env.local" });
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const workerName = "fx-fetch-openmeteo-runs";
-const forecastDays = Number(process.env.FX_FORECAST_DAYS || "3");
+const forecastDays = Number(process.env.FX_FORECAST_DAYS || "7");
 
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
   throw new Error("NEXT_PUBLIC_CONVEX_URL is required");

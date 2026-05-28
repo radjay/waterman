@@ -33,7 +33,7 @@ test("buildBaselinePrediction ignores null-ingested 0/0 forecast gaps", () => {
     thresholdKnots: 12,
   });
   assert.equal(prediction.inputs.pointCount, 1);
-  assert.ok(prediction.kickInP50At);
+  assert.ok(prediction.predictedKickInAt);
 });
 
 test("estimates shorter bay lag when Cabo Raso is already strong", () => {

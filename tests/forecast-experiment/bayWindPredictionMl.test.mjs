@@ -68,12 +68,12 @@ test("buildBayWindPredictionV3 gates kick-in when session probability is below t
     model: calibratedModel,
   });
 
-  assert.equal(prediction.modelVersion, "bay-wind-v3.5-ml");
-  assert.equal(prediction.kickInP50At, undefined);
+  assert.equal(prediction.modelVersion, "bay-wind-v3.6-ml");
+  assert.equal(prediction.predictedKickInAt, undefined);
   assert.ok(prediction.summary.includes("unlikely"));
 });
 
-test("buildBayWindPredictionV3 returns bay-wind-v3-ml with kick-in from synthetic model", () => {
+test("buildBayWindPredictionV3 returns bay-wind-v3.6-ml with kick-in from synthetic model", () => {
   const dateLocal = "2026-07-15";
   const { startAt } = localDayWindowMs(dateLocal);
   const generatedAt = startAt + 7 * 3_600_000;
@@ -89,8 +89,8 @@ test("buildBayWindPredictionV3 returns bay-wind-v3-ml with kick-in from syntheti
     model: DEFAULT_BAY_WIND_ML_MODEL,
   });
 
-  assert.equal(prediction.modelVersion, "bay-wind-v3-ml");
-  assert.ok(prediction.kickInP50At);
+  assert.equal(prediction.modelVersion, "bay-wind-v3.6-ml");
+  assert.ok(prediction.predictedKickInAt);
   assert.ok(prediction.probabilityTimeline.length > 0);
   assert.equal(prediction.thresholdKnots, 12);
 });

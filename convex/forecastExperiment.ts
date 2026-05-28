@@ -251,6 +251,8 @@ export const saveDailyLabel = mutation({
     sourceConfidence: v.number(),
     labelStatus: v.string(),
     sourceSummary: v.string(),
+    dayRegime: v.optional(v.string()),
+    regimeSummary: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -302,9 +304,10 @@ export const savePrediction = mutation({
     generatedAt: v.number(),
     forecastDateLocal: v.string(),
     modelVersion: v.string(),
+    mode: v.optional(v.string()),
     thresholdKnots: v.number(),
-    kickInP50At: v.optional(v.number()),
-    kickInP75At: v.optional(v.number()),
+    predictedKickInAt: v.optional(v.number()),
+    predictedStrongKickInAt: v.optional(v.number()),
     peakStartAt: v.optional(v.number()),
     peakEndAt: v.optional(v.number()),
     probabilityTimeline: v.array(v.object({
@@ -387,7 +390,7 @@ export const savePredictionScores = mutation({
         locationSlug: score.locationSlug,
         sport: score.sport,
         season: score.season,
-        regime: "all",
+        regime: score.mode ?? "all",
         leadBucketHours: `${score.thresholdKnots}kt`,
         sampleCount: score.sampleCount,
         onsetMaeMinutes: score.kickInMaeMinutes,
@@ -412,7 +415,9 @@ export const listObservationsForWindow = query({
         q.eq("locationSlug", args.locationSlug).gte("observedAt", args.startAt)
       )
       .take(5000);
-    return rows.filter((row) => row.observedAt <= args.endAt);
+    const filtered = rows.filter((row) => row.observedAt <= args.endAt);
+    // Callers should keep windows small (see fetchObservations.js weekly chunking).
+    return filtered;
   },
 });
 
@@ -535,9 +540,20 @@ export const experimentDashboard = query({
       .query("fx_predictions")
       .withIndex("by_generated")
       .order("desc")
-      .take(10);
+      .take(30);
+    const bayPredictions = predictions.filter(
+      (prediction) => prediction.targetLocationSlug === "cascais-bay"
+    );
+    const resolveMode = (prediction: { mode?: string; inputs?: { mode?: string } }) =>
+      prediction.mode ?? prediction.inputs?.mode ?? null;
+    const latestForMode = (mode: string) =>
+      bayPredictions
+        .filter((prediction) => resolveMode(prediction) === mode)
+        .sort((a, b) => b.generatedAt - a.generatedAt)[0] ?? null;
+    const latestDayAheadPrediction = latestForMode("day-ahead");
+    const latestNowcastPrediction = latestForMode("nowcast");
     const latestBayPrediction =
-      predictions.find((prediction) => prediction.targetLocationSlug === "cascais-bay") ?? null;
+      latestNowcastPrediction ?? latestDayAheadPrediction ?? bayPredictions[0] ?? null;
 
     // Latest daily label for the bay (used to show label source: observed / report-assisted / lag-inferred / insufficient)
     const latestBayLabel = await ctx.db
@@ -556,6 +572,8 @@ export const experimentDashboard = query({
       recentBayReports: bayReports,
       latestPredictions: predictions,
       latestBayPrediction,
+      latestDayAheadPrediction,
+      latestNowcastPrediction,
       latestBayLabel: latestBayLabel ?? null,
       recentWorkerRuns: workerRuns,
     };
@@ -589,35 +607,69 @@ export const getLatestNowcastRerunRecommendation = query({
 });
 
 /**
- * Phase 5 5.2 stub — the hook point for the actual frequent re-run mechanism.
- * Future work (Convex scheduled function, higher-frequency Render job, or
- * on-demand trigger) can call this when the recommendation says "nowcast today".
- * For now it is a safe, observable no-op that records intent and returns the rec.
+ * Phase 5 5.2 — event-driven nowcast follow-up hook.
+ * Runs when fresh Cabo exists for today's Lisbon local date and the last
+ * nowcast prediction is older than the debounce window (10 min).
  */
 export const requestNowcastFollowUpIfRecommended = mutation({
   args: {},
   handler: async (ctx) => {
-    const rec = await ctx.runQuery(api.forecastExperiment.getLatestNowcastRerunRecommendation);
-    if (rec && rec.nextRunInMinutes) {
-      // Phase 5 5.2 — the observations worker (and future safety-net cron) will
-      // call this when fresh Cabo for "today" exists. We record an explicit
-      // lightweight workerRun marker so the intent is visible in the DB even
-      // if the immediate follow-up generation is performed by the caller.
-      // The actual prediction is produced by spawning the generator script
-      // (see fx-fetch-observations.mjs event-driven path).
-      await ctx.db.insert("fx_worker_runs", {
-        workerName: "fx-nowcast-followup-requested",
-        startedAt: Date.now(),
-        status: "success",
-        finishedAt: Date.now(),
-        metadata: {
-          reason: "Phase 5 event-driven nowcast trigger from fresh Cabo",
-          recommendation: rec,
-        },
-      });
-      return { acted: true, recommendation: rec };
+    const NOWCAST_DEBOUNCE_MS = 10 * 60_000;
+    const CABO_FRESH_MS = 6 * 60 * 60_000;
+    const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Lisbon" });
+
+    const cabo = await ctx.db
+      .query("fx_observations")
+      .withIndex("by_location_observed", (q) => q.eq("locationSlug", "cabo-raso"))
+      .order("desc")
+      .first();
+
+    if (!cabo) {
+      return { acted: false, reason: "no-cabo" };
     }
-    return { acted: false };
+
+    const caboDateKey = new Date(cabo.observedAt).toLocaleDateString("en-CA", {
+      timeZone: "Europe/Lisbon",
+    });
+    const caboAgeMs = Date.now() - cabo.observedAt;
+    if (caboDateKey !== todayKey || caboAgeMs > CABO_FRESH_MS) {
+      return { acted: false, reason: "no-fresh-cabo-today" };
+    }
+
+    const recentPredictions = await ctx.db
+      .query("fx_predictions")
+      .withIndex("by_target_date", (q) =>
+        q.eq("targetLocationSlug", "cascais-bay").eq("forecastDateLocal", todayKey)
+      )
+      .collect();
+
+    const lastNowcast = recentPredictions
+      .filter(
+        (prediction) =>
+          (prediction.mode ?? prediction.inputs?.mode) === "nowcast"
+      )
+      .sort((a, b) => b.generatedAt - a.generatedAt)[0];
+
+    if (lastNowcast && Date.now() - lastNowcast.generatedAt < NOWCAST_DEBOUNCE_MS) {
+      return { acted: false, reason: "debounced", lastGeneratedAt: lastNowcast.generatedAt };
+    }
+
+    const recommendation = {
+      nextRunInMinutes: 15,
+      reason: "Phase 5 nowcast: fresh Cabo for today — tighten window with frequent re-runs",
+    };
+
+    await ctx.db.insert("fx_worker_runs", {
+      workerName: "fx-nowcast-followup-requested",
+      startedAt: Date.now(),
+      status: "success",
+      finishedAt: Date.now(),
+      metadata: {
+        reason: "Phase 5 event-driven nowcast trigger from fresh Cabo",
+        recommendation,
+      },
+    });
+    return { acted: true, recommendation };
   },
 });
 

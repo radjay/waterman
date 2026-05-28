@@ -7,6 +7,7 @@ import {
   buildDayBacktest,
   computeErrorMinutes,
   filterForecastPointsByModel,
+  selectBestForecastPointsForChart,
   selectForecastPointsForBacktest,
   summarizeWeekBacktest,
 } from "../../lib/forecast-experiment/backtest.js";
@@ -24,6 +25,19 @@ test("selects latest model run available before cutoff", () => {
   const selected = selectForecastPointsForBacktest(points, cutoffAt);
   assert.equal(selected.length, 2);
   assert.equal(selected.find((point) => point.model === "ecmwf-ifs-hres-9km").runStartedAt, base - 6 * 3_600_000);
+});
+
+test("selectBestForecastPointsForChart prefers shortest lead with speed and gust", () => {
+  const cutoffAt = base + 7 * 3_600_000;
+  const validTime = base + 12 * 3_600_000;
+  const points = [
+    { ...forecastPoint("icon-global", base - 6 * 3_600_000, validTime, undefined, 25), leadHours: 18 },
+    { ...forecastPoint("icon-global", base - 12 * 3_600_000, validTime, 12, 29), leadHours: 24 },
+  ];
+  const selected = selectBestForecastPointsForChart(points, cutoffAt, "icon-global");
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].windSpeedKnots, 12);
+  assert.equal(selected[0].windGustKnots, 29);
 });
 
 test("buildDayBacktest compares marina kick-in against model prediction", () => {
@@ -54,14 +68,14 @@ test("buildDayBacktest compares marina kick-in against model prediction", () => 
   });
 
   assert.equal(day.actual.kickInAt, kickInAt);
-  assert.ok(day.predicted?.kickInP50At);
+  assert.ok(day.predicted?.predictedKickInAt);
   assert.ok(Math.abs(day.errorMinutes) <= 90);
 });
 
 test("summarizeWeekBacktest aggregates comparable days", () => {
   const summary = summarizeWeekBacktest([
-    { actual: { kickInAt: 1 }, predicted: { kickInP50At: 1 }, errorMinutes: 0, hasForecastData: true },
-    { actual: { kickInAt: 2 }, predicted: { kickInP50At: 3_600_002 }, errorMinutes: 60, hasForecastData: true },
+    { actual: { kickInAt: 1 }, predicted: { predictedKickInAt: 1 }, errorMinutes: 0, hasForecastData: true },
+    { actual: { kickInAt: 2 }, predicted: { predictedKickInAt: 3_600_002 }, errorMinutes: 60, hasForecastData: true },
     { actual: {}, predicted: null, hasForecastData: false },
   ]);
   assert.equal(summary.daysComparable, 2);
@@ -200,7 +214,7 @@ test("buildDayBacktest chart and prediction respect selected model", () => {
   const row = gfsOnly.chart.forecast.find((entry) => entry.hourLocal === 12);
   assert.equal(row.windSpeedKnots, 20);
   assert.equal(row.modelCount, 1);
-  assert.ok(gfsOnly.predicted?.kickInP50At);
+  assert.ok(gfsOnly.predicted?.predictedKickInAt);
 });
 
 test("buildDayBacktest includes hourly chart series", () => {

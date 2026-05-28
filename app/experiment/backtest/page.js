@@ -84,7 +84,7 @@ function timelinePosition(ms, dateLocal) {
 
 function DayTimeline({ day }) {
   const actualPos = timelinePosition(day.actual.kickInAt, day.dateLocal);
-  const predictedPos = timelinePosition(day.predicted?.kickInP50At, day.dateLocal);
+  const predictedPos = timelinePosition(day.predicted?.predictedKickInAt, day.dateLocal);
 
   return (
     <div className="relative mt-2 h-8 rounded bg-ink/5">
@@ -102,7 +102,7 @@ function DayTimeline({ day }) {
         <span
           className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-sky-600 bg-white"
           style={{ left: `${predictedPos}%` }}
-          title={`Predicted P50: ${formatLisbonDateTime(day.predicted.kickInP50At)}`}
+          title={`Predicted kick-in: ${formatLisbonDateTime(day.predicted.predictedKickInAt)}`}
         />
       )}
     </div>
@@ -453,7 +453,7 @@ export default function ExperimentBacktestPage() {
               <dd className="font-semibold tabular-nums">{seasonBacktest.summary.daysComparable}</dd>
             </div>
             <div>
-              <dt className="text-ink/60">Mean abs. error (P50)</dt>
+              <dt className="text-ink/60">Mean abs. error (kick-in)</dt>
               <dd className="font-semibold tabular-nums">
                 {seasonBacktest.summary.meanAbsoluteErrorMinutes != null
                   ? `${seasonBacktest.summary.meanAbsoluteErrorMinutes} min`
@@ -494,7 +494,7 @@ export default function ExperimentBacktestPage() {
                 <dd className="font-semibold tabular-nums">{backtest.summary.daysWithPrediction}</dd>
               </div>
               <div>
-                <dt className="text-ink/60">Mean abs. error (P50)</dt>
+                <dt className="text-ink/60">Mean abs. error (kick-in)</dt>
                 <dd className="font-semibold tabular-nums">
                   {backtest.summary.meanAbsoluteErrorMinutes != null
                     ? `${backtest.summary.meanAbsoluteErrorMinutes} min`
@@ -513,7 +513,7 @@ export default function ExperimentBacktestPage() {
             <p className="mt-3 text-xs text-ink/50">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle" /> Actual kick-in
               {" · "}
-              <span className="inline-block h-2 w-2 rounded-full border-2 border-sky-600 align-middle" /> Predicted P50
+              <span className="inline-block h-2 w-2 rounded-full border-2 border-sky-600 align-middle" /> Predicted kick-in
             </p>
           </section>
 
@@ -547,10 +547,10 @@ export default function ExperimentBacktestPage() {
                   </div>
 
                   <div className="rounded-md bg-sky-50 p-3 text-sm">
-                    <p className="font-medium text-sky-900">Model P50 kick-in</p>
+                    <p className="font-medium text-sky-900">Model kick-in</p>
                     <p className="mt-1 tabular-nums">
-                      {day.predicted?.kickInP50At
-                        ? formatLisbonDateTime(day.predicted.kickInP50At)
+                      {day.predicted?.predictedKickInAt
+                        ? formatLisbonDateTime(day.predicted.predictedKickInAt)
                         : day.hasForecastData
                           ? "No rideable window predicted"
                           : "No forecast data for this day"}
@@ -558,8 +558,8 @@ export default function ExperimentBacktestPage() {
                     {day.predicted && (
                       <p className="mt-1 text-xs text-sky-900/70">
                         Confidence {Math.round(day.predicted.confidence * 100)}%
-                        {day.predicted.kickInP75At
-                          ? ` · P75 ${formatLisbonDateTime(day.predicted.kickInP75At)}`
+                        {day.predicted.predictedStrongKickInAt
+                          ? ` · Strong ${formatLisbonDateTime(day.predicted.predictedStrongKickInAt)}`
                           : ""}
                       </p>
                     )}

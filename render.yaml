@@ -48,6 +48,8 @@ services:
     envVars:
       - key: NEXT_PUBLIC_CONVEX_URL
         sync: false
+      - key: FX_FORECAST_DAYS
+        value: "7"
 
   - type: cron
     name: waterman-fx-labels
@@ -91,7 +93,7 @@ services:
     schedule: "*/20 * * * *"
     env: node
     buildCommand: npm install
-    startCommand: npm run fx:predict
+    startCommand: FX_PREDICTION_LAYERS=nowcast npm run fx:predict
     envVars:
       - key: NEXT_PUBLIC_CONVEX_URL
         sync: false

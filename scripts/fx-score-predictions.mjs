@@ -5,6 +5,7 @@ import { FX_LOCATIONS } from "../lib/forecast-experiment/locations.js";
 import {
   dateRangeFromDaysBack,
   observationsForDate,
+  predictionModesForModel,
   resolveLabelForScoring,
   scorePredictionDay,
   selectDayPrediction,
@@ -76,56 +77,58 @@ try {
     const modelVersions = [...new Set(predictions.map((prediction) => prediction.modelVersion))];
 
     for (const modelVersion of modelVersions) {
-      const dayScores = [];
+      for (const mode of predictionModesForModel(predictions, modelVersion)) {
+        const dayScores = [];
 
-      for (const dateLocal of datesLocal) {
-        const storedLabel = labelsByDate.get(dateLocal);
-        if (!storedLabel) continue;
+        for (const dateLocal of datesLocal) {
+          const storedLabel = labelsByDate.get(dateLocal);
+          if (!storedLabel) continue;
 
-        const dayObservations = observationsForDate(observations, dateLocal, location.timezone);
-        const dayReports = observationsForDate(reports, dateLocal, location.timezone);
-        const dayCaboObservations = observationsForDate(
-          caboRasoObservations,
-          dateLocal,
-          location.timezone
-        );
-        const label = resolveLabelForScoring({
-          label: storedLabel,
-          observations: dayObservations,
-          reports: dayReports,
-          caboRasoObservations: dayCaboObservations,
-          thresholdKnots,
-        });
+          const dayObservations = observationsForDate(observations, dateLocal, location.timezone);
+          const dayReports = observationsForDate(reports, dateLocal, location.timezone);
+          const dayCaboObservations = observationsForDate(
+            caboRasoObservations,
+            dateLocal,
+            location.timezone
+          );
+          const label = resolveLabelForScoring({
+            label: storedLabel,
+            observations: dayObservations,
+            reports: dayReports,
+            caboRasoObservations: dayCaboObservations,
+            thresholdKnots,
+          });
 
-        const prediction = selectDayPrediction(predictions, {
-          forecastDateLocal: dateLocal,
+          const prediction = selectDayPrediction(predictions, {
+            forecastDateLocal: dateLocal,
+            modelVersion,
+            thresholdKnots,
+            mode: mode ?? undefined,
+            preferLatest: mode === "nowcast",
+          });
+          if (!prediction) continue;
+
+          dayScores.push(scorePredictionDay({ label, prediction }));
+        }
+
+        if (dayScores.length === 0) continue;
+
+        const summary = summarizePredictionScores(dayScores);
+        scores.push({
           modelVersion,
+          locationSlug: location.slug,
+          sport: "wingfoil",
+          season,
           thresholdKnots,
+          sampleCount: summary.daysScored,
+          kickInMaeMinutes: summary.kickInMaeMinutes,
+          rideableHitRate: summary.rideableHitRate,
+          rideableBrier: summary.rideableBrier,
+          falsePositiveCount: summary.falsePositiveCount,
+          falseNegativeCount: summary.falseNegativeCount,
+          mode: mode ?? dayScores[0]?.predictionMode ?? null,
         });
-        if (!prediction) continue;
-
-        dayScores.push(scorePredictionDay({ label, prediction }));
       }
-
-      if (dayScores.length === 0) continue;
-
-      const summary = summarizePredictionScores(dayScores);
-      // Phase 5: include prediction mode so we can track nowcast vs day-ahead performance separately.
-      // Most historical predictions will have mode in inputs (wired in 5.1/5.3). Fall back to null for older rows.
-      scores.push({
-        modelVersion,
-        locationSlug: location.slug,
-        sport: "wingfoil",
-        season,
-        thresholdKnots,
-        sampleCount: summary.daysScored,
-        kickInMaeMinutes: summary.kickInMaeMinutes,
-        rideableHitRate: summary.rideableHitRate,
-        rideableBrier: summary.rideableBrier,
-        falsePositiveCount: summary.falsePositiveCount,
-        falseNegativeCount: summary.falseNegativeCount,
-        mode: dayScores[0]?.predictionMode ?? null,   // day-ahead | nowcast | null (legacy)
-      });
     }
   }
 
@@ -146,6 +149,7 @@ try {
     console.log(
       [
         score.modelVersion,
+        score.mode ?? "legacy",
         `${score.locationSlug}`,
         `MAE ${score.kickInMaeMinutes ?? "—"} min`,
         `hit ${score.rideableHitRate ?? "—"}`,

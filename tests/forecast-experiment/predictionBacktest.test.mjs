@@ -62,8 +62,8 @@ test("v2 kick-in is closer to actual than v1 on synthetic nortada day", () => {
   const v1Error = Math.abs(v1Days[0].errorMinutes ?? Number.POSITIVE_INFINITY);
   const v2Error = Math.abs(v2Days[0].errorMinutes ?? Number.POSITIVE_INFINITY);
 
-  assert.ok(v2Days[0].predicted?.kickInP50At);
-  assert.ok(v1Days[0].predicted?.kickInP50At);
+  assert.ok(v2Days[0].predicted?.predictedKickInAt);
+  assert.ok(v1Days[0].predicted?.predictedKickInAt);
   assert.ok(v2Error < v1Error);
 });
 
@@ -71,13 +71,13 @@ test("summarizePredictionBacktest includes false positive and negative counts", 
   const summary = summarizePredictionBacktest([
     {
       actual: { kickInAt: 1 },
-      predicted: { kickInP50At: 1 },
+      predicted: { predictedKickInAt: 1 },
       errorMinutes: 0,
       hasForecastData: true,
     },
     {
       actual: {},
-      predicted: { kickInP50At: 2 },
+      predicted: { predictedKickInAt: 2 },
       hasForecastData: true,
     },
     {

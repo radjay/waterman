@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatForecastModelLabel } from "../../lib/forecast-experiment/modelLabels.js";
+import { formatForecastModelLabel, experimentDisplayForecastWindyLabel } from "../../lib/forecast-experiment/modelLabels.js";
 
 test("formatForecastModelLabel includes Windy compare names in brackets", () => {
   assert.equal(formatForecastModelLabel("icon-eu-previous-day1"), "icon-eu (ICON7, day 1)");
   assert.equal(formatForecastModelLabel("icon-global-previous-day2"), "icon-global (ICON13, day 2)");
   assert.equal(formatForecastModelLabel("gfs-global"), "gfs-global (GFS27)");
   assert.equal(formatForecastModelLabel("ecmwf-ifs-hres-9km-previous-day1"), "ecmwf-ifs-hres-9km (ECMWF, day 1)");
+});
+
+test("experimentDisplayForecastWindyLabel returns ICON7 for dashboard charts", () => {
+  assert.equal(experimentDisplayForecastWindyLabel(), "ICON7");
 });
 
 test("formatForecastModelLabel falls back without windy mapping", () => {

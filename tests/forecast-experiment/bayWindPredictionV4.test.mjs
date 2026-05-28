@@ -21,7 +21,7 @@ test("v4 gates kick-in when v2 and v3 both say no", () => {
   });
 
   assert.equal(prediction.modelVersion, "bay-wind-v4-ensemble");
-  assert.equal(prediction.kickInP50At, undefined);
+  assert.equal(prediction.predictedKickInAt, undefined);
 });
 
 test("v4 blends v2 and v3 kick-in when both predict rideable", () => {
@@ -45,7 +45,7 @@ test("v4 blends v2 and v3 kick-in when both predict rideable", () => {
     },
   });
 
-  assert.ok(prediction.kickInP50At);
+  assert.ok(prediction.predictedKickInAt);
   assert.equal(prediction.inputs.blend, "both");
   assert.ok(prediction.confidence >= 0.5);
 });

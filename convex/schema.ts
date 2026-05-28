@@ -610,10 +610,13 @@ export default defineSchema({
         sourceConfidence: v.number(),
         labelStatus: v.string(),
         sourceSummary: v.string(),
+        dayRegime: v.optional(v.string()),
+        regimeSummary: v.optional(v.string()),
         computedAt: v.number(),
     })
         .index("by_location_date", ["locationSlug", "dateLocal"])
-        .index("by_status_date", ["labelStatus", "dateLocal"]),
+        .index("by_status_date", ["labelStatus", "dateLocal"])
+        .index("by_location_regime_date", ["locationSlug", "dayRegime", "dateLocal"]),
 
     fx_model_skill_scores: defineTable({
         provider: v.string(),
@@ -640,9 +643,10 @@ export default defineSchema({
         generatedAt: v.number(),
         forecastDateLocal: v.string(),
         modelVersion: v.string(),
+        mode: v.optional(v.string()),
         thresholdKnots: v.number(),
-        kickInP50At: v.optional(v.number()),
-        kickInP75At: v.optional(v.number()),
+        predictedKickInAt: v.optional(v.number()),
+        predictedStrongKickInAt: v.optional(v.number()),
         peakStartAt: v.optional(v.number()),
         peakEndAt: v.optional(v.number()),
         probabilityTimeline: v.array(v.object({
@@ -658,5 +662,6 @@ export default defineSchema({
         createdAt: v.number(),
     })
         .index("by_target_date", ["targetLocationSlug", "forecastDateLocal"])
+        .index("by_target_date_mode", ["targetLocationSlug", "forecastDateLocal", "mode"])
         .index("by_generated", ["generatedAt"]),
 });

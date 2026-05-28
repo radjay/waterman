@@ -70,18 +70,25 @@ execSync("FX_PREDICTION_VERSION=v3.5 node scripts/fx-generate-predictions.mjs", 
 });
 
 const after = await convex.query(api.forecastExperiment.experimentDashboard, {});
-const prediction =
-  after.latestBayPrediction ??
-  after.latestPredictions?.find((row) => row.targetLocationSlug === "cascais-bay");
+const prediction = after.latestNowcastPrediction;
 
 if (!prediction) {
-  fail("No bay prediction after generator run");
+  fail("No nowcast bay prediction after generator run");
 }
 
-if (prediction.inputs?.mode !== "nowcast") {
-  fail(`Expected inputs.mode=nowcast, got ${prediction.inputs?.mode ?? "missing"}`);
+const mode = prediction.mode ?? prediction.inputs?.mode;
+if (mode !== "nowcast") {
+  fail(`Expected mode=nowcast, got ${mode ?? "missing"}`);
 }
-pass(`Latest prediction mode=${prediction.inputs.mode} model=${prediction.modelVersion}`);
+pass(`Latest nowcast mode=${mode} model=${prediction.modelVersion}`);
+
+const forecast = after.latestDayAheadPrediction;
+if (forecast && (forecast.mode ?? forecast.inputs?.mode) !== "day-ahead") {
+  fail("Expected separate day-ahead prediction when both layers emit");
+}
+if (forecast) {
+  pass("Separate day-ahead prediction present");
+}
 
 if (!prediction.inputs?.generatedWithFreshCabo) {
   console.warn("WARN: generatedWithFreshCabo not set on prediction inputs (non-fatal)");

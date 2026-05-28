@@ -122,33 +122,34 @@ v3.5 was the strongest model across all three thresholds on both years. Detailed
 
 ## 1.2 Regime Breakdown Results (2024 & 2025)
 
-**Phase 1.2 deliverable completed.** The script `scripts/fx-regime-breakdown.mjs` was enhanced to:
+**Phase 1.2 deliverable completed.** Regime tags are backfilled on `fx_daily_labels` via `npm run fx:backfill:regimes` using observation-based nortada classification (Mar–Nov, Cabo/Marina/Guincho, 06:00–21:00, sustained ≥10 kt north OR peak ≥12 kt north).
 
-- Fetch season labels + Cabo observations (for distribution and classification).
-- Run real `runPredictionSeasonBacktest` (now exposing raw `days` via the small API extension in `predictionBacktest.js`).
-- Join each backtest day outcome with `classifyDayRegime` (using `dayRegimes.js` helpers + `computeRegimeStats`).
-- Produce per-regime FP/FN/precision tables for the committed v3.5 and v2 models.
-
-**Important data note (dev DB):** The available `fx_daily_labels` rows for marina-validated seasons in the current Convex instance are sparse — predominantly "no-kick" or "insufficient-data". This results in very limited regime diversity (100% "other" for 2025 labels present; no labels surfaced for 2024 in the snapshot). The backtest day-level FP analysis still succeeds independently (using observation windows) and is the source of the numbers below.
+**Data fix (2026-05-27):** Jul–Sep nortada tags were missing because `listObservationsForWindow` hit the Convex 5000-row cap when fetching full seasons in one call. Weekly chunked fetches in `fetchObservations.js` fixed this; re-backfill tagged **272/306** nortada days (~89%), including **~87–97%/month** in Jul–Sep.
 
 ### Results @ 12 kt (wingfoil-light)
 
-**Summer 2025** (129 labels in DB for distribution; 152 backtest days with forecast data)
-- Regime distribution (from labels): 100% "other"
-- **v3.5 (ML)**: 2 FP / 1 FN (all in "other") | 98% precision | 1.3% FP rate
-- **v2 (rules)**: 28 FP / 9 FN (all in "other") | 77% precision | 18.4% FP rate
-- Overall backtest matched preset matrix: FP 2 / FN 1, 98% prec
+**Summer 2025** (137 nortada-tagged days in backtest join)
+- **v3.5 (ML) on nortada days**: 2 FP / 1 FN | **98% precision** on nortada subset
+- **v2 (rules) on nortada days**: 22/28 total FPs cluster on nortada (rules over-fire on classic nortada pattern)
+- Full season: FP 2 / FN 1, 98% prec (unchanged)
 
-**Summer 2024** (no labels surfaced in this DB snapshot for distribution; 153 backtest days)
-- **v3.5 (ML)**: 3 FP / 0 FN (all in "other") | 97% precision | 2.0% FP rate
-- **v2 (rules)**: 29 FP / 5 FN (all in "other") | 79% precision | 19.0% FP rate
-- Overall backtest matched preset matrix: FP 3 / FN 0, 97% prec
+**Summer 2024** (134 nortada-tagged days)
+- **v3.5 (ML) on nortada days**: 2 FP / 0 FN | **98% precision**
+- Full season: FP 3 / FN 0, 97% prec
 
 **Interpretation:**
-- The handful of false positives from the committed v3.5 calibration on the full 2024+2025 seasons do **not** cluster in any specific regime (nortada/flat/sea-breeze); they appear as rare events in the residual "other" category.
-- This aligns with the excellent full-season preset matrix results (v3.5 dominates with only 2–3 FP per summer at 12 kt).
-- The `classifyDayRegime` + `computeRegimeStats` pipeline is now exercised end-to-end against real prediction outcomes.
-- Richer per-regime insights will be possible once more observed kick-day labels (with varied Cabo patterns) are available in the DB (e.g. after marina hardware recovery or higher-volume user reports).
+- v3.5 conservative Forecast is already excellent on nortada days (the dominant windy regime).
+- v2 false positives concentrate on nortada — structural, not calibration-only.
+- Nortada wind stats (active window >10 kt, 06:00–21:00): `npm run fx:analyze:nortada-winds` — peak/sustained by month available for calibration targets.
+
+### Nowcast uplift on nortada days @ 12:00 cutoff (v3.5 + dedicated nowcast head)
+
+| Season | Qualifying | Mean uplift | Improved share | Pass (≥15 min)? |
+|--------|------------|-------------|----------------|-----------------|
+| 2025 | 65 | **+5 min** | 61% | FAIL |
+| 2024 | 82 | −1 min | 51% | FAIL |
+
+Nowcast shows modest 2025 uplift on nortada but still below the Phase 5 acceptance bar. Forecast conservative path remains the stronger default for planning.
 
 ## 1.3 Preset Matrix Results (2024 & 2025)
 
@@ -513,6 +514,19 @@ Default nowcast backtest hour updated **11 → 12**. Still below acceptance bar 
 
 **2. Dedicated nowcast ML head** — `npm run fx:export:nowcast-dataset` + `npm run fx:train:bay-nowcast-ml` → `bay-wind-v3-nowcast-model.json`, wired into live `fx:predict` and uplift backtest.
 
-**3. Nortada-only regime filter** — `--regime nortada` implemented; **0 qualifying days** in dev Convex (regime classifier yields mostly `other` — same label sparsity noted in Phase 1.2).
+**3. Nortada-only regime filter** — `--regime nortada` implemented; after regime backfill, **65 qualifying days (2025)** and **82 (2024)** at 12:00 cutoff.
 
-**Revised conclusion:** Nowcast layer shows **modest uplift on 2025** (+6 min, 63% improved) but **not material enough** to pass Phase 5 bar. Forecast conservative path remains stronger on average. Continue iteration via nowcast-specific calibration on holdout or richer regime labels when marina returns.
+**Revised conclusion:** Nowcast layer shows **modest uplift on 2025 nortada days** (+5 min, 61% improved) but **not material enough** to pass Phase 5 bar. Forecast conservative path remains stronger on average. Continue iteration via nowcast-specific calibration on holdout.
+
+## Phase 5 implementation complete (2026-05-27)
+
+| Task | Status |
+|------|--------|
+| 5.1 Dual layers (day-ahead + nowcast) | **Done** — `fx-generate-predictions.mjs` emits both; `FX_PREDICTION_LAYERS=nowcast` for frequent cron |
+| 5.2 Event-driven re-runs | **Done** — obs worker triggers generator on fresh Cabo; 10-min debounce; 20-min safety-net cron |
+| 5.3 Top-level `mode` on `fx_predictions` | **Done** — schema + index `by_target_date_mode` |
+| 5.4 UI Forecast vs Nowcast cards | **Done** — `/experiment` shows separate cards with kick-in times |
+| 5.5 Scoring split | **Done** — `fx:score:predictions` scores per model × mode; `regime` field stores mode |
+| 5.6 Nowcast ML head | **Done** (prior) — `bay-wind-v3-nowcast-model.json` wired |
+
+**Accuracy bar:** Historical uplift still **FAIL** (≥15 min mean uplift). Plumbing and live loop **PASS** (`npm run fx:verify:nowcast-loop`).

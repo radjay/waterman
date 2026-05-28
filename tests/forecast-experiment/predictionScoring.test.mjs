@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   isRideableLabel,
   isPredictedRideable,
+  predictionModesForModel,
+  resolvePredictionMode,
   scorePredictionDay,
   selectDayPrediction,
   summarizePredictionScores,
@@ -26,7 +28,7 @@ test("scorePredictionDay computes kick-in error and rideable miss", () => {
       sourceConfidence: 0.95,
     },
     prediction: {
-      kickInP50At: 1_700_000_060_000,
+      predictedKickInAt: 1_700_000_060_000,
     },
   });
 
@@ -60,6 +62,66 @@ test("selectDayPrediction picks earliest generated row for the day", () => {
   );
 
   assert.equal(selected.generatedAt, 100);
+});
+
+test("selectDayPrediction filters by mode and prefers latest nowcast", () => {
+  const predictions = [
+    {
+      forecastDateLocal: "2025-05-01",
+      modelVersion: "bay-wind-v3.5-ml",
+      thresholdKnots: 12,
+      generatedAt: 100,
+      mode: "day-ahead",
+    },
+    {
+      forecastDateLocal: "2025-05-01",
+      modelVersion: "bay-wind-v3.5-ml",
+      thresholdKnots: 12,
+      generatedAt: 200,
+      mode: "nowcast",
+    },
+    {
+      forecastDateLocal: "2025-05-01",
+      modelVersion: "bay-wind-v3.5-ml",
+      thresholdKnots: 12,
+      generatedAt: 300,
+      mode: "nowcast",
+    },
+  ];
+
+  const dayAhead = selectDayPrediction(predictions, {
+    forecastDateLocal: "2025-05-01",
+    modelVersion: "bay-wind-v3.5-ml",
+    thresholdKnots: 12,
+    mode: "day-ahead",
+  });
+  const nowcast = selectDayPrediction(predictions, {
+    forecastDateLocal: "2025-05-01",
+    modelVersion: "bay-wind-v3.5-ml",
+    thresholdKnots: 12,
+    mode: "nowcast",
+    preferLatest: true,
+  });
+
+  assert.equal(dayAhead.generatedAt, 100);
+  assert.equal(nowcast.generatedAt, 300);
+});
+
+test("predictionModesForModel returns distinct stored modes", () => {
+  const modes = predictionModesForModel(
+    [
+      { modelVersion: "bay-wind-v3.5-ml", mode: "day-ahead" },
+      { modelVersion: "bay-wind-v3.5-ml", mode: "nowcast" },
+      { modelVersion: "bay-wind-v2", inputs: { mode: "day-ahead" } },
+    ],
+    "bay-wind-v3.5-ml"
+  );
+
+  assert.deepEqual(modes.sort(), ["day-ahead", "nowcast"]);
+});
+
+test("resolvePredictionMode prefers top-level mode", () => {
+  assert.equal(resolvePredictionMode({ mode: "nowcast", inputs: { mode: "day-ahead" } }), "nowcast");
 });
 
 test("summarizePredictionScores aggregates MAE and false negatives", () => {

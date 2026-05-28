@@ -24,6 +24,7 @@ import {
   computeRegimeStats,
   REGIMES,
 } from "../lib/forecast-experiment/dayRegimes.js";
+import { fetchSeasonObservationsGroupedByDate } from "../lib/forecast-experiment/fetchObservations.js";
 import {
   PREDICTION_MODEL_V2,
   PREDICTION_MODEL_V3,
@@ -50,28 +51,30 @@ async function main() {
 
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-  // Fetch Cabo for regime tagging (do this first so FP analysis can always run even if labels missing in DB)
-  const { startAt } = (await import("../lib/forecast-experiment/time.js")).localDayWindowMs(
-    season.ranges[0].startDateLocal,
-    "Europe/Lisbon"
+  const caboByDate = Object.fromEntries(
+    (
+      await fetchSeasonObservationsGroupedByDate(convex, {
+        locationSlug: "cabo-raso",
+        ranges: season.ranges,
+      })
+    ).entries()
   );
-  const { endAt } = (await import("../lib/forecast-experiment/time.js")).localDayWindowMs(
-    season.ranges[season.ranges.length - 1].endDateLocal,
-    "Europe/Lisbon"
+  const marinaByDate = Object.fromEntries(
+    (
+      await fetchSeasonObservationsGroupedByDate(convex, {
+        locationSlug: "cascais-bay",
+        ranges: season.ranges,
+      })
+    ).entries()
   );
-
-  const caboObs = await convex.query("forecastExperiment:listObservationsForWindow", {
-    locationSlug: "cabo-raso",
-    startAt: startAt - 2 * 3600_000,
-    endAt: endAt + 2 * 3600_000,
-  });
-
-  const caboByDate = {};
-  for (const obs of caboObs || []) {
-    const date = new Date(obs.observedAt).toISOString().slice(0, 10);
-    if (!caboByDate[date]) caboByDate[date] = [];
-    caboByDate[date].push(obs);
-  }
+  const guinchoByDate = Object.fromEntries(
+    (
+      await fetchSeasonObservationsGroupedByDate(convex, {
+        locationSlug: "guincho",
+        ranges: season.ranges,
+      })
+    ).entries()
+  );
 
   // Fetch labels for cascais-bay in the season (for distribution; may be sparse or absent for some seasons in dev DB)
   const labels = await convex.query("forecastExperiment:listLabelsForWindow", {
@@ -85,9 +88,11 @@ async function main() {
 
     for (const label of labels) {
       const caboForDay = caboByDate[label.dateLocal] || [];
-      const regime = classifyDayRegime({
+      const regime = label.dayRegime || classifyDayRegime({
         label,
         caboObservations: caboForDay,
+        marinaObservations: marinaByDate[label.dateLocal] || [],
+        guinchoObservations: guinchoByDate[label.dateLocal] || [],
         thresholdKnots,
       });
       regimeCounts[regime] = (regimeCounts[regime] || 0) + 1;
@@ -143,12 +148,14 @@ async function main() {
       const regime = classifyDayRegime({
         label: labelForRegime,
         caboObservations: caboForDay,
+        marinaObservations: marinaByDate[day.dateLocal] || [],
+        guinchoObservations: guinchoByDate[day.dateLocal] || [],
         thresholdKnots,
       });
       regimeDays.push({
         dateLocal: day.dateLocal,
         regime,
-        predictedRideable: !!(day.predicted && day.predicted.kickInP50At),
+        predictedRideable: !!(day.predicted && day.predicted.predictedKickInAt),
         actualRideable: !!day.actual?.kickInAt,
       });
     }
@@ -179,7 +186,7 @@ async function main() {
   console.log("\n1.2 Notes:");
   console.log("- v3.5 (committed calibration) shows very low total FP on full 2024/2025 seasons (see 1.3 preset matrix).");
   console.log("- Per-regime view shows error clustering (or confirms rarity across regimes).");
-  console.log("- Dev DB currently yields mostly 'other' due to limited kick-day + Cabo variety in labels.");
+  console.log("- Dev DB may still show stale dayRegime until `npm run fx:backfill:regimes` is re-run.");
   console.log("- End-to-end: classifyDayRegime + computeRegimeStats now driven by real prediction outcomes.");
 }
 

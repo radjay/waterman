@@ -20,6 +20,25 @@ const CABO_OBS_WINDOW_MS = 6 * 60 * 60_000;
 const FORECAST_HORIZON_MS = 36 * 60 * 60_000;
 const TARGET_SLUG = "cascais-bay";
 
+function resolvePredictionLayers() {
+  const raw = process.env.FX_PREDICTION_LAYERS ?? "both";
+  return {
+    dayAhead: raw === "both" || raw === "day-ahead",
+    nowcast: raw === "both" || raw === "nowcast",
+  };
+}
+
+function attachMode(prediction, mode) {
+  return {
+    ...prediction,
+    mode,
+    inputs: {
+      ...prediction.inputs,
+      mode,
+    },
+  };
+}
+
 // Phase 5 5.2 frequent re-run stub for "today" nowcast refinement.
 // When we are in nowcast mode with fresh Cabo for the current local day,
 // recommend more frequent follow-up runs (e.g. 15 min) so the window tightens
@@ -102,28 +121,45 @@ try {
       })
     );
   } else if (predictionVersion === "v3" || predictionVersion === "v3.5") {
-    // Phase 2 pragmatic path: v3.5 for Forecast layer with conservative operating point for day-ahead.
-    const mode = caboRasoObservations.length > 0 ? "nowcast" : "day-ahead";
-    predictions.push(
-      buildBayWindPredictionV3({
-        targetLocationSlug: TARGET_SLUG,
-        forecastDateLocal,
-        generatedAt,
-        points,
-        caboRasoObservations,
-        thresholdKnots,
-        preset,
-        model: mlModel,
-        nowcastModel: nowcastMlModel,
-        conservative: mode === "day-ahead",
-        mode,
-      })
-    );
+    const layers = resolvePredictionLayers();
+    const sharedArgs = {
+      targetLocationSlug: TARGET_SLUG,
+      forecastDateLocal,
+      generatedAt,
+      points,
+      thresholdKnots,
+      preset,
+      model: mlModel,
+      nowcastModel: nowcastMlModel,
+    };
 
-    // Phase 5 5.2 (frequent re-run for "today"): This fire (019e672670f4) notes that for true same-day Nowcast
-    // with fresh Cabo, the worker/cron needs more frequent (or event-driven) invocations for the current day
-    // rather than the current 10-min schedule. The mode + dynamic Cabo plumbing is already complete;
-    // this is the next wiring step for continuous refinement.
+    if (layers.dayAhead) {
+      predictions.push(
+        attachMode(
+          buildBayWindPredictionV3({
+            ...sharedArgs,
+            caboRasoObservations: [],
+            conservative: true,
+            mode: "day-ahead",
+          }),
+          "day-ahead"
+        )
+      );
+    }
+
+    if (layers.nowcast && caboRasoObservations.length > 0) {
+      predictions.push(
+        attachMode(
+          buildBayWindPredictionV3({
+            ...sharedArgs,
+            caboRasoObservations,
+            conservative: false,
+            mode: "nowcast",
+          }),
+          "nowcast"
+        )
+      );
+    }
   } else {
     const mode = caboRasoObservations.length > 0 ? "nowcast" : "day-ahead";
     predictions.push(
@@ -155,10 +191,11 @@ try {
       predictionVersion,
       preset,
       thresholdKnots,
-      mode: predictions[0]?.inputs?.mode,
+      layers: resolvePredictionLayers(),
+      modes: predictions.map((prediction) => prediction.mode ?? prediction.inputs?.mode),
       modelVersion: predictions[0]?.modelVersion,
       rerunRecommendation: getNowcastRerunRecommendation({
-        mode: predictions[0]?.inputs?.mode,
+        mode: "nowcast",
         forecastDateLocal,
         caboRasoObservations,
         generatedAt,

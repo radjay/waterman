@@ -22,8 +22,8 @@ test("strong nortada afternoon forecast yields afternoon kick-in with confidence
     thresholdKnots: 12,
   });
 
-  assert.ok(prediction.kickInP50At);
-  assert.ok(prediction.kickInP50At >= startAt + 13 * 3_600_000);
+  assert.ok(prediction.predictedKickInAt);
+  assert.ok(prediction.predictedKickInAt >= startAt + 13 * 3_600_000);
   assert.ok(prediction.confidence > 0.5);
   assert.equal(prediction.modelVersion, "bay-wind-v2");
 });
@@ -55,8 +55,8 @@ test("nowcast with strong Cabo nortada caps kick-in at cabo time plus lag", () =
 
   const lagMinutes = prediction.inputs.caboLagMinutes ?? 90;
   const maxKickIn = caboKickInAt + lagMinutes * 60_000;
-  assert.ok(prediction.kickInP50At);
-  assert.ok(prediction.kickInP50At <= maxKickIn);
+  assert.ok(prediction.predictedKickInAt);
+  assert.ok(prediction.predictedKickInAt <= maxKickIn);
 });
 
 test("weak non-nortada forecast yields no kick-in", () => {
@@ -77,7 +77,7 @@ test("weak non-nortada forecast yields no kick-in", () => {
     thresholdKnots: 12,
   });
 
-  assert.equal(prediction.kickInP50At, undefined);
+  assert.equal(prediction.predictedKickInAt, undefined);
 });
 
 function forecastPoint(runStartedAt, validTime, windSpeedKnots, windGustKnots, windDirectionDeg) {

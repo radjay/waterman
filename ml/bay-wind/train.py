@@ -26,6 +26,8 @@ DATA_DIR = REPO_ROOT / "data" / "forecast-experiment" / "ml-training"
 OUTPUT_PATH = REPO_ROOT / "data" / "forecast-experiment" / "bay-wind-v3-model.json"
 NOWCAST_OUTPUT_PATH = REPO_ROOT / "data" / "forecast-experiment" / "bay-wind-v3-nowcast-model.json"
 FEATURE_HOURS = list(range(6, 22))
+RIDING_WINDOW_START_HOUR = 8
+RIDING_WINDOW_END_HOUR = 20
 THRESHOLD_KNOTS_PRESETS = [10, 12, 15]
 DEFAULT_HOLDOUT_YEAR = 2025
 
@@ -180,8 +182,8 @@ def simulate_day_prediction(
     if use_kick_in_regressor:
         kick_in_minutes = max(0.0, predict_gbm_json(kick_in_model, row, feature_names))
 
+    hour_probs: dict[int, float] = {}
     max_prob = 0.0
-    first_hour = None
     for hour in FEATURE_HOURS:
         hour_model = hourly_models.get(f"h{hour}")
         if hour_model:
@@ -191,18 +193,38 @@ def simulate_day_prediction(
             threshold = float(row.get("thresholdKnots", 12))
             prob = float(1 / (1 + np.exp(-(effective - threshold) / 2)))
         prob = min(0.97, max(0.03, prob * probability_damping))
-        if prob >= kick_in_threshold and first_hour is None:
-            first_hour = hour
+        hour_probs[hour] = prob
         max_prob = max(max_prob, prob)
 
-    if first_hour is None and max_prob < kick_in_threshold:
+    first_sustained_hour = None
+    for hour in range(RIDING_WINDOW_START_HOUR, RIDING_WINDOW_END_HOUR):
+        if (
+            hour_probs.get(hour, 0) >= kick_in_threshold
+            and hour_probs.get(hour + 1, 0) >= kick_in_threshold
+        ):
+            first_sustained_hour = hour
+            break
+
+    if first_sustained_hour is None and max_prob < kick_in_threshold:
         return False, None
 
+    window_start_min = RIDING_WINDOW_START_HOUR * 60
+    window_end_min = RIDING_WINDOW_END_HOUR * 60
+    regressor_minutes = None
     if kick_in_minutes is not None and np.isfinite(kick_in_minutes):
-        return True, float(kick_in_minutes)
+        if window_start_min <= kick_in_minutes <= window_end_min:
+            regressor_minutes = float(kick_in_minutes)
 
-    if first_hour is not None:
-        return True, float(first_hour * 60)
+    timeline_minutes = float(first_sustained_hour * 60) if first_sustained_hour is not None else None
+
+    if timeline_minutes is not None and regressor_minutes is not None:
+        return True, max(regressor_minutes, timeline_minutes)
+
+    if regressor_minutes is not None:
+        return True, regressor_minutes
+
+    if timeline_minutes is not None:
+        return True, timeline_minutes
 
     return False, None
 
@@ -536,7 +558,7 @@ def main() -> None:
 
     artifact = {
         "version": 2,
-        "modelVersion": "bay-wind-v3.5-ml-nowcast" if args.nowcast else "bay-wind-v3.5-ml",
+        "modelVersion": "bay-wind-v3.6-ml-nowcast" if args.nowcast else "bay-wind-v3.6-ml",
         "featureNames": feature_names,
         "featureHours": FEATURE_HOURS,
         "kickInRegressor": kick_in_model,
