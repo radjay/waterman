@@ -7,6 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:fx": "node --test tests/forecast-experiment/*.test.mjs",
+    "test:convex": "node --test tests/convex/*.test.mjs",
+    "verify:convex": "node scripts/verify-convex-reads.mjs",
     "fx:fetch:openmeteo": "node scripts/fx-fetch-openmeteo-runs.mjs",
     "fx:fetch:observations": "node scripts/fx-fetch-observations.mjs",
     "fx:backfill:windguru": "node scripts/fx-backfill-windguru-history.mjs",

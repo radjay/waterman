@@ -1,6 +1,10 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import {
+  getLatestScrapeSlotsInWindow,
+  getSlotsOverlappingTimeWindow,
+} from "./queryHelpers/forecastSlots";
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -35,34 +39,17 @@ async function findForecastSlotsForSession(
   sessionStart: number,
   durationMinutes: number
 ): Promise<Id<"forecast_slots">[]> {
-  const sessionEnd = sessionStart + (durationMinutes * 60 * 1000);
-  const searchStart = sessionStart - (60 * 60 * 1000); // 1 hour before session
-  
-  // Get all slots for this spot
-  const allSlots = await ctx.db
-    .query("forecast_slots")
-    .withIndex("by_spot", (q) => q.eq("spotId", spotId))
-    .collect();
-  
-  if (allSlots.length === 0) {
-    return [];
-  }
-  
-  // Find the most recent scrape timestamp
-  const scrapeTimestamps = [...new Set(
-    allSlots.map(s => s.scrapeTimestamp).filter(ts => ts !== undefined)
-  )];
-  const latestScrapeTimestamp = Math.max(...scrapeTimestamps);
-  
-  // Filter to most recent scrape and slots within our time window
-  const matchingSlots = allSlots.filter(
-    slot => 
-      slot.scrapeTimestamp === latestScrapeTimestamp &&
-      slot.timestamp >= searchStart &&
-      slot.timestamp <= sessionEnd
-  ).sort((a, b) => a.timestamp - b.timestamp);
-  
-  return matchingSlots.map(slot => slot._id);
+  const sessionEnd = sessionStart + durationMinutes * 60 * 1000;
+  const searchStart = sessionStart - 60 * 60 * 1000;
+
+  const matchingSlots = await getLatestScrapeSlotsInWindow(
+    ctx,
+    spotId,
+    searchStart,
+    sessionEnd
+  );
+
+  return matchingSlots.map((slot) => slot._id);
 }
 
 // =============================================================================
@@ -288,52 +275,23 @@ export const getForecastSlotsForTimeWindow = query({
     waveDirection: v.optional(v.number()),
   })),
   handler: async (ctx, args) => {
-    // Get all slots for this spot
-    const allSlots = await ctx.db
-      .query("forecast_slots")
-      .withIndex("by_spot", (q) => q.eq("spotId", args.spotId))
-      .collect();
-    
-    // Filter to slots that overlap with the time window
-    // Forecast slots are typically 3-hour intervals, so we need to include slots
-    // that cover the session time, not just slots whose timestamp is within the window
-    // A slot at 12:00 covers 12:00-15:00, so it should be included for a session at 13:30
-    const SLOT_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
-    const matchingSlots = allSlots.filter(slot => {
-      const slotStart = slot.timestamp;
-      const slotEnd = slotStart + SLOT_DURATION_MS;
-      // Include slot if it overlaps with the search window
-      return slotStart <= args.endTime && slotEnd >= args.startTime;
-    }).sort((a, b) => {
-      // Sort by timestamp, then by scrapeTimestamp (newer scrapes first for same timestamp)
-      if (a.timestamp !== b.timestamp) {
-        return a.timestamp - b.timestamp;
-      }
-      const aScrape = a.scrapeTimestamp || 0;
-      const bScrape = b.scrapeTimestamp || 0;
-      return bScrape - aScrape;
-    });
-    
-    // Deduplicate by timestamp (keep the one from the most recent scrape)
-    const uniqueSlots: any[] = [];
-    const seenTimestamps = new Set<number>();
-    for (const slot of matchingSlots) {
-      if (!seenTimestamps.has(slot.timestamp)) {
-        seenTimestamps.add(slot.timestamp);
-        uniqueSlots.push({
-          _id: slot._id,
-          timestamp: slot.timestamp,
-          speed: slot.speed,
-          gust: slot.gust,
-          direction: slot.direction,
-          waveHeight: slot.waveHeight,
-          wavePeriod: slot.wavePeriod,
-          waveDirection: slot.waveDirection,
-        });
-      }
-    }
-    
-    return uniqueSlots;
+    const uniqueSlots = await getSlotsOverlappingTimeWindow(
+      ctx,
+      args.spotId,
+      args.startTime,
+      args.endTime
+    );
+
+    return uniqueSlots.map((slot) => ({
+      _id: slot._id,
+      timestamp: slot.timestamp,
+      speed: slot.speed,
+      gust: slot.gust,
+      direction: slot.direction,
+      waveHeight: slot.waveHeight,
+      wavePeriod: slot.wavePeriod,
+      waveDirection: slot.waveDirection,
+    }));
   },
 });
 
@@ -488,45 +446,16 @@ export const getEntry = query({
       
       const sessionEnd = entry.sessionDate + (entry.durationMinutes * 60 * 1000);
       const searchStart = entry.sessionDate - (60 * 60 * 1000);
-      
-      const allSlots = await ctx.db
-        .query("forecast_slots")
-        .withIndex("by_spot", (q) => q.eq("spotId", entry.spotId!))
-        .collect();
-      
-      if (allSlots.length === 0) return;
-      
-      // Find slots that overlap with the session window
-      // Forecast slots are typically 3-hour intervals, so we need to include slots
-      // that cover the session time, not just slots whose timestamp is within the window
-      const SLOT_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
-      const matchingSlots = allSlots.filter(slot => {
-        const slotStart = slot.timestamp;
-        const slotEnd = slotStart + SLOT_DURATION_MS;
-        // Include slot if it overlaps with the search window
-        return slotStart <= sessionEnd && slotEnd >= searchStart;
-      }).sort((a, b) => {
-        // Sort by timestamp first, then by scrapeTimestamp (newer scrapes first)
-        if (a.timestamp !== b.timestamp) {
-          return a.timestamp - b.timestamp;
-        }
-        // If same timestamp, prefer newer scrape (more recent data)
-        const aScrape = a.scrapeTimestamp || 0;
-        const bScrape = b.scrapeTimestamp || 0;
-        return bScrape - aScrape;
-      });
-      
-      // If we have multiple slots at the same timestamp (from different scrapes),
-      // keep only the one from the most recent scrape
-      const uniqueSlots = [];
-      const seenTimestamps = new Set<number>();
-      for (const slot of matchingSlots) {
-        if (!seenTimestamps.has(slot.timestamp)) {
-          seenTimestamps.add(slot.timestamp);
-          uniqueSlots.push(slot);
-        }
-      }
-      
+
+      const uniqueSlots = await getSlotsOverlappingTimeWindow(
+        ctx,
+        entry.spotId!,
+        searchStart,
+        sessionEnd
+      );
+
+      if (uniqueSlots.length === 0) return;
+
       // Get scores for these slots
       for (const slot of uniqueSlots) {
         const scores = await ctx.db

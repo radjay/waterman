@@ -6,6 +6,11 @@ import Groq from "groq-sdk";
 import { buildPrompt, buildBatchPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
 import SunCalc from "suncalc";
 import { Id } from "./_generated/dataModel";
+import { getForecastSlotsForSpot as loadForecastSlotsForSpot } from "./queryHelpers/forecastSlots";
+import {
+    getConditionScoresForSpot as loadConditionScoresForSpot,
+    getConditionScoresForSpotSport,
+} from "./queryHelpers/conditionScores";
 
 /**
  * Validates that a scrape contains sufficient forecast data.
@@ -1441,70 +1446,19 @@ export const getConditionScores = query({
         cutoffTimestamp: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        // Default to 7-day cutoff to prevent unbounded query growth.
-        // Callers can pass a custom cutoffTimestamp (or 0 to disable).
-        const cutoff = args.cutoffTimestamp ?? (Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-        let filtered;
         if (args.sport) {
-            // Full index pushdown: spotId + sport + timestamp range
-            filtered = await ctx.db
-                .query("condition_scores")
-                .withIndex("by_spot_sport_timestamp", (q) =>
-                    q.eq("spotId", args.spotId).eq("sport", args.sport!).gte("timestamp", cutoff)
-                )
-                .collect();
-        } else {
-            // No sport filter — use spotId prefix only and apply cutoff as post-index filter
-            const scores = await ctx.db
-                .query("condition_scores")
-                .withIndex("by_spot_sport_timestamp", (q) =>
-                    q.eq("spotId", args.spotId)
-                )
-                .collect();
-            filtered = scores.filter((s) => s.timestamp >= cutoff);
+            return getConditionScoresForSpotSport(ctx, args.spotId, args.sport, {
+                userId: args.userId,
+                cutoffTimestamp: args.cutoffTimestamp,
+                cutoffDays: args.cutoffTimestamp === undefined ? 2 : undefined,
+            });
         }
 
-        // When userId is provided, return personalized scores with system fallback
-        if (args.userId !== undefined) {
-            // Get personalized scores for this user
-            const personalizedScores = filtered.filter(s => s.userId === args.userId);
-            // Get system scores (userId: null)
-            const systemScores = filtered.filter(s => s.userId === null);
-            
-            // Create a map of timestamp -> score, preferring personalized
-            // Using timestamp as key because slot IDs change with each scrape
-            // but we want to match scores to slots by their time
-            const scoresByTimestamp = new Map<number, typeof filtered[0]>();
-            
-            // First add system scores (take the most recent one per timestamp)
-            for (const score of systemScores) {
-                const existing = scoresByTimestamp.get(score.timestamp);
-                // Keep the score with the latest _creationTime (most recent scrape)
-                if (!existing || (score._creationTime > existing._creationTime)) {
-                    scoresByTimestamp.set(score.timestamp, score);
-                }
-            }
-            
-            // Then override with personalized scores (they always take priority)
-            for (const score of personalizedScores) {
-                scoresByTimestamp.set(score.timestamp, score);
-            }
-            
-            // Convert back to array and sort
-            return Array.from(scoresByTimestamp.values()).sort((a, b) => a.timestamp - b.timestamp);
-        } else {
-            // Default to system scores (userId: null), deduplicated by timestamp
-            const systemScores = filtered.filter(s => s.userId === null);
-            const scoresByTimestamp = new Map<number, typeof filtered[0]>();
-            for (const score of systemScores) {
-                const existing = scoresByTimestamp.get(score.timestamp);
-                if (!existing || (score._creationTime > existing._creationTime)) {
-                    scoresByTimestamp.set(score.timestamp, score);
-                }
-            }
-            return Array.from(scoresByTimestamp.values()).sort((a, b) => a.timestamp - b.timestamp);
-        }
+        return loadConditionScoresForSpot(ctx, args.spotId, {
+            userId: args.userId,
+            cutoffTimestamp: args.cutoffTimestamp,
+            cutoffDays: args.cutoffTimestamp === undefined ? 2 : undefined,
+        });
     },
 });
 
@@ -1849,135 +1803,27 @@ export const addSpotCoordinates = mutation({
  * Optimized: only reads slots from scrapes in the last 48 hours.
  */
 async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
-    // Read scrape data from last 7 days to limit document reads while ensuring
-    // data remains visible even when scraper is down for a few days.
-    const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-    const allSlots = await ctx.db
-        .query("forecast_slots")
-        .withIndex("by_spot_and_scrape_timestamp", (q: any) =>
-            q.eq("spotId", spotId).gte("scrapeTimestamp", recentCutoff)
-        )
-        .collect();
-
-    if (allSlots.length === 0) return [];
-
-    const slotScrapeTimestamps = [...new Set(
-        allSlots.map((s: any) => s.scrapeTimestamp).filter((ts: any) => ts !== undefined && ts !== null)
-    )] as number[];
-
-    if (slotScrapeTimestamps.length === 0) return allSlots;
-
-    // Find the target scrape timestamp efficiently using point lookups
-    // instead of collecting ALL scrapes for this spot.
-    // Check scrape timestamps from slots in descending order until we find a successful one.
-    const sortedScrapeTimestamps = [...slotScrapeTimestamps].sort((a, b) => b - a);
-    let targetScrapeTimestamp: number | null = null;
-
-    for (const ts of sortedScrapeTimestamps) {
-        const scrape = await ctx.db
-            .query("scrapes")
-            .withIndex("by_spot_and_timestamp", (q: any) =>
-                q.eq("spotId", spotId).eq("scrapeTimestamp", ts)
-            )
-            .first();
-        if (scrape && scrape.isSuccessful) {
-            targetScrapeTimestamp = ts;
-            break;
-        }
-    }
-
-    // Fall back to max slot timestamp if no successful scrape found
-    if (targetScrapeTimestamp === null) {
-        targetScrapeTimestamp = sortedScrapeTimestamps[0] ?? null;
-    }
-
-    if (targetScrapeTimestamp === null) return [];
-
-    const latestSlots = allSlots.filter((s: any) => s.scrapeTimestamp === targetScrapeTimestamp);
-
-    // Preserve today's past slots
-    const now = Date.now();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const latestTimestamps = new Set(latestSlots.map((s: any) => s.timestamp));
-    const candidatePastSlots = allSlots.filter((s: any) => {
-        if (s.timestamp < todayStart.getTime() || s.timestamp >= todayEnd.getTime()) return false;
-        if (latestTimestamps.has(s.timestamp)) return false;
-        if (s.scrapeTimestamp === targetScrapeTimestamp) return false;
-        return true;
-    });
-
-    const slotsByTimestamp = new Map();
-    for (const slot of candidatePastSlots) {
-        const existing = slotsByTimestamp.get(slot.timestamp);
-        if (!existing || (slot.scrapeTimestamp && slot.scrapeTimestamp > (existing.scrapeTimestamp || 0))) {
-            slotsByTimestamp.set(slot.timestamp, slot);
-        }
-    }
-
-    return [...latestSlots, ...Array.from(slotsByTimestamp.values())];
+    return loadForecastSlotsForSpot(ctx, spotId);
 }
 
 /**
  * Get condition scores for a single spot and sport.
  * Optimized to limit document reads by filtering on timestamp range.
- * Reads scores within a configurable window (default 7 days, 2 days for dashboard/cams).
+ * Reads scores within a configurable window (default 2 days, 11 days future).
  */
 async function _getConditionScoresForSpot(
     ctx: any,
     spotId: Id<"spots">,
     sport: string,
     userId?: string,
-    cutoffDays: number = 7,
+    cutoffDays: number = 2,
     futureDays: number = 11,
 ) {
-    const now = Date.now();
-    const cutoff = now - cutoffDays * 24 * 60 * 60 * 1000;
-    const upper = now + futureDays * 24 * 60 * 60 * 1000;
-
-    // Use compound index for full pushdown: spotId + sport + timestamp range
-    const filtered = await ctx.db
-        .query("condition_scores")
-        .withIndex("by_spot_sport_timestamp", (q: any) =>
-            q
-                .eq("spotId", spotId)
-                .eq("sport", sport)
-                .gte("timestamp", cutoff)
-                .lte("timestamp", upper)
-        )
-        .collect();
-
-    if (userId !== undefined) {
-        const personalizedScores = filtered.filter((s: any) => s.userId === userId);
-        const systemScores = filtered.filter((s: any) => s.userId === null);
-
-        const scoresByTimestamp = new Map<number, any>();
-        for (const score of systemScores) {
-            const existing = scoresByTimestamp.get(score.timestamp);
-            if (!existing || (score._creationTime > existing._creationTime)) {
-                scoresByTimestamp.set(score.timestamp, score);
-            }
-        }
-        for (const score of personalizedScores) {
-            scoresByTimestamp.set(score.timestamp, score);
-        }
-
-        return Array.from(scoresByTimestamp.values()).sort((a: any, b: any) => a.timestamp - b.timestamp);
-    } else {
-        const systemScores = filtered.filter((s: any) => s.userId === null);
-        const scoresByTimestamp = new Map<number, any>();
-        for (const score of systemScores) {
-            const existing = scoresByTimestamp.get(score.timestamp);
-            if (!existing || (score._creationTime > existing._creationTime)) {
-                scoresByTimestamp.set(score.timestamp, score);
-            }
-        }
-        return Array.from(scoresByTimestamp.values()).sort((a: any, b: any) => a.timestamp - b.timestamp);
-    }
+    return getConditionScoresForSpotSport(ctx, spotId, sport, {
+        userId,
+        cutoffDays,
+        futureDays,
+    });
 }
 
 // ─── Batched queries ────────────────────────────────────────────────────────

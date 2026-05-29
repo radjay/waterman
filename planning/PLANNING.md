@@ -1,6 +1,6 @@
 # Waterman Planning
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-05-29
 
 ## Upcoming PRDs
 
@@ -39,6 +39,7 @@
 
 ### Near Term (This Week)
 
+- [ ] **Convex query optimization** — Phase 1 implemented locally (shared slot/score helpers, calendar/journal fixes, `npm run verify:convex`). Deployed to dev Convex; commit pending. See [plan](../docs/superpowers/plans/2026-05-29-convex-query-optimization.md).
 - [ ] **Deep Links for PWA Authentication**: Investigate iOS Universal Links
   - Requires dedicated domain (e.g., `waterman.app`)
   - Would allow magic links to open directly in PWA instead of Safari

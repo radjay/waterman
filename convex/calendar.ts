@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { resolveLatestSuccessfulScrapeTimestamp } from "./queryHelpers/forecastSlots";
 
 /**
  * Generate a secure random token for calendar subscriptions
@@ -121,17 +122,11 @@ export const getSportFeed = query({
         // We'll use this to filter scores to only the latest scrape's data
         const latestScrapeBySpot = new Map<Id<"spots">, number>();
         for (const spotId of targetSpotIds) {
-            // Find all successful scrapes for this spot
-            const successfulScrapes = await ctx.db
-                .query("scrapes")
-                .filter((q) => q.eq(q.field("spotId"), spotId))
-                .collect();
-
-            if (successfulScrapes.length > 0) {
-                // Get the most recent successful scrape timestamp
-                const lastSuccessfulTimestamp = Math.max(
-                    ...successfulScrapes.map(s => s.scrapeTimestamp)
-                );
+            const lastSuccessfulTimestamp = await resolveLatestSuccessfulScrapeTimestamp(
+                ctx,
+                spotId
+            );
+            if (lastSuccessfulTimestamp !== null) {
                 latestScrapeBySpot.set(spotId, lastSuccessfulTimestamp);
             }
         }
