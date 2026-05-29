@@ -1932,15 +1932,22 @@ async function _getConditionScoresForSpot(
     spotId: Id<"spots">,
     sport: string,
     userId?: string,
-    cutoffDays: number = 7
+    cutoffDays: number = 7,
+    futureDays: number = 11,
 ) {
-    const cutoff = Date.now() - cutoffDays * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const cutoff = now - cutoffDays * 24 * 60 * 60 * 1000;
+    const upper = now + futureDays * 24 * 60 * 60 * 1000;
 
     // Use compound index for full pushdown: spotId + sport + timestamp range
     const filtered = await ctx.db
         .query("condition_scores")
         .withIndex("by_spot_sport_timestamp", (q: any) =>
-            q.eq("spotId", spotId).eq("sport", sport).gte("timestamp", cutoff)
+            q
+                .eq("spotId", spotId)
+                .eq("sport", sport)
+                .gte("timestamp", cutoff)
+                .lte("timestamp", upper)
         )
         .collect();
 
@@ -2169,7 +2176,7 @@ export const getReportData = query({
                             .first()
                     ),
                     asyncMap(relevantSports, (sport: string) =>
-                        _getConditionScoresForSpot(ctx, spot._id, sport, args.userId)
+                        _getConditionScoresForSpot(ctx, spot._id, sport, args.userId, 2)
                     ),
                 ]);
 
