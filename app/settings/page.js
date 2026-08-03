@@ -14,8 +14,67 @@ import { Text } from "../../components/ui/Text";
 import { Button } from "../../components/ui/Button";
 import { Divider } from "../../components/ui/Divider";
 import { SportBadge } from "../../components/ui/SportBadge";
+import { useTheme } from "../../components/theme/ThemeProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
+const THEME_OPTIONS = [
+  { id: "auto", label: "Auto", hint: "Follows local sunrise and sunset" },
+  { id: "night", label: "Night", hint: "Nightglass, always" },
+  { id: "day", label: "Day", hint: "Dayglass, always" },
+];
+
+/**
+ * Appearance. The app follows the sun by default, but auto-only switching is an
+ * accessibility problem — a theme that flips itself mid-session with no way to
+ * stop it is worse than either fixed theme.
+ */
+function ThemeSetting() {
+  const { theme, preference, setPreference } = useTheme();
+
+  return (
+    <div>
+      <Text variant="label" as="label" className="block mb-3">
+        Appearance
+      </Text>
+      <div className="space-y-2">
+        {THEME_OPTIONS.map((option) => {
+          const selected = preference === option.id;
+          return (
+            <button
+              key={option.id}
+              onClick={() => setPreference(option.id)}
+              aria-pressed={selected}
+              className={`w-full p-4 rounded-card border transition-all duration-fast ease-smooth text-left focus-ring ${
+                selected
+                  ? "border-accent-border bg-accent-tint-card"
+                  : "border-card hover:bg-ink-hover"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div
+                    className={`font-body font-medium ${selected ? "text-accent" : "text-ink"}`}
+                  >
+                    {option.label}
+                  </div>
+                  <div className="font-data text-[0.7rem] text-faded-ink mt-0.5">
+                    {option.hint}
+                  </div>
+                </div>
+                {option.id === "auto" && selected && (
+                  <span className="font-data text-[0.65rem] uppercase tracking-label text-dim">
+                    now: {theme}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -198,6 +257,9 @@ export default function ProfilePage() {
         <Heading level={1} className="mb-8">Settings</Heading>
 
         <div className="space-y-8">
+          {/* Appearance */}
+          <ThemeSetting />
+
           {/* Favorite Sports */}
           <div>
             <Text variant="label" as="label" className="block mb-3">Favorite Sports</Text>

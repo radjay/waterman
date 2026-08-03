@@ -5,7 +5,7 @@
   "description": "Waterman is a watersports monitoring system that grabs weather forecasts and notifies users when conditions will suit their needs.",
   "main": "index.js",
   "scripts": {
-    "test": "vitest run && npm run test:fx && npm run test:convex",
+    "test": "vitest run && npm run test:fx && npm run test:convex && npm run test:email",
     "test:fx": "node --test tests/forecast-experiment/*.test.mjs",
     "test:convex": "node --test tests/convex/*.test.mjs",
     "test:email": "node --test tests/email-worker/*.test.mjs",
