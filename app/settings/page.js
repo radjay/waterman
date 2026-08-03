@@ -361,7 +361,7 @@ export default function ProfilePage() {
                   }`}
                 >
                   <span
-                    className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-200 ${
+                    className={`absolute top-1 w-5 h-5 rounded-full bg-surface shadow-md transition-all duration-200 ${
                       showPersonalizedScores ? "left-6" : "left-1"
                     }`}
                   />
@@ -371,8 +371,8 @@ export default function ProfilePage() {
           </div>
 
           {/* Error/Success Messages */}
-          {error && <Text className="text-red-600 text-sm">{error}</Text>}
-          {success && <Text className="text-green-600 text-sm">{success}</Text>}
+          {error && <Text className="text-marginal text-sm">{error}</Text>}
+          {success && <Text className="text-accent text-sm">{success}</Text>}
 
         </div>
       </div>

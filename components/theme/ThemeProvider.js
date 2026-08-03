@@ -34,14 +34,30 @@ export function ThemeProvider({ children }) {
 
   // Adopt whatever the bootstrap script already decided.
   useEffect(() => {
+    // ?theme= is a review/screenshot override and outranks the stored
+    // preference, exactly as it does in the bootstrap script. Without this the
+    // provider would re-resolve on mount and undo the URL override a moment
+    // after first paint.
+    let urlOverride = null;
+    try {
+      urlOverride = new URLSearchParams(window.location.search).get("theme");
+    } catch {
+      /* malformed query string */
+    }
+
     let stored = null;
     try {
       stored = localStorage.getItem(THEME_STORAGE_KEY);
     } catch {
       /* private browsing */
     }
+
     const applied = document.documentElement.getAttribute("data-theme");
-    setPreferenceState(stored === "night" || stored === "day" ? stored : "auto");
+    if (urlOverride === "night" || urlOverride === "day") {
+      setPreferenceState(urlOverride);
+    } else {
+      setPreferenceState(stored === "night" || stored === "day" ? stored : "auto");
+    }
     if (applied === "night" || applied === "day") setTheme(applied);
   }, []);
 

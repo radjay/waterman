@@ -55,6 +55,12 @@
   --wm-sport-pill-bg: rgba(110, 231, 240, 0.14);
   --wm-sport-pill-text: #6ee7f0;
 
+  /* The score dial's inner disc must be OPAQUE or the conic-gradient ring shows
+     straight through it. On a tinted card that means page composited with
+     accent-tint-card, precomputed — a translucent surface token does not work
+     here. */
+  --wm-dial-inner-card: #132733;
+
   /* Cards carry no shadow in either theme — separation is by border and fill.
      The bottom nav is the exception: a shadow in Dayglass, a border at night. */
   --wm-shadow-nav: none;
@@ -96,6 +102,9 @@
 
   --wm-sport-pill-bg: #0e7a85;
   --wm-sport-pill-text: #ffffff;
+
+  /* See the Nightglass note — page composited with accent-tint-card. */
+  --wm-dial-inner-card: #dde9ea;
 
   --wm-shadow-nav: 0 4px 24px rgba(10, 20, 32, 0.14);
 

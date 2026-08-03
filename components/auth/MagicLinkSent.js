@@ -65,7 +65,7 @@ export default function MagicLinkSent({ email, onBack }) {
 
   if (showOnboarding) {
     return (
-      <div className="bg-white rounded-lg border border-ink/10 p-8">
+      <div className="bg-surface rounded-lg border border-ink/10 p-8">
         <OnboardingFlow onComplete={handleOnboardingComplete} />
       </div>
     );
@@ -73,7 +73,7 @@ export default function MagicLinkSent({ email, onBack }) {
 
   if (showCodeInput) {
     return (
-      <div className="bg-white rounded-lg border border-ink/10 p-8">
+      <div className="bg-surface rounded-lg border border-ink/10 p-8">
         <h2 className="text-xl font-semibold text-ink mb-2">Enter Code</h2>
         <p className="text-sm text-ink/60 mb-6">
           Enter the 6-digit code from your email
@@ -94,7 +94,7 @@ export default function MagicLinkSent({ email, onBack }) {
           </div>
 
           {error && (
-            <p className="text-red-600 text-sm">{error}</p>
+            <p className="text-marginal text-sm">{error}</p>
           )}
 
           <button

@@ -192,7 +192,7 @@ export default function JournalEntryDetailPage() {
       <MainLayout>
         <Header />
         <div className="py-12">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded">
             {error}
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function JournalEntryDetailPage() {
         </div>
 
         {error && (
-          <Text className="text-red-600 text-sm mb-4">{error}</Text>
+          <Text className="text-marginal text-sm mb-4">{error}</Text>
         )}
 
         {!editing ? (

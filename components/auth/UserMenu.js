@@ -65,7 +65,7 @@ export default function UserMenu() {
     <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 h-[27px] px-2 rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+        className="flex items-center gap-1.5 h-[27px] px-2 rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-surface active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
@@ -83,7 +83,7 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-ink/20 rounded-md shadow-lg z-[9999]">
+        <div className="absolute right-0 mt-2 w-56 bg-surface border border-ink/20 rounded-md shadow-lg z-[9999]">
           <div className="py-2 px-4 border-b border-ink/10">
             <p className="text-sm font-medium text-ink truncate">
               {user.name || "Account"}

@@ -11,10 +11,10 @@ export function ScoreDisplay({ score, size = "md", className = "" }) {
 
   const colorClass =
     score >= 90
-      ? "text-green-800 font-black"
+      ? "text-accent font-black"
       : score >= 75
-        ? "text-green-700 font-bold"
-        : "text-green-600 font-bold";
+        ? "text-accent font-bold"
+        : "text-accent font-bold";
 
   const sizeClass =
     size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-base";

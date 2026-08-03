@@ -28,16 +28,19 @@ export function Button({
   ...props
 }) {
   const variantStyles = {
+    // The full-width call to action. Accent fill with page-colour text —
+    // needs the sport-pill treatment reasoning: accent-on-page reads in both
+    // themes, accent-on-tint does not.
     primary:
-      "bg-ink text-newsprint rounded-ui font-medium shadow-card hover:bg-ink-hover hover:shadow-card-hover active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
+      "bg-accent text-page rounded-pill font-bold tracking-[0.1em] uppercase font-data hover:brightness-110 active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
     secondary:
-      "border border-ink/15 text-ink rounded-ui bg-newsprint font-medium hover:border-ink/25 hover:bg-warm-highlight active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
+      "border border-btn text-ink rounded-pill bg-transparent font-medium hover:bg-ink-hover active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
     ghost:
       "text-faded-ink hover:text-ink rounded-ui focus-ring transition-all duration-fast ease-smooth",
     danger:
-      "border border-red-accent/30 text-red-accent rounded-ui hover:bg-red-accent/5 active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
+      "border border-marginal/40 text-marginal rounded-pill hover:bg-marginal/10 active:scale-[0.98] focus-ring transition-all duration-fast ease-smooth",
     icon:
-      "border border-ink/15 rounded-ui p-1.5 bg-newsprint hover:bg-warm-highlight focus-ring transition-all duration-fast ease-smooth inline-flex items-center justify-center",
+      "border border-btn rounded-ui p-1.5 bg-transparent text-faded-ink hover:bg-ink-hover hover:text-ink focus-ring transition-all duration-fast ease-smooth inline-flex items-center justify-center",
   };
 
   const sizeStyles = {

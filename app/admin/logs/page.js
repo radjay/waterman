@@ -89,7 +89,7 @@ export default function LogsViewer() {
       <h1 className="text-3xl font-bold mb-8">Logs</h1>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="bg-surface rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Log Type</label>
@@ -143,7 +143,7 @@ export default function LogsViewer() {
         <div className="mt-4">
           <button
             onClick={fetchLogs}
-            className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90"
+            className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90"
           >
             Refresh
           </button>
@@ -151,7 +151,7 @@ export default function LogsViewer() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
@@ -160,7 +160,7 @@ export default function LogsViewer() {
       {loading ? (
         <div>Loading logs...</div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-surface rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-ink/20">
             <thead className="bg-ink/5">
               <tr>
@@ -201,7 +201,7 @@ export default function LogsViewer() {
                 )}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-ink/20">
+            <tbody className="bg-surface divide-y divide-ink/20">
               {logs.length === 0 ? (
                 <tr>
                   <td colSpan={logType === "scraping" ? 5 : 5} className="px-6 py-4 text-center text-ink/70">
@@ -222,7 +222,7 @@ export default function LogsViewer() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`text-sm font-medium ${
-                              log.isSuccessful ? "text-green-600" : "text-red-600"
+                              log.isSuccessful ? "text-accent" : "text-marginal"
                             }`}
                           >
                             {log.isSuccessful ? "Success" : "Failed"}

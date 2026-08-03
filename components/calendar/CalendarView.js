@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { formatDate, formatFullDay, formatTideTime } from "../../lib/utils";
-import { ScorePill } from "../ui/ScorePill";
+import { ScoreDial } from "../ui/ScoreDial";
 import { ConditionLine } from "../ui/ConditionLine";
 
 /**
@@ -249,7 +249,7 @@ export function CalendarView({
 
         // RAD-31: Flat chronological list — collect all entries across all sports,
         // sort by bestTime, then by score. Sport section headers are removed;
-        // the sport icon on the ScorePill is the sole sport indicator.
+        // the sport icon on the ScoreDial is the sole sport indicator.
         const flatEntries = [];
         for (const spot of dayInfo.spots) {
           for (const sportData of spot.sportData || []) {
@@ -298,7 +298,7 @@ export function CalendarView({
                           {sportData.bestTime ? `${sportData.bestTime} · ${spot.spotName}` : spot.spotName}
                         </span>
                         {/* RAD-31: Slightly larger score badges (md instead of sm) */}
-                        <ScorePill score={sportData.score} sport={sportData.sport} size="md" />
+                        <ScoreDial score={sportData.score} sport={sportData.sport} size="xs" />
                       </div>
                       {cd && (
                         <ConditionLine

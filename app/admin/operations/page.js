@@ -111,14 +111,14 @@ export default function Operations() {
       <h1 className="text-3xl font-bold mb-8">Operations</h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Trigger Scrape */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Trigger Scrape</h2>
           <p className="text-ink/70 mb-4">
             Scrape forecast data from Windy.app for selected spots or all spots.
@@ -173,14 +173,14 @@ export default function Operations() {
           <button
             onClick={handleScrape}
             disabled={loading}
-            className="w-full bg-ink text-white py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50"
+            className="w-full bg-ink text-page py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50"
           >
             {loading ? "Scraping..." : "Trigger Scrape"}
           </button>
         </div>
 
         {/* Trigger Scoring */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Trigger Scoring</h2>
           <p className="text-ink/70 mb-4">
             Score unscored forecast slots for selected spots or all spots.
@@ -235,7 +235,7 @@ export default function Operations() {
           <button
             onClick={handleScoring}
             disabled={loading}
-            className="w-full bg-ink text-white py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50"
+            className="w-full bg-ink text-page py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50"
           >
             {loading ? "Scoring..." : "Trigger Scoring"}
           </button>
@@ -244,7 +244,7 @@ export default function Operations() {
 
       {/* Results */}
       {results && (
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
+        <div className="mt-8 bg-surface rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">
             {operation === "scrape" ? "Scrape Results" : "Scoring Results"}
           </h2>
@@ -253,11 +253,11 @@ export default function Operations() {
               <span className="font-medium">Total:</span> {results.total}
             </div>
             <div>
-              <span className="font-medium text-green-600">Successful:</span>{" "}
+              <span className="font-medium text-accent">Successful:</span>{" "}
               {results.successful}
             </div>
             <div>
-              <span className="font-medium text-red-600">Failed:</span> {results.failed}
+              <span className="font-medium text-marginal">Failed:</span> {results.failed}
             </div>
             {results.results && results.results.length > 0 && (
               <div className="mt-4">
@@ -267,7 +267,7 @@ export default function Operations() {
                     <div
                       key={idx}
                       className={`py-2 border-b border-ink/10 last:border-0 ${
-                        result.success ? "text-green-600" : "text-red-600"
+                        result.success ? "text-accent" : "text-marginal"
                       }`}
                     >
                       <div className="font-medium">{result.spotName || result.spotId}</div>

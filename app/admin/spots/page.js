@@ -75,7 +75,7 @@ export default function SpotsList() {
   }
 
   if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
+    return <div className="text-marginal">Error: {error}</div>;
   }
 
   return (
@@ -85,13 +85,13 @@ export default function SpotsList() {
         <h1 className="text-3xl font-bold">Spots</h1>
         <Link
           href="/admin/spots/new"
-          className="bg-ink text-white px-4 py-2 rounded-md hover:bg-ink/90"
+          className="bg-ink text-page px-4 py-2 rounded-md hover:bg-ink/90"
         >
           Add New Spot
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-surface rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-ink/20">
           <thead className="bg-ink/5">
             <tr>
@@ -112,7 +112,7 @@ export default function SpotsList() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-ink/20">
+          <tbody className="bg-surface divide-y divide-ink/20">
             {spots.map((spot) => (
               <tr key={spot._id}>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -140,7 +140,7 @@ export default function SpotsList() {
                   </Link>
                   <button
                     onClick={() => handleDelete(spot._id, spot.name)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-marginal hover:text-marginal"
                   >
                     Delete
                   </button>

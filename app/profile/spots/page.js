@@ -115,7 +115,7 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
         </div>
         <div className="flex items-center gap-2">
           {hasContext && (
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+            <span className="text-xs bg-accent-tint-card text-accent px-2 py-1 rounded">
               Has context
             </span>
           )}
@@ -138,7 +138,7 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
                 </label>
                 <div className="flex items-center gap-2">
                   {success[sport] && !scoring[sport] && !scoringResult[sport] && (
-                    <Text variant="caption" as="span" className="text-green-600 flex items-center gap-1">
+                    <Text variant="caption" as="span" className="text-accent flex items-center gap-1">
                       <Check className="w-3 h-3" /> Saved
                     </Text>
                   )}
@@ -148,7 +148,7 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
                     </Text>
                   )}
                   {scoringResult[sport]?.slotsScored > 0 && (
-                    <Text variant="caption" as="span" className="text-green-600">
+                    <Text variant="caption" as="span" className="text-accent">
                       {scoringResult[sport].slotsScored} slots scored
                     </Text>
                   )}
@@ -166,7 +166,7 @@ function SpotContextCard({ spot, existingContexts, sessionToken, onSave }) {
                 placeholder={PLACEHOLDER_TEXT[sport] || "What works for you at this spot?"}
                 rows={4}
                 maxLength={1000}
-                className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 transition-colors resize-none text-sm"
+                className="w-full px-4 py-3 bg-surface border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 transition-colors resize-none text-sm"
               />
 
               <div className="flex items-center justify-between">

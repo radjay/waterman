@@ -24,7 +24,7 @@ export function RatingInput({ value, onChange, disabled = false }) {
           <Star
             className={`w-8 h-8 ${
               star <= value
-                ? "text-yellow-500 fill-yellow-500"
+                ? "text-accent fill-accent"
                 : "text-ink/20"
             }`}
           />
@@ -51,7 +51,7 @@ export function RatingDisplay({ value }) {
           key={star}
           className={`w-5 h-5 ${
             star <= value
-              ? "text-yellow-500 fill-yellow-500"
+              ? "text-accent fill-accent"
               : "text-ink/20"
           }`}
         />

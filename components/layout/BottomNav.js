@@ -85,18 +85,24 @@ export function BottomNav() {
       <MobileMenu isOpen={menuOpen} onOpenChange={setMenuOpen} />
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 28px)" }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-[14px]"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)" }}
       >
-        <div className="absolute inset-x-0 bottom-0 h-full pointer-events-none bg-gradient-to-t from-newsprint via-newsprint/80 to-transparent" />
+        <div
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: 96,
+            background: "linear-gradient(to top, rgb(var(--wm-page)) 48%, transparent)",
+          }}
+        />
         <div
           ref={barRef}
-          className="relative flex items-center gap-0.5 p-1 bg-newsprint rounded-full shadow-[0_4px_24px_rgba(0,0,0,0.12)]"
+          className="relative flex items-center p-[5px] bg-nav-bg border border-nav-border rounded-pill shadow-nav backdrop-blur-md"
         >
           {/* Always-rendered pill */}
           <div
             ref={pillRef}
-            className="absolute top-1 bottom-1 bg-newsprint rounded-full shadow-card border border-ink/10"
+            className="absolute top-[5px] bottom-[5px] bg-accent-tint rounded-pill"
             style={{ opacity: 0 }}
           />
 
@@ -105,13 +111,13 @@ export function BottomNav() {
             const inner = (
               <span className="relative z-10 flex flex-col items-center gap-0.5">
                 <tab.icon
-                  size={18}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                  className={isActive ? "text-ink" : "text-faded-ink"}
+                  size={17}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={isActive ? "text-accent" : "text-dim"}
                 />
                 <span
-                  className={`text-[0.55rem] font-semibold uppercase tracking-wider leading-none ${
-                    isActive ? "text-ink" : "text-faded-ink"
+                  className={`font-data text-[0.47rem] uppercase tracking-[0.1em] leading-none ${
+                    isActive ? "text-accent" : "text-dim"
                   }`}
                 >
                   {tab.label}

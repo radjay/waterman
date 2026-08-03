@@ -110,8 +110,8 @@ export default function ProfilePage() {
           </div>
 
           {/* Error/Success Messages */}
-          {error && <Text className="text-red-600 text-sm">{error}</Text>}
-          {success && <Text className="text-green-600 text-sm">{success}</Text>}
+          {error && <Text className="text-marginal text-sm">{error}</Text>}
+          {success && <Text className="text-accent text-sm">{success}</Text>}
 
           {/* Log Out */}
           <div className="pt-4">

@@ -153,7 +153,7 @@ function AuthButton({ isAuthenticated, authLoading, router }) {
   return (
     <button
       onClick={() => router.push("/auth/login")}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint ring-1 ring-inset ring-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint ring-1 ring-inset ring-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-surface active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
     >
       <LogIn className="w-[15px] h-[15px]" />
       <span>Sign In</span>

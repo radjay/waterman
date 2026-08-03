@@ -33,7 +33,7 @@ function CopyableId({ id, label }) {
         title="Copy ID"
       >
         {copied ? (
-          <Check className="w-3 h-3 text-green-600" />
+          <Check className="w-3 h-3 text-accent" />
         ) : (
           <Copy className="w-3 h-3 text-ink/50" />
         )}
@@ -219,7 +219,7 @@ function ScoringDebugContent() {
       <h1 className="text-3xl font-bold mb-8">Scoring Debug</h1>
 
       {/* Filters - Sticky at top */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6 sticky top-3 z-10">
+      <div className="bg-surface rounded-lg shadow p-6 mb-6 sticky top-3 z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Sport</label>
@@ -267,7 +267,7 @@ function ScoringDebugContent() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
@@ -332,7 +332,7 @@ function SlotCard({ item, sport, onViewLog }) {
   return (
     <div 
       data-slot-id={slot._id}
-      className={`bg-white rounded-lg shadow overflow-hidden ${isPast ? "opacity-75" : ""}`}
+      className={`bg-surface rounded-lg shadow overflow-hidden ${isPast ? "opacity-75" : ""}`}
     >
       {/* Header - always visible */}
       <div
@@ -347,7 +347,7 @@ function SlotCard({ item, sport, onViewLog }) {
                 <span className="px-1.5 py-0.5 bg-ink/10 text-ink/60 text-xs rounded">PAST</span>
               )}
               {journalEntries.length > 0 && (
-                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded flex items-center gap-1">
+                <span className="px-1.5 py-0.5 bg-accent-tint-card text-accent text-xs rounded flex items-center gap-1">
                   <BookOpen className="w-3 h-3" />
                   {journalEntries.length}
                 </span>
@@ -391,23 +391,23 @@ function SlotCard({ item, sport, onViewLog }) {
                 <div
                   className={`text-2xl font-bold ${
                     isEpic
-                      ? "text-purple-600"
+                      ? "text-accent"
                       : isIdeal
-                      ? "text-green-600"
+                      ? "text-accent"
                       : score.score >= 60
-                      ? "text-yellow-600"
+                      ? "text-accent"
                       : "text-ink/50"
                   }`}
                 >
                   {score.score}
                 </div>
                 {isEpic && (
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                  <span className="px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded">
                     EPIC
                   </span>
                 )}
                 {isIdeal && !isEpic && (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">
+                  <span className="px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded">
                     IDEAL
                   </span>
                 )}
@@ -477,22 +477,22 @@ function SlotCard({ item, sport, onViewLog }) {
                   {score.factors && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {score.factors.windQuality !== undefined && (
-                        <span className="px-2 py-1 bg-white rounded text-xs">
+                        <span className="px-2 py-1 bg-surface rounded text-xs">
                           Wind: {score.factors.windQuality}
                         </span>
                       )}
                       {score.factors.waveQuality !== undefined && (
-                        <span className="px-2 py-1 bg-white rounded text-xs">
+                        <span className="px-2 py-1 bg-surface rounded text-xs">
                           Wave: {score.factors.waveQuality}
                         </span>
                       )}
                       {score.factors.tideQuality !== undefined && (
-                        <span className="px-2 py-1 bg-white rounded text-xs">
+                        <span className="px-2 py-1 bg-surface rounded text-xs">
                           Tide: {score.factors.tideQuality}
                         </span>
                       )}
                       {score.factors.overallConditions !== undefined && (
-                        <span className="px-2 py-1 bg-white rounded text-xs">
+                        <span className="px-2 py-1 bg-surface rounded text-xs">
                           Overall: {score.factors.overallConditions}
                         </span>
                       )}
@@ -546,7 +546,7 @@ function SlotCard({ item, sport, onViewLog }) {
               </div>
               <div className="space-y-2">
                 {journalEntries.map((entry, idx) => (
-                  <div key={idx} className="bg-white rounded p-2 flex items-center justify-between text-sm">
+                  <div key={idx} className="bg-surface rounded p-2 flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <CopyableId id={entry.userId} label="User" />
                       <span className="text-ink/50">•</span>
@@ -564,7 +564,7 @@ function SlotCard({ item, sport, onViewLog }) {
                         <Star
                           key={star}
                           className={`w-3 h-3 ${
-                            star <= entry.rating ? "text-yellow-500 fill-yellow-500" : "text-ink/20"
+                            star <= entry.rating ? "text-accent fill-accent" : "text-ink/20"
                           }`}
                         />
                       ))}
@@ -597,7 +597,7 @@ function ProvenanceModal({ log, loading, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-ink/10">
           <div className="flex flex-col gap-1">
@@ -704,7 +704,7 @@ function ProvenanceModal({ log, loading, onClose }) {
         <div className="p-4 border-t border-ink/10">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90 transition-colors"
+            className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90 transition-colors"
           >
             Close
           </button>

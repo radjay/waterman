@@ -154,7 +154,7 @@ export default function SubscribePage() {
             return (
               <div
                 key={sport.id}
-                className="bg-white border border-ink/20 rounded-lg p-6"
+                className="bg-surface border border-ink/20 rounded-lg p-6"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -165,12 +165,12 @@ export default function SubscribePage() {
                       </h2>
                       <p className="text-sm text-ink/60">{sport.description}</p>
                       {isPersonalized && (
-                        <span className="inline-block mt-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        <span className="inline-block mt-1 text-xs bg-accent-tint-card text-accent px-2 py-1 rounded">
                           Personalized to your favorite spots
                         </span>
                       )}
                       {!isPersonalized && user && (
-                        <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                        <span className="inline-block mt-1 text-xs bg-ink-hover text-faded-ink px-2 py-1 rounded">
                           All spots
                         </span>
                       )}
@@ -265,7 +265,7 @@ export default function SubscribePage() {
 
         {/* Sign in prompt for anonymous users */}
         {!user && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+          <div className="bg-accent-tint-card border border-accent-border rounded-lg p-6 mb-8">
             <Heading level={3} className="mb-2">Want personalized feeds?</Heading>
             <Text variant="muted" className="mb-4">
               Sign in to get calendar feeds filtered to your favorite spots only.
@@ -277,7 +277,7 @@ export default function SubscribePage() {
         )}
 
         {/* Instructions */}
-        <div className="bg-white border border-ink/20 rounded-lg p-6">
+        <div className="bg-surface border border-ink/20 rounded-lg p-6">
           <button
             onClick={() => setShowInstructions(!showInstructions)}
             className="w-full flex items-center justify-between text-left"

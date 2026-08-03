@@ -257,7 +257,7 @@ export default function NewJournalEntryPage() {
           )}
 
           {error && (
-            <Text className="text-red-600 text-sm">{error}</Text>
+            <Text className="text-marginal text-sm">{error}</Text>
           )}
 
           {/* Submit */}

@@ -44,44 +44,44 @@ function ExpertInputCard({ input }) {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-surface border border-card rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+        className="w-full p-4 text-left hover:bg-surface transition-colors"
       >
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-medium rounded">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-marginal/10 text-marginal text-xs font-medium rounded">
                 <Sparkles className="w-3 h-3" />
                 Expert
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded capitalize">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded capitalize">
                 {SPORT_LABELS[input.sport] || input.sport}
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1 text-gray-700 font-medium">
+              <span className="flex items-center gap-1 text-ink font-medium">
                 <MapPin className="w-4 h-4" />
                 {input.spotName}
                 {input.spotCountry && (
-                  <span className="text-gray-500">({input.spotCountry})</span>
+                  <span className="text-faded-ink">({input.spotCountry})</span>
                 )}
               </span>
-              <span className="flex items-center gap-1 text-gray-500">
+              <span className="flex items-center gap-1 text-faded-ink">
                 <User className="w-4 h-4" />
                 {input.userEmail}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-faded-ink">
               {formatDate(input.updatedAt)}
             </span>
             {expanded ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-dim" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-dim" />
             )}
           </div>
         </div>
@@ -89,24 +89,24 @@ function ExpertInputCard({ input }) {
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4">
-          <div className="bg-gray-50 rounded-md p-4 relative">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap pr-8">
+          <div className="bg-surface rounded-md p-4 relative">
+            <p className="text-sm text-ink whitespace-pre-wrap pr-8">
               {input.context}
             </p>
             <button
               onClick={handleCopy}
-              className="absolute top-2 right-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
+              className="absolute top-2 right-2 p-2 text-dim hover:text-faded-ink hover:bg-ink-hover rounded transition-colors"
               title="Copy to clipboard"
             >
               {copied ? (
-                <Check className="w-4 h-4 text-green-600" />
+                <Check className="w-4 h-4 text-accent" />
               ) : (
                 <Copy className="w-4 h-4" />
               )}
             </button>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs text-faded-ink">
             <span className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               Created: {formatDate(input.createdAt)}
@@ -117,14 +117,14 @@ function ExpertInputCard({ input }) {
           <div className="flex gap-2">
             <a
               href={`/admin/spots/${input.spotId}`}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-ink bg-ink-hover hover:bg-ink-hover rounded transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               View Spot Config
             </a>
             <a
               href={`/admin/prompts?spotId=${input.spotId}&sport=${input.sport}`}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent bg-accent-tint-card hover:bg-accent-tint-card rounded transition-colors"
             >
               <Sparkles className="w-3 h-3" />
               Edit Prompt
@@ -183,7 +183,7 @@ export default function ExpertInputsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-dim animate-spin" />
       </div>
     );
   }
@@ -192,10 +192,10 @@ export default function ExpertInputsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-2xl font-semibold text-ink">
             Expert Inputs
           </h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-faded-ink mt-1">
             Review user-submitted expert knowledge for spot-specific prompts
           </p>
         </div>
@@ -204,7 +204,7 @@ export default function ExpertInputsPage() {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-btn rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="all">All Sports</option>
           <option value="wingfoil">Wingfoiling</option>
@@ -214,41 +214,41 @@ export default function ExpertInputsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-surface p-4 rounded-lg border border-card">
+          <div className="text-3xl font-bold text-ink">
             {filteredInputs.length}
           </div>
-          <div className="text-sm text-gray-600">Total Expert Inputs</div>
+          <div className="text-sm text-faded-ink">Total Expert Inputs</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-surface p-4 rounded-lg border border-card">
+          <div className="text-3xl font-bold text-ink">
             {uniqueSpots.length}
           </div>
-          <div className="text-sm text-gray-600">Spots with Expert Input</div>
+          <div className="text-sm text-faded-ink">Spots with Expert Input</div>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-surface p-4 rounded-lg border border-card">
+          <div className="text-3xl font-bold text-ink">
             {new Set(filteredInputs.map((i) => i.userId)).size}
           </div>
-          <div className="text-sm text-gray-600">Contributing Users</div>
+          <div className="text-sm text-faded-ink">Contributing Users</div>
         </div>
       </div>
 
       {/* Expert Inputs List */}
       {filteredInputs.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="bg-surface rounded-lg p-8 text-center">
+          <Sparkles className="w-12 h-12 text-dim mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-ink mb-2">
             No Expert Inputs Yet
           </h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-faded-ink">
             When users submit spot notes marked as &quot;expert input&quot;,
             they&apos;ll appear here for review.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          <h2 className="text-lg font-medium text-gray-900">
+          <h2 className="text-lg font-medium text-ink">
             All Expert Inputs ({filteredInputs.length})
           </h2>
           {filteredInputs.map((input) => (

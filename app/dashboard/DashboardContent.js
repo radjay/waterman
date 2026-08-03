@@ -16,7 +16,7 @@ import { Section } from "../../components/ui/Section";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { formatDate, formatTime, formatFullDay } from "../../lib/utils";
 import { ScoreCard } from "../../components/ui/ScoreCard";
-import { ScorePill } from "../../components/ui/ScorePill";
+import { ScoreDial } from "../../components/ui/ScoreDial";
 import { ConditionLine } from "../../components/ui/ConditionLine";
 import { enrichSlots } from "../../lib/slots";
 import { isDaylightSlot, isAfterSunset, isNighttimeSlot } from "../../lib/daylight";
@@ -414,7 +414,7 @@ export default function DashboardContent({ initialData = null }) {
                                   />
                                 </div>
                               </div>
-                              <ScorePill score={slot.score?.value} sport={slot.sport} size="lg" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
+                              <ScoreDial score={slot.score?.value} sport={slot.sport} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
                             </div>
                           </ScoreCard>
                         );
@@ -469,7 +469,7 @@ export default function DashboardContent({ initialData = null }) {
                                     />
                                   </div>
                                 </div>
-                                <ScorePill score={slot.score?.value} sport={slot.sport} size="lg" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
+                                <ScoreDial score={slot.score?.value} sport={slot.sport} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
                               </div>
                             </ScoreCard>
                           );

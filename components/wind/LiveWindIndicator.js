@@ -74,12 +74,12 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
     // Compact version for overlays on webcams - ultra minimal
     return (
       <div
-        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-white text-xs ${
+        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-page text-xs ${
           isStale ? "opacity-50" : ""
         } ${className}`}
         title={`Live wind: ${Math.round(liveWind.windSpeedKnots)} kn${liveWind.windGustKnots ? ` (${Math.round(liveWind.windGustKnots)} gusts)` : ""} • Updated ${ageMinutes}m ago`}
       >
-        <Wind size={10} className="text-green-400" />
+        <Wind size={10} className="text-accent" />
         <span className="font-bold tabular-nums">
           {Math.round(liveWind.windSpeedKnots)}
         </span>
@@ -101,17 +101,17 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${
         isStale
           ? "border-ink/20 bg-ink/5"
-          : "border-green-500/30 bg-green-50"
+          : "border-accent-border bg-accent-tint-card"
       } ${className}`}
       title={`Live wind from Windguru station ${stationId} • Updated ${ageMinutes}m ago`}
     >
       <Wind
         size={12}
-        className={isStale ? "text-ink/40" : "text-green-600"}
+        className={isStale ? "text-ink/40" : "text-accent"}
       />
       <span
         className={`font-bold tabular-nums ${
-          isStale ? "text-ink/60" : "text-green-900"
+          isStale ? "text-ink/60" : "text-accent"
         }`}
       >
         {Math.round(liveWind.windSpeedKnots)}
@@ -119,7 +119,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       {Number.isFinite(liveWind.windGustKnots) && (
         <span
           className={`opacity-70 tabular-nums ${
-            isStale ? "text-ink/50" : "text-green-800"
+            isStale ? "text-ink/50" : "text-accent"
           }`}
         >
           ({Math.round(liveWind.windGustKnots)})
@@ -129,7 +129,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
         <Arrow
           direction={(liveWind.windDirection + 180) % 360}
           size={10}
-          className={isStale ? "text-ink/40" : "text-green-700"}
+          className={isStale ? "text-ink/40" : "text-accent"}
         />
       )}
     </div>

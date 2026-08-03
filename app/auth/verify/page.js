@@ -81,14 +81,14 @@ function VerifyContent() {
   return (
     <>
       {status === "verifying" && (
-        <Card variant="elevated" className="bg-white p-8">
+        <Card variant="elevated" className="bg-surface p-8">
           <VerifyingMagicLink />
         </Card>
       )}
 
       {status === "success" && (
-        <Card variant="elevated" className="bg-white p-8 text-center">
-          <div className="text-green-600 mb-4">
+        <Card variant="elevated" className="bg-surface p-8 text-center">
+          <div className="text-accent mb-4">
             <svg
               className="w-16 h-16 mx-auto"
               fill="none"
@@ -111,23 +111,23 @@ function VerifyContent() {
       )}
 
       {status === "onboarding" && (
-        <Card variant="elevated" className="bg-white p-8">
+        <Card variant="elevated" className="bg-surface p-8">
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         </Card>
       )}
 
       {status === "error" && (
-        <Card variant="elevated" className="bg-white p-8">
+        <Card variant="elevated" className="bg-surface p-8">
           <div className="text-center space-y-6">
             <div className="flex justify-center">
-              <XCircle className="w-16 h-16 text-red-600" />
+              <XCircle className="w-16 h-16 text-marginal" />
             </div>
 
             <div className="space-y-2">
               <Heading level={2} className="text-2xl">
                 Verification Failed
               </Heading>
-              <Text className="text-red-600">{error}</Text>
+              <Text className="text-marginal">{error}</Text>
             </div>
 
             <div className="space-y-3">
@@ -165,7 +165,7 @@ export default function VerifyPage() {
     <div className="min-h-screen flex items-center justify-center bg-newsprint px-4">
       <div className="w-full max-w-3xl">
         <Suspense fallback={
-          <Card variant="elevated" className="bg-white p-8">
+          <Card variant="elevated" className="bg-surface p-8">
             <VerifyingMagicLink />
           </Card>
         }>

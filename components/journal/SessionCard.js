@@ -34,7 +34,7 @@ export function SessionCard({ entry }) {
               {sportLabel}
             </span>
             {entry.hasForecastData && (
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded flex items-center gap-1">
+              <span className="px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded flex items-center gap-1">
                 <BookOpen className="w-3 h-3" />
                 Forecast
               </span>

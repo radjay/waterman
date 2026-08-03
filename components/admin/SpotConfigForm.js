@@ -99,7 +99,7 @@ export function SpotConfigForm({ spotId, sport, config, onSave }) {
           {config && (
             <button
               onClick={handleDelete}
-              className="text-sm text-red-600 hover:text-red-800"
+              className="text-sm text-marginal hover:text-marginal"
             >
               Delete
             </button>
@@ -116,7 +116,7 @@ export function SpotConfigForm({ spotId, sport, config, onSave }) {
       {expanded && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded">
               {error}
             </div>
           )}
@@ -280,7 +280,7 @@ export function SpotConfigForm({ spotId, sport, config, onSave }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90 disabled:opacity-50"
+              className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90 disabled:opacity-50"
             >
               {saving ? "Saving..." : config ? "Update" : "Create"}
             </button>

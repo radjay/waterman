@@ -181,7 +181,7 @@ export default function OnboardingFlow({ onComplete }) {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm">
+            <div className="text-marginal text-sm">
               {error}
             </div>
           )}
@@ -287,12 +287,12 @@ export default function OnboardingFlow({ onComplete }) {
               placeholder="Your name"
               autoFocus
               disabled={loading}
-              className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-4 py-3 bg-surface border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm">
+            <div className="text-marginal text-sm">
               {error}
             </div>
           )}

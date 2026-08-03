@@ -121,7 +121,7 @@ export function LocationPicker({ sport, value, onChange, sessionToken }) {
                           <div className="flex items-center gap-2">
                             <div className="font-medium text-ink">{spot.name}</div>
                             {isFavorite && (
-                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                              <Star className="w-4 h-4 text-accent fill-accent" />
                             )}
                           </div>
                           {spot.country && (

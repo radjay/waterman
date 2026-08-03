@@ -411,9 +411,9 @@ export default function HomeContent({ initialData = null, initialDataSport = "wi
             {/* RAD-26: Show override indicator and back-to-saved affordance */}
             {sportOverrideActive && urlSportOverride ? (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-semibold uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-marginal/10 border border-marginal/30 text-marginal text-xs font-semibold uppercase tracking-wider">
                   {{ wingfoil: "Wing", kitesurfing: "Kite", surfing: "Surf" }[urlSportOverride] || urlSportOverride}
-                  <span className="text-amber-600 font-normal normal-case tracking-normal">override</span>
+                  <span className="text-marginal font-normal normal-case tracking-normal">override</span>
                 </span>
                 <button
                   onClick={clearSportOverride}

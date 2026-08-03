@@ -190,7 +190,7 @@ export default function SportProfilePage({ params }) {
           {/* Skill Level */}
           <div>
             <Text variant="label" as="label" className="block mb-3">
-              Skill Level <span className="text-red-500">*</span>
+              Skill Level <span className="text-marginal">*</span>
             </Text>
             <div className="space-y-2">
               {SKILL_LEVELS.map((level) => (
@@ -233,7 +233,7 @@ export default function SportProfilePage({ params }) {
               placeholder={PLACEHOLDER_TEXT[sport]}
               rows={6}
               maxLength={1000}
-              className="w-full px-4 py-3 bg-white border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 transition-colors resize-none"
+              className="w-full px-4 py-3 bg-surface border-2 border-ink/20 rounded-md focus:outline-none focus:border-ink text-ink placeholder:text-ink/40 transition-colors resize-none"
             />
             <p className="text-xs text-ink/40 mt-1 text-right">
               {context.length}/1000 characters
@@ -241,10 +241,10 @@ export default function SportProfilePage({ params }) {
           </div>
 
           {/* Error/Success Messages */}
-          {error && <Text variant="body" className="text-red-600 text-sm">{error}</Text>}
+          {error && <Text variant="body" className="text-marginal text-sm">{error}</Text>}
           {success && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-4">
-              <Text variant="body" as="div" className="text-green-700 text-sm flex items-center gap-2 font-medium">
+            <div className="bg-accent-tint-card border border-accent-border rounded-md p-4">
+              <Text variant="body" as="div" className="text-accent text-sm flex items-center gap-2 font-medium">
                 <Check className="w-4 h-4" />
                 Profile saved! Redirecting...
               </Text>

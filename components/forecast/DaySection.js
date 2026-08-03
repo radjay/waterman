@@ -166,7 +166,7 @@ export function DaySection({
   return (
     <div
       id={id || undefined}
-      className={`mb-4 ${isHighlighted ? "bg-yellow-50" : ""} ${className}`}
+      className={`mb-4 ${isHighlighted ? "bg-accent-tint-card" : ""} ${className}`}
       style={isHighlighted ? { scrollMarginTop: "80px" } : {}}
     >
       {/* Sentinel: exits viewport right when header becomes stuck */}

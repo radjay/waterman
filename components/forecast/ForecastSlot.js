@@ -5,7 +5,7 @@ import { User } from "lucide-react";
 import { useState } from "react";
 import { ScoreModal } from "../common/ScoreModal";
 import { Tooltip } from "../ui/Tooltip";
-import { ScorePill } from "../ui/ScorePill";
+import { ScoreDial } from "../ui/ScoreDial";
 
 /**
  * ForecastSlot component displays a single forecast time slot.
@@ -81,7 +81,7 @@ export function ForecastSlot({
                   <User size={12} className="text-ink/40" />
                 </Tooltip>
               )}
-              <ScorePill score={slot.score.value} sport={slot.sport} size="lg" showAll onClick={() => setIsScoreModalOpen(true)} />
+              <ScoreDial score={slot.score.value} sport={slot.sport} size="md" showAll onClick={() => setIsScoreModalOpen(true)} />
             </div>
           )}
         </div>
@@ -113,7 +113,7 @@ export function ForecastSlot({
                 {slot.score.isPersonalized && (
                   <User size={12} className="text-ink/40" />
                 )}
-                <ScorePill score={slot.score.value} sport={slot.sport} size="lg" showAll onClick={() => setIsScoreModalOpen(true)} />
+                <ScoreDial score={slot.score.value} sport={slot.sport} size="md" showAll onClick={() => setIsScoreModalOpen(true)} />
               </div>
             )}
           </div>
