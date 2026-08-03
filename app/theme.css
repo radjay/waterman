@@ -1,0 +1,103 @@
+/**
+ * Nightglass / Dayglass theme tokens.
+ *
+ * Two classes of token, because the codebase leans on Tailwind opacity
+ * modifiers (`border-ink/10`, `bg-ink/[0.04]`) which only work against bare
+ * channel triples:
+ *
+ *   1. Channel triples (`234 244 246`) — consumed in tailwind.config.js as
+ *      `rgb(var(--wm-ink) / <alpha-value>)`, so `/opacity` modifiers work.
+ *   2. Composite values — carry their own alpha. No opacity modifier.
+ *
+ * The accent moves a long way between themes (#6EE7F0 -> #0E7A85) because cyan
+ * on white is ~1.3:1. Same hue, much lower lightness, clears 4.5:1 for the small
+ * mono labels. This is NOT an inversion — do not derive one theme from the other
+ * programmatically.
+ *
+ * Values are taken from the design handoff (Rethink.dc.html NIGHT/DAY objects).
+ */
+
+:root,
+:root[data-theme="night"] {
+  /* -- Channel triples (opacity-modifier capable) -- */
+  --wm-page: 10 20 32; /* #0A1420 */
+  --wm-ink: 234 244 246; /* #EAF4F6 */
+  --wm-accent: 110 231 240; /* #6EE7F0 */
+  --wm-marginal: 255 93 143; /* #FF5D8F */
+
+  /* -- Composite values -- */
+  --wm-surface: rgba(234, 244, 246, 0.05);
+  --wm-border: rgba(234, 244, 246, 0.09);
+  --wm-rule: rgba(234, 244, 246, 0.14);
+  --wm-btn-border: rgba(234, 244, 246, 0.2);
+  --wm-hover: rgba(234, 244, 246, 0.09);
+
+  --wm-muted: #84a0ac;
+  --wm-dim: #5c7683;
+
+  --wm-accent-tint-nav: rgba(110, 231, 240, 0.14);
+  --wm-accent-tint-card: rgba(110, 231, 240, 0.09);
+  --wm-accent-border: rgba(110, 231, 240, 0.28);
+  --wm-accent-mid: rgba(110, 231, 240, 0.5);
+  --wm-accent-low: rgba(110, 231, 240, 0.22);
+  --wm-accent-faint: rgba(110, 231, 240, 0.3);
+
+  --wm-marginal-low: rgba(255, 93, 143, 0.35);
+
+  --wm-track: rgba(234, 244, 246, 0.12);
+  --wm-nav-bg: rgba(18, 33, 48, 0.86);
+  --wm-nav-border: rgba(234, 244, 246, 0.14);
+  --wm-offline-bg: rgba(234, 244, 246, 0.04);
+  --wm-knob: #0a1420;
+
+  /* The filled sport pill was the one component that broke when both themes
+     shared the accent-on-tint pairing. It needs its own token pair. */
+  --wm-sport-pill-bg: rgba(110, 231, 240, 0.14);
+  --wm-sport-pill-text: #6ee7f0;
+
+  /* Cards carry no shadow in either theme — separation is by border and fill.
+     The bottom nav is the exception: a shadow in Dayglass, a border at night. */
+  --wm-shadow-nav: none;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="day"] {
+  /* -- Channel triples (opacity-modifier capable) -- */
+  --wm-page: 241 244 244; /* #F1F4F4 */
+  --wm-ink: 10 20 32; /* #0A1420 */
+  --wm-accent: 14 122 133; /* #0E7A85 */
+  --wm-marginal: 201 54 107; /* #C9366B */
+
+  /* -- Composite values -- */
+  --wm-surface: #ffffff;
+  --wm-border: rgba(10, 20, 32, 0.1);
+  --wm-rule: rgba(10, 20, 32, 0.16);
+  --wm-btn-border: rgba(10, 20, 32, 0.22);
+  --wm-hover: rgba(10, 20, 32, 0.06);
+
+  --wm-muted: #4a6270;
+  --wm-dim: #7b8f99;
+
+  --wm-accent-tint-nav: rgba(14, 122, 133, 0.12);
+  --wm-accent-tint-card: rgba(14, 122, 133, 0.09);
+  --wm-accent-border: rgba(14, 122, 133, 0.35);
+  --wm-accent-mid: rgba(14, 122, 133, 0.5);
+  --wm-accent-low: rgba(14, 122, 133, 0.22);
+  --wm-accent-faint: rgba(14, 122, 133, 0.28);
+
+  --wm-marginal-low: rgba(201, 54, 107, 0.3);
+
+  --wm-track: rgba(10, 20, 32, 0.13);
+  --wm-nav-bg: #ffffff;
+  --wm-nav-border: rgba(10, 20, 32, 0.12);
+  --wm-offline-bg: #e8ecec;
+  --wm-knob: #ffffff;
+
+  --wm-sport-pill-bg: #0e7a85;
+  --wm-sport-pill-text: #ffffff;
+
+  --wm-shadow-nav: 0 4px 24px rgba(10, 20, 32, 0.14);
+
+  color-scheme: light;
+}
