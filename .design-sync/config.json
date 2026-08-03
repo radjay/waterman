@@ -1,0 +1,233 @@
+{
+  "projectId": "f5cf1393-b5e5-4374-9634-2bd44ccb4497",
+  "shape": "package",
+  "pkg": "waterman",
+  "globalName": "Waterman",
+  "srcDir": "components",
+  "buildCmd": "node .design-sync/build.mjs",
+  "cssEntry": ".design-sync/.cache/tailwind.css",
+  "componentSrcMap": {
+    "Arrow": "components/ui/Arrow.js",
+    "AuthProvider": "components/auth/AuthProvider.js",
+    "Badge": "components/ui/Badge.js",
+    "BottomNav": "components/layout/BottomNav.js",
+    "Button": "components/ui/Button.js",
+    "CalendarView": "components/calendar/CalendarView.js",
+    "Card": "components/ui/Card.js",
+    "ConditionLine": "components/ui/ConditionLine.js",
+    "ConvexProvider": "components/ConvexProvider.js",
+    "DataGroup": "components/ui/DataGroup.js",
+    "DaySection": "components/forecast/DaySection.js",
+    "DirectionIndicator": "components/forecast/DirectionIndicator.js",
+    "Divider": "components/ui/Divider.js",
+    "DurationDisplay": "components/journal/DurationInput.js",
+    "DurationInput": "components/journal/DurationInput.js",
+    "EmailLoginForm": "components/auth/EmailLoginForm.js",
+    "EmptyState": "components/common/EmptyState.js",
+    "FilterBar": "components/ui/FilterBar.js",
+    "FilterGroup": "components/ui/FilterGroup.js",
+    "Footer": "components/layout/Footer.js",
+    "ForecastComparison": "components/journal/ForecastComparison.js",
+    "ForecastSlot": "components/forecast/ForecastSlot.js",
+    "GlobalNavigation": "components/layout/GlobalNavigation.js",
+    "Header": "components/layout/Header.js",
+    "Heading": "components/ui/Heading.js",
+    "Icon": "components/ui/Icon.js",
+    "Input": "components/ui/Input.js",
+    "LiveWindIndicator": "components/wind/LiveWindIndicator.js",
+    "LiveWindRow": "components/forecast/LiveWindRow.js",
+    "Loader": "components/common/Loader.js",
+    "LocationPicker": "components/journal/LocationPicker.js",
+    "MagicLinkSent": "components/auth/MagicLinkSent.js",
+    "MainLayout": "components/layout/MainLayout.js",
+    "Metric": "components/ui/Metric.js",
+    "MobileMenu": "components/layout/MobileMenu.js",
+    "Modal": "components/ui/Modal.js",
+    "OnboardingFlow": "components/auth/OnboardingFlow.js",
+    "OnboardingFooter": "components/onboarding/OnboardingFooter.js",
+    "OnboardingModal": "components/onboarding/OnboardingModal.js",
+    "PillToggle": "components/ui/PillToggle.js",
+    "RatingDisplay": "components/journal/RatingInput.js",
+    "RatingInput": "components/journal/RatingInput.js",
+    "ScoreCard": "components/ui/ScoreCard.js",
+    "ScoreDisplay": "components/ui/ScoreDisplay.js",
+    "ScoreModal": "components/common/ScoreModal.js",
+    "ScorePill": "components/ui/ScorePill.js",
+    "Section": "components/ui/Section.js",
+    "Select": "components/ui/Select.js",
+    "SessionCard": "components/journal/SessionCard.js",
+    "ShareButton": "components/ui/ShareButton.js",
+    "ShowFilter": "components/layout/ShowFilter.js",
+    "SportBadge": "components/ui/SportBadge.js",
+    "SportSelector": "components/layout/SportSelector.js",
+    "SpotConfigForm": "components/admin/SpotConfigForm.js",
+    "Text": "components/ui/Text.js",
+    "TideChart": "components/tide/TideChart.js",
+    "TideDisplay": "components/tide/TideDisplay.js",
+    "TideIndicator": "components/tide/TideIndicator.js",
+    "TideSection": "components/tide/TideSection.js",
+    "TideTable": "components/tide/TideTable.js",
+    "Toast": "components/admin/Toast.js",
+    "ToastProvider": "components/admin/ToastProvider.js",
+    "Tooltip": "components/ui/Tooltip.js",
+    "TvMode": "components/webcam/TvMode.js",
+    "UserMenu": "components/auth/UserMenu.js",
+    "VerifyingMagicLink": "components/auth/VerifyingMagicLink.js",
+    "ViewToggle": "components/layout/ViewToggle.js",
+    "WaveGroup": "components/forecast/WaveGroup.js",
+    "WebcamCard": "components/webcam/WebcamCard.js",
+    "WebcamFullscreen": "components/webcam/WebcamFullscreen.js",
+    "WebcamModal": "components/common/WebcamModal.js",
+    "WindGroup": "components/forecast/WindGroup.js"
+  },
+  "dtsPropsFor": {
+    "Arrow": "direction: unknown; className?: string;",
+    "AuthProvider": "children?: React.ReactNode;",
+    "Badge": "children?: React.ReactNode; variant?: \"epic\" | \"default\"; className?: string;",
+    "Button": "variant?: \"primary\"|\"secondary\"|\"ghost\"|\"danger\"|\"icon\"; size?: \"sm\"|\"md\"|\"lg\";  /** Lucide icon component */ icon?: React.ComponentType; children?: React.ReactNode; onClick?: (...args: any[]) => void; disabled?: boolean;  /** Shows spinner and disables button */ loading?: boolean;  /** Makes button full width */ fullWidth?: boolean;  /** Button type (defaults to \"button\") */ type?: string;  /** Additional CSS classes */ className?: string; [key: string]: unknown;",
+    "CalendarView": " /** Object mapping day strings to spot data */ grouped: Record<string, unknown>;  /** Sorted array of day strings */ sortedDays: unknown[];  /** Map of spotId to spot metadata */ spotsMap: Record<string, unknown>;  /** All sports (always [\"wingfoil\", \"surfing\"] for calendar) */ selectedSports: Array<string>;  /** Callback when a day is clicked (deprecated, use onSpotClick instead) */ onDayClick: (...args: any[]) => void;  /** Callback when a spot/sport combo is clicked (sport, dayStr) */ onSpotClick: (...args: any[]) => void;",
+    "Card": "variant?: \"default\"|\"interactive\"|\"elevated\"; children?: React.ReactNode; onClick?: (...args: any[]) => void;  /** Additional CSS classes */ className?: string;",
+    "ConditionLine": " /** Wind speed in knots */ speed: number;  /** Wind gust in knots */ gust: number;  /** Wind direction in degrees */ direction: number;  /** Wave height in meters */ waveHeight: number;  /** Wave period in seconds */ wavePeriod: number;  /** Sport type for display priority */ sport: string;  /** Additional CSS classes */ className?: string;",
+    "ConvexProvider": "children?: React.ReactNode;",
+    "DataGroup": " /** Icon component */ icon?: ReactNode;  /** Metric value/content */ children?: ReactNode;  /** Direction in degrees (optional) */ direction: number;  /** Whether to show direction indicator */ showDirection?: boolean; gap?: string;  /** Additional CSS classes */ className?: string;",
+    "DaySection": " /** Day label (e.g., \"Monday, January 1\") */ day: string;  /** Legacy slots array (deprecated, use spotsData instead) */ slots: unknown[];  /** Object mapping spotId to array of forecast slots */ spotsData: Record<string, unknown>;  /** Currently selected sports */ selectedSports: Array<string>;  /** Map of spotId to spot metadata */ spotsMap?: Record<string, unknown>;  /** Filter mode: \"best\" or \"all\" */ showFilter?: string; tidesBySpot?: Record<string, unknown>;  /** Additional CSS classes */ className?: string; id?: string; isHighlighted?: boolean;  /** Whether the user is authenticated */ isAuthenticated?: boolean;",
+    "DirectionIndicator": "direction: unknown; className?: string;",
+    "Divider": "weight?: \"light\"|\"medium\"|\"heavy\";  /** Additional CSS classes */ className?: string;",
+    "DurationDisplay": "minutes: unknown;",
+    "DurationInput": "value: unknown; onChange: (...args: any[]) => void;",
+    "EmailLoginForm": "onSuccess: (...args: any[]) => void;",
+    "EmptyState": "className?: string;",
+    "FilterBar": "children?: React.ReactNode; actions: unknown;  /** labels to show when collapsed (e.g. [\"Wing\", \"Best\"]) */ activeFilters?: string[]; className?: string;",
+    "FilterGroup": "label: string; children?: React.ReactNode; className?: string;",
+    "Footer": "className?: string; mostRecentScrapeTimestamp: unknown;",
+    "ForecastComparison": "forecastSlots: unknown; sport: string;",
+    "ForecastSlot": " /** Forecast slot data with timestamp, speed, gust, direction, wave data, etc. */ slot: Record<string, unknown>;  /** Nearby tide information (for surfing spots) */ nearbyTide: Record<string, unknown>|null;  /** Whether this is a surfing spot */ isSurfing?: boolean;  /** Filter mode: \"best\" (only ideal conditions) or \"all\" (all conditions) */ showFilter?: string;  /** Name of the spot (for score modal) */ spotName?: string;  /** Additional CSS classes */ className?: string;",
+    "Header": "className?: string;",
+    "Heading": " /** Heading level (1-4) */ level?: number; children?: React.ReactNode;  /** Additional CSS classes */ className?: string;",
+    "Icon": "children?: React.ReactNode; className?: string;",
+    "Input": " /** Lucide icon component */ icon?: React.ComponentType; placeholder?: string; value: string; onChange: (...args: any[]) => void;  /** Input type (defaults to \"text\") */ type?: string;  /** Renders textarea instead of input */ multiline?: boolean;  /** Number of rows for textarea (defaults to 4) */ rows?: number;  /** Read-only state */ readOnly?: boolean;  /** Disabled state */ disabled?: boolean;  /** Additional CSS classes */ className?: string; [key: string]: unknown;",
+    "LiveWindIndicator": " /** Windguru station ID (extracted from liveReportUrl) */ stationId: string;  /** Additional CSS classes */ className?: string;  /** If true, show compact version (for overlays) */ compact?: boolean;",
+    "LiveWindRow": " /** Windguru station ID */ stationId: string; href: string;  /** Additional CSS classes */ className?: string;",
+    "LocationPicker": "sport: string; value: unknown; onChange: (...args: any[]) => void; sessionToken: unknown;",
+    "MagicLinkSent": "email: unknown; onBack: (...args: any[]) => void;",
+    "MainLayout": "children?: React.ReactNode; className?: string;",
+    "Metric": "icon?: React.ReactNode; children?: React.ReactNode; className?: string;",
+    "MobileMenu": "isOpen: boolean; onOpenChange: (...args: any[]) => void;",
+    "Modal": "isOpen: boolean; onClose: (...args: any[]) => void; size?: string; children?: React.ReactNode; className?: string;",
+    "OnboardingFlow": "onComplete: (...args: any[]) => void;",
+    "OnboardingFooter": "onDismiss: (...args: any[]) => void;",
+    "OnboardingModal": "onComplete: (...args: any[]) => void; onDismiss: (...args: any[]) => void; isDismissible?: boolean;",
+    "PillToggle": "options: unknown[];  /** Currently selected option id */ value: string;  /** Called with selected option id */ onChange: (...args: any[]) => void;  /** Unique name for animation (each PillToggle on the page needs a different name) */ name?: string;  /** Additional CSS classes */ className?: string;",
+    "RatingDisplay": "value: unknown;",
+    "RatingInput": "value: unknown; onChange: (...args: any[]) => void; disabled?: boolean;",
+    "ScoreCard": " /** Condition score (0-100) */ score: number; children?: React.ReactNode; onClick?: (...args: any[]) => void;  /** Additional CSS classes */ className?: string;",
+    "ScoreDisplay": " /** Condition score (0-100) */ score: number; size?: \"sm\"|\"md\"|\"lg\";  /** Additional CSS classes */ className?: string;",
+    "ScoreModal": "isOpen: boolean; onClose: (...args: any[]) => void; /** Score record: value 0-100 plus model reasoning and per-factor breakdown */ score: { value: number; reasoning?: string; isPersonalized?: boolean; factors?: { windQuality?: number; waveQuality?: number; tideQuality?: number } }; /** The forecast slot this score belongs to */ slot: { hour: string; sport: \"wingfoil\" | \"kitesurfing\" | \"surfing\" }; spotName?: string;",
+    "ScorePill": " /** Condition score (0-100) */ score: number; sport: \"wingfoil\"|\"kitesurfing\"|\"surfing\"; size?: \"sm\"|\"md\"|\"lg\"|\"xl\";  /** If true, show scores below 60 too */ showAll?: boolean;  /** Optional click handler (renders as button) */ onClick?: (...args: any[]) => void;  /** Additional CSS classes */ className?: string;",
+    "Section": " /** Section heading text */ title?: string;  /** Action element (e.g. \"See All\" button) */ action: React.ReactNode; children?: React.ReactNode;  /** Show divider above section */ divided?: boolean;  /** Additional CSS classes */ className?: string;",
+    "Select": " /** Array of {id, label} objects */ options: unknown[];  /** Current selected value (controlled) */ value: string;  /** Callback when value changes */ onChange: (...args: any[]) => void;  /** Additional CSS classes */ className?: string;",
+    "SessionCard": "entry: unknown;",
+    "ShareButton": " /** URL to share (default: current page URL) */ url: string;  /** Optional title for the Web Share API */ title?: string;  /** Additional CSS classes */ className?: string;",
+    "ShowFilter": "onFilterChange: (...args: any[]) => void; value: unknown; className?: string;",
+    "SportBadge": "sport: \"wingfoil\"|\"kitesurfing\"|\"surfing\";  /** Icon size in px (default 14) */ size?: number;  /** Additional CSS classes */ className?: string;",
+    "SportSelector": "onSportsChange: (...args: any[]) => void; value: unknown; className?: string;",
+    "SpotConfigForm": "spotId: unknown; sport: string; config: unknown; onSave: (...args: any[]) => void;",
+    "Text": "variant?: \"body\"|\"muted\"|\"caption\"|\"label\";  /** HTML tag (defaults to \"p\") */ as?: string; children?: React.ReactNode;  /** Additional CSS classes */ className?: string;",
+    "TideChart": "tides: unknown; className?: string;",
+    "TideDisplay": " /** Tide object with {type, time, height, isExactTime, isRising, isFalling} */ tide: Record<string, unknown>;  /** Additional CSS classes */ className?: string;",
+    "TideIndicator": "type: string; className?: string;",
+    "TideSection": "slots: unknown[]; className?: string;",
+    "TideTable": "tides: unknown; spotName: unknown; className?: string;",
+    "Toast": "message: unknown; type?: string; onClose: (...args: any[]) => void; duration?: number;",
+    "ToastProvider": "children?: React.ReactNode;",
+    "Tooltip": " /** The element to wrap with tooltip */ children?: React.ReactNode;  /** The tooltip text content */ content: string;  /** Position of tooltip: \"top\" | \"bottom\" | \"left\" | \"right\" */ position?: string;  /** Additional CSS classes for the wrapper */ className?: string;",
+    "TvMode": " /** Array of webcam spot objects */ webcams: unknown[];  /** Callback when TV mode is exited */ onClose: (...args: any[]) => void;",
+    "VerifyingMagicLink": "message?: string;",
+    "ViewToggle": "compact?: boolean; rightContent: unknown; className?: string;",
+    "WaveGroup": "waveHeight: unknown; wavePeriod: unknown; waveDirection: unknown; className?: string;",
+    "WebcamCard": " /** Webcam spot object */ spot: Record<string, unknown>;  /** Whether this webcam is in focus/fullscreen */ isFocused?: boolean;  /** Whether to show live/forecast buttons on hover */ showHoverButtons?: boolean;  /** Whether this spot is favorited by the user */ isFavorite?: boolean;  /** Callback when favorite button is clicked */ onToggleFavorite: (...args: any[]) => void; forecastData: unknown; onScoreClick: (...args: any[]) => void;",
+    "WebcamFullscreen": " /** Webcam spot object */ spot: Record<string, unknown>;  /** Callback to close the modal */ onClose: (...args: any[]) => void;  /** Array of all available webcams for navigation */ allWebcams?: unknown[];  /** Callback to navigate to a different webcam */ onNavigate: (...args: any[]) => void;",
+    "WebcamModal": "isOpen: boolean; onClose: (...args: any[]) => void; webcamUrl: unknown; spotName: unknown; webcamStreamSource: unknown;",
+    "WindGroup": "speed: unknown; gust: unknown; direction: unknown; showGust?: boolean; className?: string;"
+  },
+  "libOverrides": {
+    "source-kit.mjs": "components/ui holds the DS primitives — ui must not count as a generic container dir"
+  },
+  "guidelinesGlob": [],
+  "provider": {
+    "component": "ConvexProvider",
+    "inner": {
+      "component": "AuthProvider",
+      "inner": {
+        "component": "ToastProvider"
+      }
+    }
+  },
+  "extraFonts": [
+    ".design-sync/fonts/fonts.css"
+  ],
+  "overrides": {
+    "TideChart": {
+      "cardMode": "column"
+    },
+    "Modal": {
+      "cardMode": "single",
+      "primaryStory": "ScoreBreakdown"
+    },
+    "DaySection": {
+      "cardMode": "column"
+    },
+    "ForecastSlot": {
+      "cardMode": "column"
+    },
+    "WebcamFullscreen": {
+      "cardMode": "single",
+      "viewport": "480x860"
+    },
+    "Toast": {
+      "cardMode": "single",
+      "primaryStory": "Success"
+    },
+    "ToastProvider": {
+      "cardMode": "single",
+      "primaryStory": "NotificationLayer"
+    },
+    "ScoreModal": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "WebcamModal": {
+      "cardMode": "single",
+      "primaryStory": "StillImageUnavailable"
+    },
+    "BottomNav": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "GlobalNavigation": {
+      "cardMode": "single",
+      "primaryStory": "OverForecastList"
+    },
+    "MobileMenu": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "ViewToggle": {
+      "cardMode": "column"
+    },
+    "OnboardingFooter": {
+      "cardMode": "single",
+      "primaryStory": "OverForecastPage"
+    },
+    "OnboardingModal": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "TvMode": {
+      "cardMode": "single",
+      "primaryStory": "CamWall"
+    }
+  },
+  "docsDir": ".design-sync/docs",
+  "readmeHeader": ".design-sync/conventions.md"
+}
