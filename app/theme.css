@@ -59,6 +59,9 @@
      is a position marker rather than a judgement — reusing either would collide
      with the score semantics the strip already encodes. */
   --wm-now: #ff9d42;
+  /* Near-black, not white: white on this orange is 2.07:1 and fails AA
+     outright, where near-black clears 10:1. */
+  --wm-now-text: #0a1420;
 
   /* The score dial's inner disc must be OPAQUE or the conic-gradient ring shows
      straight through it. On a tinted card that means page composited with
@@ -109,7 +112,11 @@
   --wm-sport-pill-text: #ffffff;
 
   /* Darker for contrast on a light page; same hue. */
-  --wm-now: #c4610b;
+  /* Lifted from #c4610b so the pill's own label clears AA (4.97:1) while the
+     rule still holds 3.37:1 against the light page. Both thresholds matter:
+     one is text, the other a graphic. */
+  --wm-now: #cc6a10;
+  --wm-now-text: #0a1420;
 
   /* See the Nightglass note — page composited with accent-tint-card. */
   --wm-dial-inner-card: #dde9ea;

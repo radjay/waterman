@@ -62,6 +62,7 @@ export default {
         "offline-bg": "var(--wm-offline-bg)",
         knob: "var(--wm-knob)",
         now: "var(--wm-now)",
+        "now-text": "var(--wm-now-text)",
         "sport-pill": "var(--wm-sport-pill-bg)",
         "sport-pill-text": "var(--wm-sport-pill-text)",
       },

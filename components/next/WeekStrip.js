@@ -271,7 +271,7 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow, now, axis }) {
             {/* Pill sits directly on top of the rule with no gap, so the two
                 read as one marker rather than a label floating near a line. */}
             <span
-              className="absolute -top-[11px] -translate-x-1/2 rounded-pill bg-now px-[5px] py-[1px] font-data text-[7.5px] font-bold tracking-[0.14em] text-white leading-[1.4]"
+              className="absolute -top-[14px] -translate-x-1/2 rounded-pill bg-now px-[7px] py-[2px] font-data text-[9px] font-bold tracking-[0.12em] text-now-text leading-[1.3]"
               style={{ left: `${nowPct}%` }}
             >
               NOW
