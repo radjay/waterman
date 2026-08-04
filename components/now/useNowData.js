@@ -5,7 +5,12 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
 import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
-import { detectWindows, soonestWindow, upcomingWindows } from "../../lib/windows";
+import {
+  detectWindows,
+  isChartedSlot,
+  soonestWindow,
+  upcomingWindows,
+} from "../../lib/windows";
 import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -73,7 +78,7 @@ export function useNowData(sport) {
             sinceTimestamp: now - 3 * 60 * 60 * 1000,
           });
           const byTime = groupByTimestamp(modelRows);
-          const threshold = thresholdFor(chosen.config, sport);
+          const threshold = thresholdFor(chosen.config, sport, chosen.slots);
           if (threshold) {
             agreement = agreementFor(byTime.get(chosen.slot.timestamp) || [], threshold);
           }
@@ -89,7 +94,12 @@ export function useNowData(sport) {
         });
 
         // Where the rider should look instead, when the answer is no.
-        const bySpot = candidates.map((c) => ({ spot: c.spot, windows: detectWindows(c.slots) }));
+        // Daylight only — a window starting at 04:00 is not a session anyone
+        // is being offered, and it is what the chart draws from too.
+        const bySpot = candidates.map((c) => ({
+          spot: c.spot,
+          windows: detectWindows(c.slots.filter((s) => isChartedSlot(s.timestamp))),
+        }));
         const next = soonestWindow(bySpot, now);
         const nextWindows = upcomingWindows(bySpot, now, 3);
 

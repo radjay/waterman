@@ -86,6 +86,7 @@ export function NowContent() {
             sport={sport}
             spotName={data.spot?.name}
             metric={primaryMetric(data.slot, sport)}
+            liveReportUrl={data.spot?.liveReportUrl}
             reason={data.reason}
             riderCount={riderCount}
             camSlot={data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null}

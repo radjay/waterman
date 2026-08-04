@@ -8,12 +8,12 @@ import { api } from "../../../../convex/_generated/api";
 import { MainLayout } from "../../../../components/layout/MainLayout";
 import { ScoreDial } from "../../../../components/ui/ScoreDial";
 import { ModelGrid, CriteriaPanel } from "../../../../components/confidence/ModelGrid";
+import { LabsSection } from "../../../../components/confidence/LabsSection";
 import { ScoreFactors } from "../../../../components/confidence/ScoreFactors";
 import { HourByHour } from "../../../../components/confidence/HourByHour";
 import { useSport, isWindSport } from "../../../../components/sport/SportProvider";
 import { useFlag } from "../../../../components/flags/FlagProvider";
 import {
-  BANDS,
   agreementFor,
   agreementSentence,
   groupByTimestamp,
@@ -21,7 +21,8 @@ import {
 } from "../../../../lib/agreement";
 import { surfConfidenceLabel, surfCriteria } from "../../../../lib/surfCriteria";
 import { spotsWithSlots } from "../../../../lib/reportData";
-import { detectWindows } from "../../../../lib/windows";
+import { detectWindows, isChartedSlot } from "../../../../lib/windows";
+import { scoreTier } from "../../../../lib/scoreShade";
 import { conditionSummary } from "../../../../lib/conditions";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -70,7 +71,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
 
         // Prefer the whole window over the single slot that was tapped: the
         // question is about a stretch of time, not an instant.
-        const windows = detectWindows(chosen.slots);
+        const windows = detectWindows(chosen.slots.filter((s) => isChartedSlot(s.timestamp)));
         const window =
           windows.find((w) => windowStart >= w.start && windowStart < w.end) ?? null;
 
@@ -133,6 +134,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
             tides,
             modelRows,
             sourceModel,
+            spotSlots: chosen.slots,
           },
         });
       } catch (error) {
@@ -151,7 +153,9 @@ export function ConfidenceContent({ dayStart, windowStart }) {
   const model = useMemo(() => {
     if (!data) return null;
     const byTime = groupByTimestamp(data.modelRows);
-    const threshold = thresholdFor(data.config, sport);
+    // Calibrated from this spot's own scored slots, not just the window's —
+    // a handful of hours is too few to learn a bar from.
+    const threshold = thresholdFor(data.config, sport, data.spotSlots);
     const columns = data.slots.map((s) => ({
       timestamp: s.timestamp,
       label: fmt(s.timestamp, { hour: "2-digit" }),
@@ -182,9 +186,9 @@ export function ConfidenceContent({ dayStart, windowStart }) {
 
   const criteria = data && !windSport ? surfCriteria(data.peak, data.config, null) : [];
   const surfLabel = criteria.length ? surfConfidenceLabel(criteria) : null;
-  const confidence = windSport
-    ? confidenceFrom(model?.windowAgreement, data?.peak?.score)
-    : (surfLabel ?? confidenceFrom(null, data?.peak?.score));
+  const confidence = data
+    ? (surfLabel ?? confidenceFromScore(data.peak.score, data.peak.factors))
+    : { label: "", reason: "" };
 
   return (
     <MainLayout wide>
@@ -254,28 +258,28 @@ export function ConfidenceContent({ dayStart, windowStart }) {
           <HourByHour slots={data.slots} sport={sport} tides={data.tides} />
 
           {windSport && showModels && model?.models.length > 0 && (
-            <ModelGrid
-              columns={model.columns}
-              models={model.models}
-              agreedByColumn={model.agreedByColumn}
-              outlier={model.windowAgreement?.outlier ?? null}
-              sentence={agreementSentence(model.windowAgreement)}
-              sourceModel={data.sourceModel}
-            />
+            <LabsSection
+              title="Model comparison"
+              caption={`${model.models.length} models · ${agreementSentence(model.windowAgreement) ?? ""}`}
+            >
+              <ModelGrid
+                columns={model.columns}
+                models={model.models}
+                agreedByColumn={model.agreedByColumn}
+                outlier={model.windowAgreement?.outlier ?? null}
+                sentence={agreementSentence(model.windowAgreement)}
+                sourceModel={data.sourceModel}
+              />
+            </LabsSection>
           )}
 
           {!windSport && criteria.length > 0 && (
             <CriteriaPanel criteria={criteria} windAgreement={model?.windowAgreement} />
           )}
 
-          {/* A footnote, not a section. Absent model data is worth stating once
-              so nobody reads the screen as a full picture — but it is not the
-              answer to "do I believe it", and it used to be the whole page. */}
-          {windSport && showModels && !model?.models.length && (
-            <p className="font-data text-[9px] text-dim mt-6 leading-[1.6]">
-              NO PER-MODEL COMPARISON FOR THIS SPOT YET — NOT THE SAME AS THE MODELS DISAGREEING.
-            </p>
-          )}
+          {/* Nothing at all when the comparison is unavailable. It is a Labs
+              curiosity now, so its absence does not need explaining on a screen
+              whose answer never depended on it. */}
         </>
       )}
     </MainLayout>
@@ -283,38 +287,53 @@ export function ConfidenceContent({ dayStart, windowStart }) {
 }
 
 /**
- * Confidence reads from model agreement when we have it, and from the score
- * itself when we do not — rather than reporting "Unknown" on a screen that is
- * showing a scored window, a per-dimension breakdown and an hourly table.
+ * Confidence from the score, and from what the scorer itself weighed.
+ *
+ * It deliberately does NOT read model agreement. The models are a curiosity,
+ * not the verdict, and deriving the headline from them made a Labs readout
+ * into the reason for the answer — while also letting a five-model quorum
+ * override a score the rest of the app trusts.
+ *
+ * Vocabulary matches the week strip's tiers so a reader who has learned what
+ * "great" looks like there meets the same word here.
  */
-function confidenceFrom(agreement, score) {
-  if (agreement && agreement.band !== BANDS.UNKNOWN) {
-    if (agreement.band === BANDS.GOOD) {
-      return {
-        label: "High confidence",
-        reason: `${agreement.agreed} of ${agreement.total} models agree.`,
-      };
-    }
-    if (agreement.band === BANDS.SPLIT) {
-      return {
-        label: "Models split",
-        reason: `Only ${agreement.agreed} of ${agreement.total} call it on.`,
-      };
-    }
-    return {
-      label: "Low confidence",
-      reason: `${agreement.agreed} of ${agreement.total} models call it on.`,
-    };
-  }
+const TIER_LABEL = {
+  epic: "Epic window",
+  great: "Great window",
+  good: "Good window",
+  fair: "Worth a look",
+  marginal: "Marginal",
+};
 
+function confidenceFromScore(score, factors) {
   if (score === null || score === undefined) {
     return { label: "Not scored", reason: "This window has not been scored yet." };
   }
-  if (score >= 80) {
-    return { label: "Strong window", reason: "Scored well across the whole window." };
+
+  const label = TIER_LABEL[scoreTier(score)?.id] ?? "Marginal";
+
+  // Name the weakest dimension rather than restating the number. "Tide is the
+  // limiting factor" tells a rider something the score alone cannot.
+  const named = [
+    ["wind", factors?.windQuality],
+    ["wave", factors?.waveQuality],
+    ["tide", factors?.tideQuality],
+  ].filter(([, v]) => v !== null && v !== undefined);
+
+  if (named.length >= 2) {
+    const sorted = [...named].sort((a, b) => a[1] - b[1]);
+    const [weakName, weakValue] = sorted[0];
+    const [strongName, strongValue] = sorted[sorted.length - 1];
+
+    if (strongValue - weakValue >= 20) {
+      return { label, reason: `${cap(strongName)} is the strength; ${weakName} is what holds it back.` };
+    }
+    return { label, reason: `Wind, wave and tide all line up.` };
   }
-  if (score >= 60) {
-    return { label: "Worth a look", reason: "Clears the bar, without much margin." };
-  }
-  return { label: "Marginal", reason: "Below the threshold for a good session." };
+
+  if (score >= 80) return { label, reason: "Scored well across the whole window." };
+  if (score >= 60) return { label, reason: "Clears the bar, without much margin." };
+  return { label, reason: "Below the threshold for a good session." };
 }
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);

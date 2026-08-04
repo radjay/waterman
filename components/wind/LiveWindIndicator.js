@@ -12,7 +12,7 @@ import { Arrow } from "../ui/Arrow";
  * @param {string} className - Additional CSS classes
  * @param {boolean} compact - If true, show compact version (for overlays)
  */
-export function LiveWindIndicator({ stationId, className = "", compact = false }) {
+export function LiveWindIndicator({ stationId, className = "", compact = false, label = null }) {
   const [liveWind, setLiveWind] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +74,10 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
     // Compact version for overlays on webcams - ultra minimal
     return (
       <div
-        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-page text-xs ${
+        // White, not text-page: this badge sits on video, where the backdrop
+        // is footage rather than the page. In Nightglass text-page is
+        // near-black, which put black text on a black scrim.
+        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-white text-xs ${
           isStale ? "opacity-50" : ""
         } ${className}`}
         title={`Live wind: ${Math.round(liveWind.windSpeedKnots)} kn${liveWind.windGustKnots ? ` (${Math.round(liveWind.windGustKnots)} gusts)` : ""} • Updated ${ageMinutes}m ago`}
@@ -105,6 +108,17 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
       } ${className}`}
       title={`Live wind from Windguru station ${stationId} • Updated ${ageMinutes}m ago`}
     >
+      {/* Beside a forecast figure, an unlabelled second number is just
+          confusing — the label is what makes it read as "and right now it is". */}
+      {label && (
+        <span
+          className={`font-data text-[8px] tracking-label ${
+            isStale ? "text-ink/50" : "text-accent"
+          }`}
+        >
+          {label}
+        </span>
+      )}
       <Wind
         size={12}
         className={isStale ? "text-ink/40" : "text-accent"}

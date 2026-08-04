@@ -3,6 +3,10 @@
 import { ArrowUp, Users, Waves, Wind } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { sportMeta } from "../sport/SportProvider";
+import {
+  LiveWindIndicator,
+  extractWindguruStationId,
+} from "../wind/LiveWindIndicator";
 
 const TONE_TEXT = {
   accent: "text-accent",
@@ -33,6 +37,7 @@ export function VerdictCard({
   sport = "wingfoil",
   spotName,
   metric,
+  liveReportUrl,
   reason,
   riderCount,
   camSlot,
@@ -123,8 +128,16 @@ export function VerdictCard({
         </div>
       )}
 
-      {metric?.tertiary && (
-        <div className="font-data text-[11px] text-faded-ink mt-2">{metric.tertiary}</div>
+      {(metric?.tertiary || liveReportUrl) && (
+        <div className="flex items-center gap-2.5 mt-2">
+          {metric?.tertiary && (
+            <span className="font-data text-[11px] text-faded-ink">{metric.tertiary}</span>
+          )}
+          {/* The station turns the forecast into a fact. It renders nothing at
+              all when the reading is missing or stale, so it can sit here
+              unconditionally without leaving a gap. */}
+          <LiveWindIndicator stationId={extractWindguruStationId(liveReportUrl)} label="LIVE" />
+        </div>
       )}
 
       {camSlot && (

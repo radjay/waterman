@@ -12,8 +12,17 @@ import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
 import { ALL_SPOTS, FAVORITES, SpotPicker } from "../../components/next/SpotPicker";
 import { useUser } from "../../components/auth/AuthProvider";
-import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
+import {
+  detectWindows,
+  isChartedSlot,
+  soonestWindow,
+  spotSummaries,
+} from "../../lib/windows";
 import { conditionSummary } from "../../lib/conditions";
+import {
+  LiveWindIndicator,
+  extractWindguruStationId,
+} from "../../components/wind/LiveWindIndicator";
 import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -114,6 +123,8 @@ export function NextContent() {
       for (const { spot, slots } of scoped) {
         for (const slot of slots) {
           if (slot.timestamp < dayStart || slot.timestamp >= dayEnd) continue;
+          // Windows must not extend into hours the chart never draws.
+          if (!isChartedSlot(slot.timestamp)) continue;
           const existing = byTimestamp.get(slot.timestamp);
           if (!existing || (slot.score ?? -1) > (existing.score ?? -1)) {
             byTimestamp.set(slot.timestamp, {
@@ -217,9 +228,16 @@ export function NextContent() {
                 </div>
                 <AgreementBars agreement={view.soonest.window.agreement} />
               </div>
-              <div className="font-data text-[13px] text-accent mt-1.5 uppercase">
-                {view.soonest.spot.name} ·{" "}
-                {conditionSummary(view.soonest.window.peak, sport, { gust: true }) ?? "—"}
+              <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
+                <span className="font-data text-[13px] text-accent uppercase">
+                  {view.soonest.spot.name} ·{" "}
+                  {conditionSummary(view.soonest.window.peak, sport, { gust: true }) ?? "—"}
+                </span>
+                {/* What the spot reads right now, against what is forecast. */}
+                <LiveWindIndicator
+                  stationId={extractWindguruStationId(view.soonest.spot.liveReportUrl)}
+                  label="LIVE"
+                />
               </div>
             </div>
           ) : (
@@ -269,10 +287,17 @@ export function NextContent() {
                       <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
                         {spot.name}
                       </span>
-                      <span className="block font-data text-[10px] text-faded-ink mt-0.5">
+                      <span className="flex items-center gap-2 font-data text-[10px] text-faded-ink mt-0.5">
                         {windowCount === 0
                           ? "Nothing this week"
                           : `${windowCount} window${windowCount === 1 ? "" : "s"}`}
+                        {/* Not the compact variant: that one is styled for
+                            video overlays (bg-black/70) and reads as a black
+                            chip on a card. */}
+                        <LiveWindIndicator
+                          stationId={extractWindguruStationId(spot.liveReportUrl)}
+                          label="LIVE"
+                        />
                       </span>
                     </span>
                     {soonest && (
