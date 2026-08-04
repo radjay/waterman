@@ -61,6 +61,7 @@ export default {
         "nav-border": "var(--wm-nav-border)",
         "offline-bg": "var(--wm-offline-bg)",
         knob: "var(--wm-knob)",
+        now: "var(--wm-now)",
         "sport-pill": "var(--wm-sport-pill-bg)",
         "sport-pill-text": "var(--wm-sport-pill-text)",
       },

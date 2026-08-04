@@ -23,6 +23,12 @@ const TZ = "Europe/Lisbon";
  * "Models split" keeps its own dashed rendering rather than being averaged
  * away: absence of confidence is information, so it is drawn, not hidden.
  *
+ * The handoff marks each window's peak with a 2px page-colour notch. That was
+ * designed against FLAT bands; inside a gradient it is indistinguishable from a
+ * seam between two bands, and read as a rendering artifact rather than as
+ * information. The gradient already puts the peak at its brightest point, so
+ * the notch is dropped rather than restyled — the information is not lost.
+ *
  * The legend is not decoration. Tier and marginal are carried by fill alone,
  * and in Dayglass the accent and the accent-2 hue sit at nearly identical
  * luminance — they differ by hue. The legend is the non-colour carrier.
@@ -32,6 +38,10 @@ const TZ = "Europe/Lisbon";
  */
 export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
   const [hovered, setHovered] = useState(null);
+  // Re-rendered on mount only; the line does not need to tick, and a timer here
+  // would re-render the whole strip every minute for a marker that moves less
+  // than a pixel.
+  const [now] = useState(() => Date.now());
 
   return (
     <section className="pt-[22px]">
@@ -57,6 +67,7 @@ export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
             hovered={hovered}
             onHover={setHovered}
             onSelectWindow={onSelectWindow}
+            now={now}
           />
         ))}
       </div>
@@ -81,7 +92,15 @@ function LegendKey({ className = "", style, label }) {
   );
 }
 
-function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
+function DayRow({ day, sport, hovered, onHover, onSelectWindow, now }) {
+  // Only today gets the marker, and only while "now" is inside the visible
+  // hours — a line pinned to an edge would imply a time that is not on screen.
+  const trackStart = day.dayStart + DAY_START_HOUR * HOUR_MS;
+  const trackEnd = day.dayStart + DAY_END_HOUR * HOUR_MS;
+  const nowPct =
+    now >= trackStart && now <= trackEnd
+      ? ((now - trackStart) / (trackEnd - trackStart)) * 100
+      : null;
   const hasAnything = day.windows.length > 0;
   // "?" when the day's only windows are split — a number there would imply more
   // confidence than we have.
@@ -135,17 +154,6 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
                   background: isSplit ? undefined : windowGradient(window, { marginal: isMarginal }),
                 }}
               >
-                {pos.peak !== null && pos.width > 4 && (
-                  <span
-                    className="absolute top-0 bottom-0 w-0.5 bg-page/70"
-                    style={{
-                      // Clamped so a peak at the very edge still reads as a
-                      // marker rather than as the band's own border.
-                      left: `${Math.min(Math.max(((pos.peak - pos.left) / pos.width) * 100, 4), 96)}%`,
-                    }}
-                    aria-hidden="true"
-                  />
-                )}
               </span>
             );
           })}
@@ -184,6 +192,28 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
             );
           })}
         </div>
+
+        {nowPct !== null && (
+          // Overlay spanning exactly the track: 34px day label + 5px gap on the
+          // left, 26px score + 5px gap on the right. Positioning inside the
+          // track itself is not an option — it clips (overflow-hidden), which
+          // would cut the NOW label off.
+          <span
+            className="absolute inset-y-0 left-[39px] right-[31px] pointer-events-none z-10"
+            aria-hidden="true"
+          >
+            <span
+              className="absolute inset-y-0 w-[2px] bg-now -translate-x-1/2"
+              style={{ left: `${nowPct}%` }}
+            />
+            <span
+              className="absolute -top-[13px] -translate-x-1/2 font-data text-[8px] tracking-[0.14em] text-now"
+              style={{ left: `${nowPct}%` }}
+            >
+              NOW
+            </span>
+          </span>
+        )}
 
         <div className={`w-[26px] text-right font-data text-[11px] ${scoreClass}`}>{scoreText}</div>
       </div>
