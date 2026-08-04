@@ -19,14 +19,6 @@ import { useFlag } from "../flags/FlagProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
-/**
- * How much better a later window has to be before Now points at it.
- *
- * Small enough that a real upgrade surfaces, large enough that a 72 does not
- * talk a rider out of a 70 they could ride this afternoon.
- */
-const BETTER_LATER_MARGIN = 10;
-
 /** The slot covering `now`, or the next one today if we are between slots. */
 function currentSlot(slots, nowMs) {
   const threeHours = 3 * 60 * 60 * 1000;
@@ -207,14 +199,6 @@ export function useNowData(sport, favoriteIds = []) {
               .filter((w) => w.end > now && w.start < dayEnd).length
           : 0;
 
-        // A materially better window later changes the decision more than
-        // anything else on the screen, and it was rendering as an equal-weight
-        // card below a large cam.
-        const better =
-          nextWindows.find(
-            (n) => (n.window.score ?? 0) >= (chosen.score ?? 0) + BETTER_LATER_MARGIN
-          ) ?? null;
-
         setState({
           loading: false,
           error: null,
@@ -222,7 +206,6 @@ export function useNowData(sport, favoriteIds = []) {
             verdict,
             trajectory,
             elsewhereToday,
-            better,
             spot: chosen.spot,
             slot: chosen.slot,
             agreement,

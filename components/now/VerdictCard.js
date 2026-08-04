@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, ChevronRight, Users } from "lucide-react";
-import { VERDICT, VERDICT_TONE, relativeDay } from "../../lib/verdict";
+import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { Badge } from "../ui/Badge";
 import { ScoreDial } from "../ui/ScoreDial";
 import { SportFilterChip } from "../sport/SportFilterChip";
@@ -48,7 +48,6 @@ export function VerdictCard({
   reason,
   reasoning,
   trajectory = [],
-  better,
   elsewhereToday = 0,
   riderCount,
   camSlot,
@@ -186,36 +185,22 @@ export function VerdictCard({
 
       {trajectory.length > 1 && <Trajectory slots={trajectory} tone={tone} />}
 
-      {/* The reason, then the scorer's own sentence. Both were previously at
-          the bottom of the card in 11px mono — the two strings that actually
-          decide the question, set smaller than everything that does not. */}
-      {(reason || reasoning) && (
-        <div className="mt-3">
-          {reason && (
-            <p className={`text-[14px] leading-[1.45] font-medium ${TONE_TEXT[tone]}`}>{reason}</p>
-          )}
-          {reasoning && (
-            <p className="text-[13px] leading-[1.5] text-faded-ink mt-1">{reasoning}</p>
-          )}
-        </div>
-      )}
-
-      {/* A materially better window later is the thing most likely to change
-          the answer, so it goes with the verdict rather than into the list. */}
-      {better && (
-        <p className="text-[13px] leading-[1.45] text-ink mt-2.5">
-          {isGo ? "Better still: " : "Better: "}
-          <span className="font-bold">{Math.round(better.window.score)}</span>
-          {/* The headline already named this spot; repeating it reads as a
-              different beach at a glance. */}
-          {better.spot.name === spotName ? "" : ` at ${better.spot.name}`}{" "}
-          {relativeDay(better.window.start)}.
-        </p>
+      {/* ONE line of prose, not a stack.
+          The scorer's own sentence is the best thing on the screen, so it gets
+          the slot. `reason` is the fallback for when there is no sentence — on
+          its own it mostly restated the verdict ("Nothing on right now" under
+          NO GO) or said nothing at all ("Worth a look"), and on a GO the
+          trajectory strip now carries "holds until" better than words did. */}
+      {(reasoning || reason) && (
+        <p className="text-[14px] leading-[1.5] text-faded-ink mt-3">{reasoning || reason}</p>
       )}
 
       {/* "Nothing at my three beaches" and "nothing on the coast" are different
           decisions. Saying which turns the app's most common state from a dead
-          end into a next step. */}
+          end into a next step.
+          Note there is deliberately no "better tomorrow" line: it duplicated
+          the first NEXT WINDOWS card below — same spot, same score, same day,
+          by construction — and that card is already the highlighted one. */}
       {!isGo && !isMarginal && elsewhereToday > 0 && onSeeElsewhere && (
         <button
           onClick={own(onSeeElsewhere)}

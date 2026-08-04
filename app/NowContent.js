@@ -123,7 +123,6 @@ export function NowContent() {
             riderCount={riderCount}
             reasoning={data.reasoning}
             trajectory={data.trajectory}
-            better={data.better}
             elsewhereToday={data.elsewhereToday}
             onSeeElsewhere={() => router.push("/next")}
             // On a NO GO the video is the least useful thing on screen and was
