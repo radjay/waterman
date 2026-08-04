@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Zap, CalendarClock, Video, Ellipsis, LogIn } from "lucide-react";
 import { NAV_TABS, activeTabFor } from "./navTabs";
@@ -33,7 +34,13 @@ export function TopNav() {
   const hiddenPaths = ["/admin", "/auth", "/ui-kit"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
 
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  // Resolve the share URL only after mount. Reading window during render makes
+  // the server emit "" and the client emit the real URL, which is a hydration
+  // mismatch on every page that renders this bar.
+  const [shareUrl, setShareUrl] = useState("");
+  useEffect(() => {
+    setShareUrl(window.location.href);
+  }, [pathname]);
 
   return (
     <header className="hidden md:block sticky top-0 z-40 bg-page/85 backdrop-blur-xl border-b border-card">
@@ -68,10 +75,12 @@ export function TopNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <ShareButton
-            url={shareUrl}
-            className="h-8 w-8 rounded-full border border-card text-faded-ink hover:bg-ink-hover transition-colors duration-fast ease-smooth"
-          />
+          {shareUrl && (
+            <ShareButton
+              url={shareUrl}
+              className="h-8 w-8 rounded-full border border-card text-faded-ink hover:bg-ink-hover transition-colors duration-fast ease-smooth"
+            />
+          )}
           {authLoading ? (
             <div className="w-20 h-8" />
           ) : isAuthenticated ? (
