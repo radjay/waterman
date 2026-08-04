@@ -4,6 +4,8 @@ import { Bricolage_Grotesque, Space_Grotesk, JetBrains_Mono } from 'next/font/go
 import { ConvexProvider } from '../components/ConvexProvider'
 import { AuthProvider } from '../components/auth/AuthProvider'
 import { ThemeProvider } from '../components/theme/ThemeProvider'
+import { FlagProvider } from '../components/flags/FlagProvider'
+import { SportProvider } from '../components/sport/SportProvider'
 import { THEME_COLORS, themeBootstrapScript } from '../lib/theme'
 
 // Self-hosted at build time by next/font, which also removes the render-blocking
@@ -66,11 +68,15 @@ export default function RootLayout({ children }) {
             <body className="overflow-x-hidden">
                 <Suspense>
                     <ThemeProvider>
-                        <ConvexProvider>
-                            <AuthProvider>
-                                {children}
-                            </AuthProvider>
-                        </ConvexProvider>
+                        <FlagProvider>
+                            <SportProvider>
+                                <ConvexProvider>
+                                    <AuthProvider>
+                                        {children}
+                                    </AuthProvider>
+                                </ConvexProvider>
+                            </SportProvider>
+                        </FlagProvider>
                     </ThemeProvider>
                 </Suspense>
             </body>

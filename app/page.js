@@ -1,10 +1,16 @@
-import { redirect } from "next/navigation";
+import { NowContent } from "./NowContent";
 
 export const metadata = {
-  title: 'The Waterman Report',
+  title: "Waterman — Can I go?",
+  description: "A verdict first: can you go right now, and why we think so.",
 };
 
-export default function Home() {
-  // Redirect to dashboard as the default landing page
-  redirect('/dashboard');
+/**
+ * Screen 01 — Now.
+ *
+ * `/` used to redirect to /dashboard. It now answers "can I go" before
+ * anything else; /dashboard survives, restyled, under More.
+ */
+export default function NowPage() {
+  return <NowContent />;
 }
