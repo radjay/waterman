@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePersistedState } from "../../lib/hooks/usePersistedState";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
@@ -17,6 +18,7 @@ import { spotsWithSlots } from "../../lib/reportData";
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const NEXT_SPOT_STORAGE_KEY = "waterman_next_spot";
 
 const fmt = (ms, options) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
@@ -36,7 +38,14 @@ function dayStartOf(ms) {
 export function NextContent() {
   const router = useRouter();
   const { sport, meta } = useSport();
-  const [spotId, setSpotId] = useState(null); // null = best spot across the coast
+  // Persisted: a rider who only drives to one beach should not have to pick it
+  // again on every visit. Validated against null-or-string so a stale key from
+  // an older build cannot put the screen into an unrenderable state.
+  const [spotId, setSpotId] = usePersistedState(
+    NEXT_SPOT_STORAGE_KEY,
+    null, // null = best spot across the coast
+    (v) => v === null || typeof v === "string"
+  );
   const [state, setState] = useState({ loading: true, error: null, bySpot: null });
 
   useEffect(() => {
@@ -71,7 +80,11 @@ export function NextContent() {
     // "Best spot" reads across the coast; a named spot reads only itself.
     // Aggregating hides a spot's own week — a Thursday window looks identical
     // to no window at all when a better spot covers the same hours.
-    const scoped = spotId ? bySpot.filter((s) => s.spot._id === spotId) : bySpot;
+    // A stored spot can outlive the spot itself, or stop supporting the
+    // selected sport. Falling back to best-spot beats rendering an empty week
+    // with no explanation.
+    const known = spotId && bySpot.some((s) => s.spot._id === spotId) ? spotId : null;
+    const scoped = known ? bySpot.filter((s) => s.spot._id === known) : bySpot;
     const soonest = soonestWindow(scoped, now);
 
     const today = dayStartOf(now);
@@ -94,7 +107,7 @@ export function NextContent() {
           if (!existing || (slot.score ?? -1) > (existing.score ?? -1)) {
             byTimestamp.set(slot.timestamp, {
               ...slot,
-              spotName: spotId ? null : spot.name,
+              spotName: known ? null : spot.name,
             });
           }
         }
@@ -116,13 +129,13 @@ export function NextContent() {
 
     // The list underneath is for the spots the strip is NOT showing — it is a
     // way to switch to them, not a second copy of what is already on screen.
-    const featuredId = spotId ?? soonest?.spot?._id ?? null;
+    const featuredId = known ?? soonest?.spot?._id ?? null;
     const others = spotSummaries(
       bySpot.filter(({ spot }) => spot._id !== featuredId),
       now
     );
 
-    return { soonest, days, others, featuredId };
+    return { soonest, days, others, featuredId, known };
   }, [bySpot, spotId]);
 
   const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
@@ -134,7 +147,7 @@ export function NextContent() {
           Next windows
         </h1>
         <div className="flex items-center gap-2">
-          {spots.length > 0 && <SpotPicker spots={spots} value={spotId} onChange={setSpotId} />}
+          {spots.length > 0 && <SpotPicker spots={spots} value={view?.known ?? null} onChange={setSpotId} />}
           <SportFilterChip />
         </div>
       </header>
@@ -186,7 +199,7 @@ export function NextContent() {
               </p>
               <p className="text-[14px] text-faded-ink mt-2.5">
                 No {meta.label.toLowerCase()} windows clear 60
-                {spotId ? " here" : ""} in the next six days.
+                {view.known ? " here" : ""} in the next six days.
               </p>
             </div>
           )}
@@ -195,7 +208,9 @@ export function NextContent() {
             days={view.days}
             sport={sport}
             sportLabel={
-              spotId ? spots.find((s) => s._id === spotId)?.name?.toUpperCase() : meta.label
+              view.known
+                ? spots.find((s) => s._id === view.known)?.name?.toUpperCase()
+                : meta.label
             }
             onSelectWindow={(day, window) =>
               router.push(`/window/${day.dayStart}/${window.start}`)
@@ -205,7 +220,7 @@ export function NextContent() {
           {view.others.length > 0 && (
             <section className="pt-[22px]">
               <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
-                {spotId ? "OTHER SPOTS" : "ELSEWHERE, THIS WEEK"}
+                {view.known ? "OTHER SPOTS" : "ELSEWHERE, THIS WEEK"}
               </h2>
               <div className="flex flex-col gap-[7px]">
                 {view.others.map(({ spot, windowCount, soonest }) => (
@@ -243,7 +258,7 @@ export function NextContent() {
             </section>
           )}
 
-          {spotId && (
+          {view.known && (
             <button
               onClick={() => setSpotId(null)}
               className="mt-4 font-data text-[10px] tracking-label text-faded-ink hover:text-ink focus-ring"

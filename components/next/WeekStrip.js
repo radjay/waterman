@@ -130,9 +130,9 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
                 style={{
                   left: `${pos.left}%`,
                   width: `${pos.width}%`,
-                  background: isSplit
-                    ? undefined
-                    : windowGradient(window.score, { marginal: isMarginal }),
+                  // Ramped across the window's own slots, so the band climbs
+                  // and falls with the afternoon instead of sitting flat.
+                  background: isSplit ? undefined : windowGradient(window, { marginal: isMarginal }),
                 }}
               >
                 {pos.peak !== null && (
