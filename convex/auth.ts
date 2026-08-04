@@ -618,7 +618,7 @@ export const getCurrentUser = query({
 // =============================================================================
 
 /**
- * Send magic link email via Resend
+ * Send a magic link through the authenticated Cloudflare email Worker.
  * This is an internal action that gets triggered by requestMagicLink
  */
 export const sendMagicLinkEmail = internalAction({
@@ -636,22 +636,22 @@ export const sendMagicLinkEmail = internalAction({
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const magicLinkUrl = `${appUrl}/auth/verify?token=${args.token}`;
       
-      // Get Resend API key
-      const resendApiKey = process.env.RESEND_API_KEY;
-      if (!resendApiKey) {
-        console.error("RESEND_API_KEY not configured");
+      const emailWorkerUrl = process.env.CLOUDFLARE_EMAIL_WORKER_URL;
+      const emailWorkerSecret = process.env.CLOUDFLARE_EMAIL_WORKER_SECRET;
+      if (!emailWorkerUrl || !emailWorkerSecret) {
+        console.error(
+          "CLOUDFLARE_EMAIL_WORKER_URL or CLOUDFLARE_EMAIL_WORKER_SECRET not configured"
+        );
         return { success: false };
       }
       
-      // Send email via Resend API
-      const response = await fetch("https://api.resend.com/emails", {
+      const response = await fetch(emailWorkerUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${resendApiKey}`,
+          "Authorization": `Bearer ${emailWorkerSecret}`,
         },
         body: JSON.stringify({
-          from: "Waterman <waterman@radx.dev>",
           to: args.email,
           subject: "Sign in to Waterman",
           html: `
@@ -739,17 +739,30 @@ export const sendMagicLinkEmail = internalAction({
             </body>
             </html>
           `,
+          text: `Sign in to Waterman
+
+Open this link to sign in:
+${magicLinkUrl}
+
+Or enter this code in the app: ${args.code}
+
+This code and link will expire in ${MAGIC_LINK_EXPIRY_MINUTES} minutes and can only be used once.
+
+If you didn't request this email, you can safely ignore it.`,
         }),
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Resend API error:", response.status, errorText);
+        console.error("Cloudflare email Worker error:", response.status, errorText);
         return { success: false };
       }
       
-      const data = await response.json();
-      console.log("Magic link email sent:", { emailId: data.id, email: args.email });
+      const data = (await response.json()) as { messageId?: string };
+      console.log("Magic link email sent:", {
+        emailId: data.messageId,
+        email: args.email,
+      });
       
       return { success: true };
     } catch (error) {

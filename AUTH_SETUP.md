@@ -5,7 +5,8 @@ This guide explains how to set up email-based magic link authentication for Wate
 ## Prerequisites
 
 - Convex account and project
-- Resend account (already have one)
+- Cloudflare account with `radx.dev` onboarded to Email Service
+- Wrangler authenticated to the Cloudflare account
 - Next.js environment configured
 
 ## Environment Variables
@@ -17,8 +18,11 @@ This guide explains how to set up email-based magic link authentication for Wate
 Set these in your Convex dashboard (https://dashboard.convex.dev):
 
 ```bash
-# Resend API Key for sending magic link emails
-RESEND_API_KEY=re_xxxxx
+# Deployed URL printed by `npm run email:deploy`
+CLOUDFLARE_EMAIL_WORKER_URL=https://waterman-email.<account-subdomain>.workers.dev
+
+# Shared secret also stored on the Worker
+CLOUDFLARE_EMAIL_WORKER_SECRET=<random-secret>
 
 # App URL for generating magic links (production)
 NEXT_PUBLIC_APP_URL=https://waterman.app
@@ -28,8 +32,9 @@ NEXT_PUBLIC_APP_URL=https://waterman.app
 1. Go to your Convex dashboard
 2. Select your project
 3. Navigate to Settings → Environment Variables
-4. Add `RESEND_API_KEY` with your Resend API key
-5. The `NEXT_PUBLIC_APP_URL` should be set in your Next.js environment (see below)
+4. Add `CLOUDFLARE_EMAIL_WORKER_URL` with the deployed Worker URL
+5. Add `CLOUDFLARE_EMAIL_WORKER_SECRET` with the same random value stored as the Worker's `EMAIL_WORKER_SECRET`
+6. Add `NEXT_PUBLIC_APP_URL`; Convex uses it when generating magic links
 
 #### 2. Next.js Environment Variables
 
@@ -58,32 +63,47 @@ These are hardcoded in `convex/auth.ts` but can be moved to environment variable
 - `SESSION_EXPIRY_DAYS=30` (session expiry time)
 - `MAX_MAGIC_LINKS_PER_HOUR=3` (rate limiting)
 
-## Resend Setup
+## Cloudflare Email Worker Setup
 
-### 1. Get Your Resend API Key
+The Worker lives in `workers/email`. It exposes an authenticated `POST` endpoint and sends with Cloudflare's native `EMAIL` binding. The binding is restricted to `waterman@radx.dev`, so callers cannot choose another sender.
 
-1. Log in to Resend: https://resend.com
-2. Navigate to API Keys
-3. Create a new API key (or use existing)
-4. Copy the key (starts with `re_`)
+### 1. Install and authenticate Wrangler
 
-### 2. Configure Sending Domain (Optional but Recommended)
-
-For better email deliverability:
-
-1. Add your domain in Resend dashboard
-2. Configure DNS records (SPF, DKIM)
-3. Verify domain
-4. Update the `from` field in `convex/auth.ts`:
-
-```typescript
-from: "Waterman <noreply@yourdomain.com>",
+```bash
+npm install
+npm run email:install
+npm --prefix workers/email exec -- wrangler login
 ```
 
-Currently using:
-```typescript
-from: "Waterman <noreply@waterman.app>",
+### 2. Deploy the Worker
+
+```bash
+npm run email:deploy
 ```
+
+Save the deployed `workers.dev` URL from Wrangler's output.
+
+### 3. Set the shared secret
+
+Generate one random secret and store the same value in Cloudflare and Convex:
+
+```bash
+openssl rand -hex 32
+npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET
+
+npx convex env set CLOUDFLARE_EMAIL_WORKER_URL https://waterman-email.<account-subdomain>.workers.dev
+npx convex env set CLOUDFLARE_EMAIL_WORKER_SECRET <random-secret>
+```
+
+Do not put the secret in `wrangler.jsonc` or a checked-in environment file.
+
+### 4. Local Worker development
+
+```bash
+npm run email:dev
+```
+
+The local binding simulates delivery and logs the generated message instead of sending it. To use Cloudflare's remote binding for a real delivery test, temporarily add `"remote": true` to the `send_email` entry in `workers/email/wrangler.jsonc`; remove it again after testing if you want local development to remain non-delivering.
 
 ## Database Schema
 
@@ -97,7 +117,20 @@ These are automatically created when you deploy your Convex schema.
 
 ## Deployment Steps
 
-### 1. Deploy Convex Schema and Functions
+### 1. Deploy the Email Worker
+
+```bash
+npm run email:deploy
+npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET
+```
+
+### 2. Set Convex Environment Variables
+
+- `CLOUDFLARE_EMAIL_WORKER_URL`
+- `CLOUDFLARE_EMAIL_WORKER_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+
+### 3. Deploy Convex Schema and Functions
 
 ```bash
 # Deploy to Convex
@@ -109,16 +142,7 @@ npx convex deploy
 # - Set up cron jobs for cleanup
 ```
 
-### 2. Set Environment Variables
-
-**In Convex Dashboard:**
-- Add `RESEND_API_KEY`
-
-**In Render Dashboard** (or your deployment platform):
-- Add `NEXT_PUBLIC_APP_URL`
-- Ensure `NEXT_PUBLIC_CONVEX_URL` is set
-
-### 3. Deploy Next.js App
+### 4. Deploy Next.js App
 
 ```bash
 # Build and deploy your Next.js app
@@ -127,7 +151,7 @@ npm run build
 # Or deploy via Render (automatic if using Render)
 ```
 
-### 4. Test the Flow
+### 5. Test the Flow
 
 1. Visit `/auth/login`
 2. Enter your email
@@ -180,11 +204,12 @@ For production, consider:
 
 ### Emails Not Arriving
 
-1. Check Resend dashboard for delivery logs
-2. Verify `RESEND_API_KEY` is set correctly in Convex
+1. Check Email Service logs in the Cloudflare dashboard
+2. Verify `CLOUDFLARE_EMAIL_WORKER_URL` and `CLOUDFLARE_EMAIL_WORKER_SECRET` in Convex
 3. Check spam folder
-4. Verify domain is configured (if using custom domain)
-5. Check Convex logs for errors:
+4. Verify `radx.dev` remains onboarded to Cloudflare Email Service
+5. Check the Worker logs with `npm --prefix workers/email exec -- wrangler tail`
+6. Check Convex logs for errors:
    ```bash
    npx convex logs
    ```
@@ -224,7 +249,7 @@ For production, consider:
 
 ### Internal Actions
 
-- `auth.sendMagicLinkEmail` - Send email via Resend
+- `auth.sendMagicLinkEmail` - Send email via the Cloudflare email Worker
 - `auth.cleanupExpiredMagicLinks` - Cleanup job (cron)
 - `auth.cleanupExpiredSessions` - Cleanup job (cron)
 
@@ -234,7 +259,7 @@ For issues or questions:
 
 1. Check Convex logs: `npx convex logs`
 2. Check browser console for client-side errors
-3. Review Resend delivery logs
+3. Review Cloudflare Email Service and Worker logs
 4. Check this documentation
 
 ## Next Steps (Post-MVP)
