@@ -34,6 +34,26 @@ Five spots carry a `liveReportUrl`, across three distinct stations:
 
 Roughly 470k station-readings of history exist across 2329 and 3294.
 
+Only two of those five spots can ever show a delta against forecast. Praia das
+Moitas and Praia do Guincho (N) are `webcamOnly`, so they are not scraped and
+have no forecast — Moitas returns zero forecast slots. Lagoa da Albufeira has a
+forecast but a dead station. That leaves Marina de Cascais and Praia do Guincho.
+
+Station siting differs between those two, and it matters:
+
+| Spot | Station | Distance | Character |
+|---|---|---|---|
+| Marina de Cascais (38.6919, -9.4203) | 2329, at the marina | co-located | measures the spot |
+| Praia do Guincho (38.7333, -9.4733) | 3294, Cabo Raso (38.7089, -9.4859) | ~2.9 km | exposed headland |
+
+`lib/forecast-experiment/locations.js` classifies Cabo Raso as
+`role: "lead-indicator"`, not a co-located sensor for anywhere.
+
+Forecast history is shallow. Querying `forecast_slots` for Guincho by timestamp
+range returns rows at 3 and 7 days back, and nothing at 14, 30 or 60. So roughly
+a week of past forecast exists, which bounds what any forecast-versus-actual
+comparison can do.
+
 The fx ingestion pipeline stopped on 2026-06-10; the last
 `fx-fetch-observations` worker run was 15:42Z that day. Why it stopped is
 unexplained and out of scope here — this design routes around it rather than
@@ -61,6 +81,11 @@ card is dead code regardless of the flag.
    and stops presenting one physical measurement as two independent ones.
 7. **Observability**: Convex logs only. No `fx_worker_runs` writes, no UI
    staleness surface beyond the existing 60-minute convention.
+8. **No bias caption.** There is not enough forecast history to pair against.
+   The card ships with a sparkline and a delta pill only.
+9. **Proximity gates the verdict effect.** Only a co-located station feeds
+   `stationDelta` into `deriveVerdict`. A nearby station shows its reading,
+   attributed, but does not change the verdict.
 
 ## Architecture
 
@@ -90,6 +115,15 @@ The parse layer gains one rule that the existing code lacks, described under
   returning null for anything unparseable.
 - `stationTargetsFromSpots(spots)` — dedupes to `[{stationId, spotIds}]`.
   Three targets from five spots today.
+- `STATIONS` — a small static map of `stationId` to `{name, latitude,
+  longitude}`. Three entries today. Station coordinates are not in the database
+  and are not worth a schema change for three rows.
+- `classifyProximity(stationId, spot)` — returns `"at-spot"` under 1 km, else
+  `"nearby"` with distance and compass bearing.
+
+An unmapped station classifies as `"nearby"`, never `"at-spot"`. This is the
+safety property that matters: adding a spot with an unknown station cannot
+silently start flipping verdicts.
 
 No Convex imports, so it unit-tests directly under vitest.
 
@@ -110,32 +144,29 @@ jobs. Three stations at twelve polls an hour is 36 fetches an hour.
 
 ### `lib/station.js` (new, pure)
 
-Builds the `StationCard` shape from raw readings plus the spot's forecast slots:
+Builds the `StationCard` shape from raw readings plus the spot's current
+forecast slot:
 
 - `speed`, `gust`, `directionLabel` (reusing the compass helper in
   `lib/utils.js`), `agoLabel` — from the newest reading.
 - `history` — trailing 90 minutes bucketed to 5-minute steps, giving the ~18
   bars `StationCard` renders.
-- `delta` — newest reading minus the current forecast slot's speed.
-- `caption` — the trailing bias over **14 days**, pairing each past reading with
-  the forecast that was live *at that time*, meaning the most recent
-  `scrapeTimestamp` at or before the reading, then averaging the difference.
-  That is the number a rider would actually have been shown, not a
-  retrospectively corrected one. Rendered in the existing caption style, as
-  `RUNS 2.3 KN OVER FORECAST · 14D` (or `UNDER`). Returns null below 48 paired
-  samples, so a thin window says nothing rather than asserting a bias it cannot
-  support.
+- `delta` — newest reading minus the current forecast slot's speed, **only for
+  an `at-spot` station**. Null for a `nearby` one, because the pill reads
+  "vs forecast" and a sensor 2.9 km away on a headland is not measuring that
+  spot's forecast error.
+- `caption` — station provenance, not bias. `AT THE SPOT` for a co-located
+  station, `CABO RASO · 2.9 KM NW` for a nearby one. The rider is told which
+  sensor they are looking at rather than being left to assume it is theirs.
 
-This is computable because `forecast_slots` retains history by
-`scrapeTimestamp` (`convex/spots.ts:195`). The aggressive three-scrape pruning
-in the codebase applies to `model_slots` (`convex/models.ts:19`), not to
-`forecast_slots`.
+No bias line. See "Out of scope".
 
 ### `components/now/useNowData.js`
 
 Resolves `chosen.spot.liveReportUrl` to a station ID, queries readings, builds
-the card via `lib/station.js`, and replaces both `stationDelta: null` sites with
-the real value.
+the card via `lib/station.js`, and replaces both `stationDelta: null` sites
+(lines 117 and 146) with the card's `delta` — which is null for a nearby
+station, preserving today's behaviour there exactly.
 
 ## Dead stations
 
@@ -180,6 +211,11 @@ precedent set for model ingest in commit 5311534, where a failure degrades to
 
 `scripts/backfill-station-readings.mjs`, run manually once, never scheduled.
 
+With the bias caption cut, the backfill no longer serves the Now card at all —
+that needs only the last 90 minutes. It is worth doing anyway, for the reason
+this work started: a queryable archive of what the wind actually did, which is
+what makes charting it possible. Nothing in this branch consumes it.
+
 Maps fx `locationSlug` to station: `cabo-raso` → 3294, `cascais-bay` → 2329.
 `cascais-region` is the IPMA surface feed, not a Windguru station, and is
 skipped.
@@ -204,8 +240,14 @@ the verdict from **NO to MARGINAL**, and `verdictReason` (line 116) then renders
 Turning this on therefore changes what the app tells riders to do, not only what
 it shows them. The path is currently unreachable because `stationDelta` is
 hardcoded null. It is clearly the intended design, but it is the part that most
-warrants a real-data sanity check before the flag goes on. Stations 2329 and
-3294 can both supply that.
+warrants a real-data sanity check before the flag goes on.
+
+Because of decision 9, exactly one spot reaches this path today: Marina de
+Cascais, whose station is at the marina. Guincho's Cabo Raso reading is shown
+and attributed but does not vote. Without that gate, Cabo Raso's headland
+exposure would put a persistent positive offset into Guincho's delta and flip it
+from NO to MARGINAL on a standing basis — reading as a wrong forecast when it is
+really a sensor 2.9 km away in windier terrain.
 
 ## Staleness
 
@@ -222,8 +264,12 @@ Under vitest, in `__tests__` directories:
 - `lib/windguru.js` — the real 15435 payload as a fixture, asserting it yields
   no reading; a live-but-calm payload asserting it yields 0 knots; a normal
   payload asserting correct field extraction.
-- `lib/station.js` — card shape, sparkline bucketing, bias pairing against the
-  forecast live at the time, and the empty-history case.
+- `lib/stations.js` proximity — Marina/2329 classifies `at-spot`,
+  Guincho/3294 classifies `nearby` at ~2.9 km, and an unmapped station
+  classifies `nearby` rather than `at-spot`.
+- `lib/station.js` — card shape, sparkline bucketing, the empty-history case,
+  and specifically that `delta` is null for a nearby station so the verdict
+  path stays untouched there.
 
 Under `node:test` in `tests/convex/`, mirroring the existing
 `forecastSlotDedupe.test.mjs`: dedupe on `(stationId, time)`, and rejection of
@@ -231,6 +277,16 @@ readings that fail the guards above.
 
 ## Out of scope
 
+- **The bias caption.** `forecast_slots` holds roughly a week of past forecast,
+  verified empty at 14, 30 and 60 days back. A trailing bias has almost nothing
+  to pair against, and the deep reading archive this branch backfills cannot
+  help, because the forecasts it would need were never kept. Building it now
+  would produce a caption that renders null in practice. It needs forecast
+  retention to be addressed first, which is its own piece of work.
+- **Why `forecast_slots` stops at about a week.** Line 195 of `convex/spots.ts`
+  says it keeps historical data, and the aggressive three-scrape pruning is on
+  `model_slots` (`convex/models.ts:19`), not here. So the shallow depth is
+  unexplained and worth a look independently of this branch.
 - **Why the fx workers stopped on 2026-06-10.** Still unexplained.
 - **`FX_OBSERVATION_SOURCES` is stale.** `lib/forecast-experiment/locations.js`
   marks `windguru-2329` as `enabled: false` with `status: "sensor_offline"`.
@@ -251,5 +307,11 @@ readings that fail the guards above.
    15435 produces none.
 3. Run the backfill and spot-check row counts against the `fx_observations`
    spans in the table above.
-4. Eyeball the delta and bias on a real spot before flipping `stationEvidence`,
-   given the NO-to-MARGINAL effect described above.
+4. Eyeball Marina de Cascais' delta against a live reading before flipping
+   `stationEvidence`, given the NO-to-MARGINAL effect described above. Confirm
+   Guincho shows its Cabo Raso reading with no delta pill and no verdict change.
+
+The flag itself is a Render env var, `NEXT_PUBLIC_FLAG_STATION_EVIDENCE`, not a
+code default. `lib/flags.js` records why: production and development share one
+Convex deployment, so the Render service's env vars are the only environment
+boundary that exists. Enabling it is a deploy-time action, not part of the diff.
