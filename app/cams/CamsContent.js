@@ -8,6 +8,8 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
+import { useFlag } from "../../components/flags/FlagProvider";
+import { riderCount as fixtureRiderCount } from "../../lib/fixtures/riderCounts";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
@@ -60,6 +62,8 @@ export default function CamsContent({ initialData = null }) {
   const router = useRouter();
   const { sessionToken } = useAuth();
   const user = useUser();
+
+  const showRiderCounts = useFlag("riderCounts");
 
   const [webcams, setWebcams] = useState(() => buildInitialWebcams(initialData));
   const [enrichedSlots, setEnrichedSlots] = useState(() => buildInitialSlots(initialData));
@@ -249,6 +253,21 @@ export default function CamsContent({ initialData = null }) {
   }, [enrichedSlots, spotsMap]);
 
   const handleWebcamClick = (webcam) => setFocusedWebcam(webcam);
+
+  /**
+   * Sorted by who is actually out, not alphabetically — a cam with nobody on it
+   * is information too, it just belongs further down.
+   *
+   * The whole organising principle of this screen is flag-dependent, so both
+   * orderings have to look deliberate. With riderCounts off we keep the
+   * existing order rather than inventing a different one.
+   */
+  const orderedWebcams = showRiderCounts
+    ? [...webcams].sort((a, b) => {
+        const countOf = (cam) => fixtureRiderCount(cam._id)?.count ?? -1;
+        return countOf(b) - countOf(a);
+      })
+    : webcams;
   const handleCloseFullscreen = () => setFocusedWebcam(null);
   const handleNavigateWebcam = (webcam) => setFocusedWebcam(webcam);
 
@@ -341,7 +360,7 @@ export default function CamsContent({ initialData = null }) {
           <EmptyState message="No webcams available" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {webcams.map((webcam) => (
+            {orderedWebcams.map((webcam) => (
               <div
                 key={webcam._id}
                 onClick={() => handleWebcamClick(webcam)}
