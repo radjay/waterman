@@ -1,6 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
-import { getForecast } from "../lib/scraper.js";
+import { getForecast, getModelForecasts } from "../lib/scraper.js";
 import { extractSpotId } from "../lib/scraper.js";
 import dotenv from "dotenv";
 
@@ -77,6 +77,36 @@ async function main() {
                 console.log(`   -> Saved ${dbSlots.length} slots to DB.`);
             } else {
                 console.log("   -> No suitable slots found.");
+            }
+
+            // Per-model wind series — additive evidence for the confidence
+            // grid and agreement counts.
+            //
+            // Deliberately isolated in its own try/catch: this is an
+            // undocumented parameter on an undocumented endpoint, and it must
+            // never be able to take down the core forecast above. If every
+            // model fetch fails, the app degrades to "no model data", which
+            // the UI renders as its own state rather than as disagreement.
+            if (dbSlots.length > 0) {
+                try {
+                    const modelForecasts = await getModelForecasts(windySpotId);
+                    if (modelForecasts.length > 0) {
+                        const result = await client.mutation(api.models.saveModelSlots, {
+                            spotId: spot._id,
+                            scrapeTimestamp: scrapeTimestamp,
+                            models: modelForecasts,
+                        });
+                        console.log(
+                            `   -> Saved ${result.inserted} model slots across ${modelForecasts.length} models` +
+                            ` (${modelForecasts.map((m) => m.model).join(", ")})` +
+                            (result.deleted ? `, pruned ${result.deleted} stale.` : ".")
+                        );
+                    } else {
+                        console.log("   -> No trustworthy per-model series for this spot.");
+                    }
+                } catch (modelErr) {
+                    console.error(`   -> Model ingest failed (forecast unaffected): ${modelErr.message}`);
+                }
             }
 
             // Store Tide Events separately
