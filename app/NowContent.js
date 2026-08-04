@@ -10,7 +10,7 @@ import { VerdictCard } from "../components/now/VerdictCard";
 import { EvidenceStack } from "../components/now/EvidenceStack";
 import { useNowData } from "../components/now/useNowData";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
-import { VERDICT } from "../lib/verdict";
+import { VERDICT, relativeDay } from "../lib/verdict";
 import { getDisplayWindDirection } from "../lib/utils";
 import { useShare } from "../hooks/useShare";
 
@@ -112,11 +112,8 @@ export function NowContent() {
                 NEXT WINDOW
               </div>
               <div className="font-headline font-bold text-[17px] tracking-display text-ink">
-                {new Intl.DateTimeFormat("en-GB", {
-                  weekday: "long",
-                  timeZone: "Europe/Lisbon",
-                }).format(new Date(data.nextWindow.window.start))}{" "}
-                · {data.nextWindow.spot.name}
+                {capitalise(relativeDay(data.nextWindow.window.start))} ·{" "}
+                {data.nextWindow.spot.name}
               </div>
               <div className="font-data text-[11px] text-faded-ink mt-0.5">
                 from{" "}
@@ -150,6 +147,8 @@ export function NowContent() {
  * different round trips — so each card needs its own resting state rather than
  * the whole screen blocking on the slowest one.
  */
+const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 function NowSkeleton() {
   return (
     <div className="animate-pulse" aria-hidden="true">

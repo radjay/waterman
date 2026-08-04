@@ -11,6 +11,7 @@ import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
 import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
 import { getDisplayWindDirection } from "../../lib/utils";
+import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -43,15 +44,11 @@ export function NextContent() {
         const report = await client.query(api.spots.getReportData, { sports: [sport] });
         if (cancelled) return;
 
-        const bySpot = (report.spots || []).map((spot) => {
-          const slots = (report.slotsBySpot?.[spot._id] || [])
-            .map((slot) => ({
-              ...slot,
-              score: report.scoresMap?.[`${slot.timestamp}_${sport}`]?.score ?? null,
-            }))
-            .sort((a, b) => a.timestamp - b.timestamp);
-          return { spot, slots, windows: detectWindows(slots) };
-        });
+        const bySpot = spotsWithSlots(report, sport).map(({ spot, slots }) => ({
+          spot,
+          slots,
+          windows: detectWindows(slots),
+        }));
 
         const now = Date.now();
         const soonest = soonestWindow(bySpot, now);

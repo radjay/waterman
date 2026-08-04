@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
 import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
 import { detectWindows, soonestWindow } from "../../lib/windows";
+import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -50,26 +51,11 @@ export function useNowData(sport) {
         const now = Date.now();
         const candidates = [];
 
-        for (const spot of report.spots || []) {
-          const slots = (report.slotsBySpot?.[spot._id] || [])
-            .map((slot) => ({
-              ...slot,
-              score: report.scoresMap?.[`${slot.timestamp}_${sport}`]?.score ?? null,
-            }))
-            .sort((a, b) => a.timestamp - b.timestamp);
-
+        for (const { spot, slots, config } of spotsWithSlots(report, sport)) {
           if (slots.length === 0) continue;
-
           const slot = currentSlot(slots, now);
           if (!slot) continue;
-
-          candidates.push({
-            spot,
-            slot,
-            slots,
-            score: slot.score,
-            config: report.configsBySpot?.[spot._id]?.[sport] ?? null,
-          });
+          candidates.push({ spot, slot, slots, score: slot.score, config });
         }
 
         const chosen = pickNowSpot(candidates);

@@ -18,6 +18,7 @@ import {
   thresholdFor,
 } from "../../../../lib/agreement";
 import { surfConfidenceLabel, surfCriteria } from "../../../../lib/surfCriteria";
+import { spotsWithSlots } from "../../../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -41,17 +42,11 @@ export function ConfidenceContent({ dayStart, windowStart }) {
 
         // The window belongs to whichever spot has the best score at its start.
         let best = null;
-        for (const spot of report.spots || []) {
-          const slots = (report.slotsBySpot?.[spot._id] || [])
-            .map((s) => ({
-              ...s,
-              score: report.scoresMap?.[`${s.timestamp}_${sport}`]?.score ?? null,
-            }))
-            .sort((a, b) => a.timestamp - b.timestamp);
+        for (const { spot, slots, config } of spotsWithSlots(report, sport)) {
           const slot = slots.find((s) => s.timestamp === windowStart);
           if (!slot) continue;
           if (!best || (slot.score ?? -1) > (best.slot.score ?? -1)) {
-            best = { spot, slot, slots, config: report.configsBySpot?.[spot._id]?.[sport] ?? null };
+            best = { spot, slot, slots, config };
           }
         }
 
