@@ -328,7 +328,7 @@ export default function CamsContent({ initialData = null }) {
                 }`}
               >
                 {showRiderCounts && (
-                  <RiderBadge reading={fixtureRiderCount(webcam._id)} sport={selectedSport} />
+                  <RiderBadge reading={fixtureRiderCount(webcam._id)} sports={selectedSports} />
                 )}
                 <WebcamCard
                   spot={webcam}
@@ -396,11 +396,15 @@ export default function CamsContent({ initialData = null }) {
  *   nobody   — "NOBODY OUT" in muted text. A real answer, not an empty state.
  *   no data  — nothing rendered, which is different again from nobody out
  */
-function RiderBadge({ reading, sport }) {
+function RiderBadge({ reading, sports }) {
   if (!reading) return null;
 
+  // The sport filter is multi-select (RAD-22), so the noun is only specific
+  // when exactly one sport is showing. "4 OUT" is honest when the grid mixes
+  // sports; "4 WINGS" would not be.
+  const only = sports?.length === 1 ? sports[0] : null;
   const noun =
-    sport === "kitesurfing" ? "KITES" : sport === "surfing" ? "SURFERS" : "WINGS";
+    only === "kitesurfing" ? "KITES" : only === "surfing" ? "SURFERS" : only === "wingfoil" ? "WINGS" : "OUT";
   const busy = reading.count >= 5;
   const empty = reading.count === 0;
 
