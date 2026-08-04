@@ -89,7 +89,7 @@ Generate one random secret and store the same value in Cloudflare and Convex:
 
 ```bash
 openssl rand -hex 32
-npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET
+npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET --config workers/email/wrangler.jsonc
 
 npx convex env set CLOUDFLARE_EMAIL_WORKER_URL https://waterman-email.<account-subdomain>.workers.dev
 npx convex env set CLOUDFLARE_EMAIL_WORKER_SECRET <random-secret>
@@ -121,7 +121,7 @@ These are automatically created when you deploy your Convex schema.
 
 ```bash
 npm run email:deploy
-npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET
+npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET --config workers/email/wrangler.jsonc
 ```
 
 ### 2. Set Convex Environment Variables
@@ -208,7 +208,7 @@ For production, consider:
 2. Verify `CLOUDFLARE_EMAIL_WORKER_URL` and `CLOUDFLARE_EMAIL_WORKER_SECRET` in Convex
 3. Check spam folder
 4. Verify `radx.dev` remains onboarded to Cloudflare Email Service
-5. Check the Worker logs with `npm --prefix workers/email exec -- wrangler tail`
+5. Check the Worker logs with `npm --prefix workers/email exec -- wrangler tail --config workers/email/wrangler.jsonc`
 6. Check Convex logs for errors:
    ```bash
    npx convex logs
