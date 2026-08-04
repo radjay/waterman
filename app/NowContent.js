@@ -106,7 +106,11 @@ export function NowContent() {
                 {data.nextWindows.map(({ spot, window }, i) => (
                   <button
                     key={`${spot._id}-${window.start}`}
-                    onClick={() => router.push(`/window/${window.start}/${window.start}`)}
+                    onClick={() =>
+                      router.push(
+                        `/window/${window.start}/${window.start}?spot=${spot._id}`
+                      )
+                    }
                     className={`w-full text-left flex items-center gap-3 rounded-[15px] border px-[14px] py-[13px] focus-ring transition-colors duration-fast ease-smooth ${
                       i === 0
                         ? "bg-accent-tint-card border-accent-border"

@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { MainLayout } from "../../../../components/layout/MainLayout";
 import { ScoreDial } from "../../../../components/ui/ScoreDial";
 import { ModelGrid, CriteriaPanel } from "../../../../components/confidence/ModelGrid";
+import { ScoreFactors } from "../../../../components/confidence/ScoreFactors";
+import { HourByHour } from "../../../../components/confidence/HourByHour";
 import { useSport, isWindSport } from "../../../../components/sport/SportProvider";
 import { useFlag } from "../../../../components/flags/FlagProvider";
 import {
@@ -19,6 +21,8 @@ import {
 } from "../../../../lib/agreement";
 import { surfConfidenceLabel, surfCriteria } from "../../../../lib/surfCriteria";
 import { spotsWithSlots } from "../../../../lib/reportData";
+import { detectWindows } from "../../../../lib/windows";
+import { conditionSummary } from "../../../../lib/conditions";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -29,6 +33,8 @@ const fmt = (ms, options) =>
 
 export function ConfidenceContent({ dayStart, windowStart }) {
   const router = useRouter();
+  const search = useSearchParams();
+  const spotParam = search.get("spot");
   const { sport } = useSport();
   const showModels = useFlag("modelConfidence");
   const [state, setState] = useState({ loading: true, error: null, data: null });
@@ -36,74 +42,85 @@ export function ConfidenceContent({ dayStart, windowStart }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setState((s) => ({ ...s, loading: true, error: null }));
       try {
         const report = await client.query(api.spots.getReportData, { sports: [sport] });
         if (cancelled) return;
 
-        // The window belongs to whichever spot has the best score at its start.
-        let best = null;
-        for (const { spot, slots, config } of spotsWithSlots(report, sport)) {
-          const slot = slots.find((s) => s.timestamp === windowStart);
-          if (!slot) continue;
-          if (!best || (slot.score ?? -1) > (best.slot.score ?? -1)) {
-            best = { spot, slot, slots, config };
+        // The spot is carried in the URL when we know it. Falling back to
+        // "best score at this timestamp" is a guess, and a Confidence screen
+        // showing another beach's numbers is worse than no screen.
+        const candidates = spotsWithSlots(report, sport);
+        let chosen = spotParam
+          ? candidates.find(({ spot }) => spot._id === spotParam)
+          : null;
+
+        if (!chosen) {
+          for (const candidate of candidates) {
+            const slot = candidate.slots.find((s) => s.timestamp === windowStart);
+            if (!slot) continue;
+            const best = chosen?.slots.find((s) => s.timestamp === windowStart);
+            if (!chosen || (slot.score ?? -1) > (best?.score ?? -1)) chosen = candidate;
           }
         }
-
-        if (!best) {
+        if (!chosen) {
           setState({ loading: false, error: null, data: null });
           return;
         }
 
-        // Five 3-hour columns starting at the window.
-        const columns = Array.from({ length: 5 }, (_, i) => {
-          const timestamp = windowStart + i * THREE_HOURS;
-          return { timestamp, label: fmt(timestamp, { hour: "2-digit" }) };
-        });
+        // Prefer the whole window over the single slot that was tapped: the
+        // question is about a stretch of time, not an instant.
+        const windows = detectWindows(chosen.slots);
+        const window =
+          windows.find((w) => windowStart >= w.start && windowStart < w.end) ?? null;
 
+        const windowSlots = window
+          ? window.slots
+          : chosen.slots.filter(
+              (s) => s.timestamp >= windowStart && s.timestamp < windowStart + THREE_HOURS
+            );
+        if (windowSlots.length === 0) {
+          setState({ loading: false, error: null, data: null });
+          return;
+        }
+
+        const peak = windowSlots.reduce(
+          (best, s) => ((s.score ?? -1) > (best.score ?? -1) ? s : best),
+          windowSlots[0]
+        );
+
+        const start = windowSlots[0].timestamp;
+        const end = windowSlots[windowSlots.length - 1].timestamp + THREE_HOURS;
+
+        const tides = (report.data?.[chosen.spot._id]?.tides ?? []).filter(
+          (t) => t.time >= start && t.time <= end
+        );
+
+        // Model data is additive. Its absence must never block the rest of the
+        // screen, and must never be reported as disagreement.
         let modelRows = [];
         try {
           modelRows = await client.query(api.models.getModelSlotsForSpot, {
-            spotId: best.spot._id,
-            sinceTimestamp: windowStart,
+            spotId: chosen.spot._id,
+            sinceTimestamp: start,
           });
         } catch {
           modelRows = [];
         }
         if (cancelled) return;
 
-        const byTime = groupByTimestamp(modelRows);
-        const threshold = thresholdFor(best.config, sport);
-
-        const perColumn = columns.map((c) =>
-          threshold ? agreementFor(byTime.get(c.timestamp) || [], threshold) : null
-        );
-
-        const modelNames = [
-          ...new Set(modelRows.map((r) => r.model)),
-        ];
-        const models = modelNames.map((model) => ({
-          model,
-          votes: columns.map((c) => {
-            const entry = perColumn.find((_, i) => columns[i].timestamp === c.timestamp);
-            return entry?.models.find((m) => m.model === model)?.vote ?? null;
-          }),
-        }));
-
-        const windowAgreement = perColumn[0];
-
         setState({
           loading: false,
           error: null,
           data: {
-            spot: best.spot,
-            slot: best.slot,
-            config: best.config,
-            columns,
-            models,
-            agreedByColumn: perColumn.map((a) => a?.agreed ?? 0),
-            windowAgreement,
-            outlier: windowAgreement?.outlier ?? null,
+            spot: chosen.spot,
+            config: chosen.config,
+            slots: windowSlots,
+            peak,
+            start,
+            end,
+            tides,
+            modelRows,
           },
         });
       } catch (error) {
@@ -114,45 +131,85 @@ export function ConfidenceContent({ dayStart, windowStart }) {
     return () => {
       cancelled = true;
     };
-  }, [sport, windowStart]);
+  }, [sport, windowStart, spotParam]);
 
   const { loading, error, data } = state;
   const windSport = isWindSport(sport);
 
-  const criteria = data && !windSport ? surfCriteria(data.slot, data.config, null) : [];
-  const surfLabel = criteria.length ? surfConfidenceLabel(criteria) : null;
+  const model = useMemo(() => {
+    if (!data) return null;
+    const byTime = groupByTimestamp(data.modelRows);
+    const threshold = thresholdFor(data.config, sport);
+    const columns = data.slots.map((s) => ({
+      timestamp: s.timestamp,
+      label: fmt(s.timestamp, { hour: "2-digit" }),
+    }));
+    const perColumn = columns.map((c) =>
+      threshold ? agreementFor(byTime.get(c.timestamp) || [], threshold) : null
+    );
+    const names = [...new Set(data.modelRows.map((r) => r.model))];
+    return {
+      columns,
+      perColumn,
+      models: names.map((name) => ({
+        model: name,
+        votes: perColumn.map((a) => a?.models.find((m) => m.model === name)?.vote ?? null),
+      })),
+      agreedByColumn: perColumn.map((a) => a?.agreed ?? 0),
+      windowAgreement: perColumn[0],
+    };
+  }, [data, sport]);
 
+  const criteria = data && !windSport ? surfCriteria(data.peak, data.config, null) : [];
+  const surfLabel = criteria.length ? surfConfidenceLabel(criteria) : null;
   const confidence = windSport
-    ? confidenceFromAgreement(data?.windowAgreement)
-    : surfLabel;
+    ? confidenceFrom(model?.windowAgreement, data?.peak?.score)
+    : (surfLabel ?? confidenceFrom(null, data?.peak?.score));
 
   return (
     <MainLayout wide>
       <header className="flex items-center gap-[11px] pt-[22px] pb-2.5">
-        <button onClick={() => router.back()} aria-label="Back" className="text-faded-ink focus-ring">
+        <button
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
+        >
           <ArrowLeft size={17} />
         </button>
-        <span className="font-data text-[10px] tracking-label text-faded-ink uppercase">
+        <span className="font-data text-[10px] tracking-label text-faded-ink uppercase truncate">
           {data?.spot?.name ?? "Window"} · {fmt(windowStart, { weekday: "short" })}{" "}
-          {fmt(windowStart, { hour: "2-digit", minute: "2-digit" })}–
-          {fmt(windowStart + THREE_HOURS, { hour: "2-digit", minute: "2-digit" })}
+          {fmt(data?.start ?? windowStart, { hour: "2-digit", minute: "2-digit" })}–
+          {fmt(data?.end ?? windowStart + THREE_HOURS, { hour: "2-digit", minute: "2-digit" })}
         </span>
       </header>
 
       {loading && (
         <div className="animate-pulse" aria-hidden="true">
-          <div className="h-[74px] w-[74px] rounded-full bg-surface" />
-          <div className="rounded-card bg-surface border border-card h-[200px] mt-6" />
+          <div className="flex items-center gap-3.5 pt-2">
+            <div className="h-[74px] w-[74px] rounded-full bg-surface flex-none" />
+            <div className="flex-1">
+              <div className="h-5 w-40 bg-surface rounded" />
+              <div className="h-3 w-56 bg-surface rounded mt-2.5" />
+            </div>
+          </div>
+          <div className="rounded-[15px] bg-surface border border-card h-[140px] mt-7" />
+          <div className="rounded-[15px] bg-surface border border-card h-[180px] mt-6" />
         </div>
       )}
 
       {!loading && (error || !data) && (
         <div className="rounded-card-lg border border-card bg-surface p-5">
-          <p className="text-[14px] text-faded-ink">
+          <p className="text-[14px] text-faded-ink leading-[1.5]">
             {error
               ? "Cannot reach the forecast. This is a connection problem, not an empty window."
-              : "That window is no longer in the forecast."}
+              : "That window is no longer in the forecast. Scrapes roll forward every few hours, so it may simply have passed."}
           </p>
+          <button
+            onClick={() => router.push("/next")}
+            className="mt-3 font-data text-[11px] tracking-label text-accent focus-ring"
+          >
+            BACK TO NEXT WINDOWS
+          </button>
         </div>
       )}
 
@@ -160,45 +217,43 @@ export function ConfidenceContent({ dayStart, windowStart }) {
         <>
           <div className="flex items-center gap-3.5 pt-2">
             {/* The only place the numeric score appears at any size. */}
-            <ScoreDial score={data.slot.score} size="lg" showAll label="SCORE" />
-            <div>
+            <ScoreDial score={data.peak.score} size="lg" showAll label="PEAK" />
+            <div className="min-w-0">
               <div className="font-headline font-extrabold text-[25px] tracking-display-tight leading-[1.05] text-ink">
-                {confidence?.label ?? "Unknown"}
+                {confidence.label}
               </div>
-              <p className="text-[13px] text-faded-ink mt-1.5 leading-[1.4]">
-                {confidence?.reason ?? "Not enough evidence to say."}
+              <p className="text-[13px] text-faded-ink mt-1.5 leading-[1.4]">{confidence.reason}</p>
+              <p className="font-data text-[11px] text-accent mt-1.5 uppercase truncate">
+                {conditionSummary(data.peak, sport, { gust: true }) ?? ""}
               </p>
             </div>
           </div>
 
-          {windSport && showModels && data.models.length > 0 && (
+          <ScoreFactors factors={data.peak.factors} reasoning={data.peak.reasoning} />
+
+          <HourByHour slots={data.slots} sport={sport} tides={data.tides} />
+
+          {windSport && showModels && model?.models.length > 0 && (
             <ModelGrid
-              columns={data.columns}
-              models={data.models}
-              agreedByColumn={data.agreedByColumn}
-              outlier={data.outlier}
-              sentence={agreementSentence(data.windowAgreement)}
+              columns={model.columns}
+              models={model.models}
+              agreedByColumn={model.agreedByColumn}
+              outlier={model.windowAgreement?.outlier ?? null}
+              sentence={agreementSentence(model.windowAgreement)}
             />
           )}
 
-          {windSport && showModels && data.models.length === 0 && (
-            // Explicitly "no model data", never "models split". Absence of
-            // evidence and evidence of disagreement are different answers.
-            <section className="pt-[22px]">
-              <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
-                WHEN EACH MODEL SAYS GO
-              </h2>
-              <div className="rounded-card-sm border border-card bg-surface px-[14px] py-[13px]">
-                <p className="text-[12px] text-faded-ink">
-                  No per-model data for this spot yet. That is not the same as the models
-                  disagreeing — we simply have nothing to compare.
-                </p>
-              </div>
-            </section>
+          {!windSport && criteria.length > 0 && (
+            <CriteriaPanel criteria={criteria} windAgreement={model?.windowAgreement} />
           )}
 
-          {!windSport && (
-            <CriteriaPanel criteria={criteria} windAgreement={data.windowAgreement} />
+          {/* A footnote, not a section. Absent model data is worth stating once
+              so nobody reads the screen as a full picture — but it is not the
+              answer to "do I believe it", and it used to be the whole page. */}
+          {windSport && showModels && !model?.models.length && (
+            <p className="font-data text-[9px] text-dim mt-6 leading-[1.6]">
+              NO PER-MODEL COMPARISON FOR THIS SPOT YET — NOT THE SAME AS THE MODELS DISAGREEING.
+            </p>
           )}
         </>
       )}
@@ -206,24 +261,39 @@ export function ConfidenceContent({ dayStart, windowStart }) {
   );
 }
 
-function confidenceFromAgreement(agreement) {
-  if (!agreement || agreement.band === BANDS.UNKNOWN) {
-    return { label: "Unknown", reason: "No per-model data for this spot yet." };
-  }
-  if (agreement.band === BANDS.GOOD) {
+/**
+ * Confidence reads from model agreement when we have it, and from the score
+ * itself when we do not — rather than reporting "Unknown" on a screen that is
+ * showing a scored window, a per-dimension breakdown and an hourly table.
+ */
+function confidenceFrom(agreement, score) {
+  if (agreement && agreement.band !== BANDS.UNKNOWN) {
+    if (agreement.band === BANDS.GOOD) {
+      return {
+        label: "High confidence",
+        reason: `${agreement.agreed} of ${agreement.total} models agree.`,
+      };
+    }
+    if (agreement.band === BANDS.SPLIT) {
+      return {
+        label: "Models split",
+        reason: `Only ${agreement.agreed} of ${agreement.total} call it on.`,
+      };
+    }
     return {
-      label: "High confidence",
-      reason: `${agreement.agreed} of ${agreement.total} models agree.`,
+      label: "Low confidence",
+      reason: `${agreement.agreed} of ${agreement.total} models call it on.`,
     };
   }
-  if (agreement.band === BANDS.SPLIT) {
-    return {
-      label: "Models split",
-      reason: `Only ${agreement.agreed} of ${agreement.total} call it on.`,
-    };
+
+  if (score === null || score === undefined) {
+    return { label: "Not scored", reason: "This window has not been scored yet." };
   }
-  return {
-    label: "Low confidence",
-    reason: `${agreement.agreed} of ${agreement.total} models call it on.`,
-  };
+  if (score >= 80) {
+    return { label: "Strong window", reason: "Scored well across the whole window." };
+  }
+  if (score >= 60) {
+    return { label: "Worth a look", reason: "Clears the bar, without much margin." };
+  }
+  return { label: "Marginal", reason: "Below the threshold for a good session." };
 }

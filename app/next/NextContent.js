@@ -238,9 +238,14 @@ export function NextContent() {
             days={view.days}
             sport={sport}
             title="The week"
-            onSelectWindow={(day, window) =>
-              router.push(`/window/${day.dayStart}/${window.start}`)
-            }
+            onSelectWindow={(day, window) => {
+              // In best-spot mode a band can be built from several spots, so
+              // the peak slot's own spot is the honest owner of the window.
+              const spotId = view.known ?? window.peak?.spotId ?? "";
+              router.push(
+                `/window/${day.dayStart}/${window.start}${spotId ? `?spot=${spotId}` : ""}`
+              );
+            }}
           />
 
           {view.others.length > 0 && (
