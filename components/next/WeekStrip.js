@@ -1,16 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BANDS } from "../../lib/agreement";
 import { windowTrackPosition } from "../../lib/windows";
 import { primaryMetric } from "../../lib/conditions";
 import { LEGEND_TIERS, windowGradient } from "../../lib/scoreShade";
 
-const HOUR_LABELS = [6, 9, 12, 15, 18, 21];
-const DAY_START_HOUR = 6;
-const DAY_END_HOUR = 24;
 const HOUR_MS = 60 * 60 * 1000;
+const SLOT_HOURS = 3;
 const TZ = "Europe/Lisbon";
+
+/** Fallback axis when a day has no slots inside the visible hours. */
+const FALLBACK_AXIS = { startHour: 6, endHour: 24, marks: [6, 9, 12, 15, 18, 21] };
+
+/**
+ * The strip is a daylight view. Forecast slots run right through the night, and
+ * showing 01:00 and 04:00 would spend a third of the track on hours nobody is
+ * deciding about — so marks outside these bounds are dropped rather than the
+ * axis being stretched to fit them.
+ */
+const FIRST_VISIBLE_HOUR = 6;
+const LAST_VISIBLE_HOUR = 22;
+
+/**
+ * The axis is derived from the forecast's own slot times, not hardcoded.
+ *
+ * Slots arrive on a 3-hourly UTC grid, which lands on 07:00 / 10:00 / 13:00 in
+ * Lisbon summer time and 06:00 / 09:00 / 12:00 in winter. A fixed 06/09/12 axis
+ * therefore labelled the ticks an hour off for half the year, and the bands —
+ * which are positioned from real timestamps — did not line up with them.
+ *
+ * Deriving it also means the axis follows a DST change on its own rather than
+ * silently going wrong twice a year.
+ */
+function deriveAxis(days) {
+  const hours = new Set();
+  for (const day of days) {
+    for (const slot of day.slots ?? []) {
+      const h = Math.round((slot.timestamp - day.dayStart) / HOUR_MS);
+      if (h >= FIRST_VISIBLE_HOUR && h <= LAST_VISIBLE_HOUR) hours.add(h);
+    }
+  }
+  if (hours.size === 0) return FALLBACK_AXIS;
+
+  const marks = [...hours].sort((a, b) => a - b);
+  return {
+    startHour: marks[0],
+    // A slot represents the three hours it opens, so the track has to run to
+    // the END of the last one or the final band is clipped.
+    endHour: marks[marks.length - 1] + SLOT_HOURS,
+    marks,
+  };
+}
+
+/** Label an hour offset from local midnight, wrapping past 24h. */
+const hourLabel = (h) => `${String(Math.floor(h) % 24).padStart(2, "0")}:00`;
 
 /**
  * The week, readable at a glance without parsing a single number.
@@ -38,6 +82,7 @@ const TZ = "Europe/Lisbon";
  */
 export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
   const [hovered, setHovered] = useState(null);
+  const axis = useMemo(() => deriveAxis(days), [days]);
   // Re-rendered on mount only; the line does not need to tick, and a timer here
   // would re-render the whole strip every minute for a marker that moves less
   // than a pixel.
@@ -49,13 +94,23 @@ export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
         {title}
       </h2>
 
-      <div className="flex gap-[5px] font-data text-[10px] text-dim pt-2.5 pb-2" aria-hidden="true">
-        <div className="w-[34px]" />
-        {HOUR_LABELS.map((h) => (
-          <div key={h} className="flex-1 text-left">
-            {String(h).padStart(2, "0")}:00
-          </div>
-        ))}
+      {/* Positioned absolutely rather than flexed evenly: a label has to sit
+          over the slot it names, and the slots are not evenly divisible into
+          the track once the axis is derived from real times. */}
+      <div className="relative h-[22px] font-data text-[10px] text-dim" aria-hidden="true">
+        <div className="absolute inset-y-0 left-[39px] right-[31px]">
+          {axis.marks.map((h) => (
+            <span
+              key={h}
+              className="absolute top-1.5"
+              style={{
+                left: `${((h - axis.startHour) / (axis.endHour - axis.startHour)) * 100}%`,
+              }}
+            >
+              {hourLabel(h)}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -68,6 +123,7 @@ export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
             onHover={setHovered}
             onSelectWindow={onSelectWindow}
             now={now}
+            axis={axis}
           />
         ))}
       </div>
@@ -92,11 +148,11 @@ function LegendKey({ className = "", style, label }) {
   );
 }
 
-function DayRow({ day, sport, hovered, onHover, onSelectWindow, now }) {
+function DayRow({ day, sport, hovered, onHover, onSelectWindow, now, axis }) {
   // Only today gets the marker, and only while "now" is inside the visible
   // hours — a line pinned to an edge would imply a time that is not on screen.
-  const trackStart = day.dayStart + DAY_START_HOUR * HOUR_MS;
-  const trackEnd = day.dayStart + DAY_END_HOUR * HOUR_MS;
+  const trackStart = day.dayStart + axis.startHour * HOUR_MS;
+  const trackEnd = day.dayStart + axis.endHour * HOUR_MS;
   const nowPct =
     now >= trackStart && now <= trackEnd
       ? ((now - trackStart) / (trackEnd - trackStart)) * 100
@@ -132,8 +188,8 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow, now }) {
         >
           {day.windows.map((window, i) => {
             const pos = windowTrackPosition(window, day.dayStart, {
-              dayStartHour: DAY_START_HOUR,
-              dayEndHour: DAY_END_HOUR,
+              dayStartHour: axis.startHour,
+              dayEndHour: axis.endHour,
             });
             if (!pos) return null;
 
@@ -161,12 +217,9 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow, now }) {
           {/* Hover/tap targets sit above the bands: one per forecast slot, so
               the readout is an actual reading rather than an interpolation. */}
           {(day.slots || []).map((slot) => {
-            const left =
-              ((slot.timestamp - (day.dayStart + DAY_START_HOUR * HOUR_MS)) /
-                ((DAY_END_HOUR - DAY_START_HOUR) * HOUR_MS)) *
-              100;
+            const left = ((slot.timestamp - trackStart) / (trackEnd - trackStart)) * 100;
             if (left < 0 || left >= 100) return null;
-            const width = (3 / (DAY_END_HOUR - DAY_START_HOUR)) * 100;
+            const width = (SLOT_HOURS / (axis.endHour - axis.startHour)) * 100;
             const active = readout?.timestamp === slot.timestamp;
 
             return (
