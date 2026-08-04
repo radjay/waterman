@@ -19,4 +19,16 @@ crons.daily(
   {}
 );
 
+// Live station readings. Five minutes matches the stations' own cadence.
+// This runs in Convex rather than as a Render worker deliberately: the
+// forecast-experiment observations worker died on 2026-06-10 and went
+// unnoticed for eight weeks, because it was a separate service that could
+// stop without anything noticing.
+crons.interval(
+  "poll windguru stations",
+  { minutes: 5 },
+  internal.stations.pollStations,
+  {}
+);
+
 export default crons;

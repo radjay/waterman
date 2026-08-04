@@ -180,14 +180,15 @@ export default defineSchema({
         .index("by_spot_model_timestamp", ["spotId", "model", "timestamp"])
         .index("by_spot_timestamp", ["spotId", "timestamp"]),
     /**
-     * Live station readings, retained so the delta is queryable historically.
+     * Live station readings, keyed by station rather than spot.
      *
-     * The app already proxies Windguru per view, but nothing was kept — which
-     * makes the 90-minute sparkline, the "+2 vs forecast" pill and the per-spot
-     * bias ("runs 2-3 kn over") impossible to compute rather than assert.
+     * Two spots share station 2329 and two share 3294. A per-spot row would
+     * duplicate one physical measurement as if it were two independent ones,
+     * and would double the table. spotId is optional and currently unused;
+     * by_station_time is the index that matters.
      */
     station_readings: defineTable({
-        spotId: v.id("spots"),
+        spotId: v.optional(v.id("spots")),
         stationId: v.string(),
         time: v.number(), // Epoch ms of the reading
         speed: v.number(), // knots
