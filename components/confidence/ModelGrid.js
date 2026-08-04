@@ -12,7 +12,7 @@ import { BANDS, agreementSentence, modelLabel } from "../../lib/agreement";
  * identical across all five wind models, so for surfing this grid would be five
  * identical rows claiming a consensus that was never measured.
  */
-export function ModelGrid({ columns, models, agreedByColumn, outlier, sentence }) {
+export function ModelGrid({ columns, models, agreedByColumn, outlier, sentence, sourceModel }) {
   if (!models?.length) return null;
 
   return (
@@ -34,22 +34,33 @@ export function ModelGrid({ columns, models, agreedByColumn, outlier, sentence }
         {models.map((model) => (
           <div key={model.model} className="flex gap-1 items-center">
             <div
-              className={`w-[62px] font-data text-[9px] ${
+              className={`w-[62px] font-data text-[9px] flex items-center gap-1 ${
                 model.model === outlier ? "text-marginal" : "text-faded-ink"
               }`}
             >
               {modelLabel(model.model)}
+              {/* The app's own forecast and every score come from one of these
+                  models. Saying which one is the difference between "4 models
+                  disagree with us" and "we are quoting the warm one". */}
+              {model.model === sourceModel && (
+                <span className="text-accent" title="Our forecast uses this model">
+                  •
+                </span>
+              )}
             </div>
             {model.votes.map((vote, i) => (
               <div
                 key={i}
                 className={`flex-1 h-5 rounded ${
                   vote === true
-                    ? model.model === outlier
-                      ? "bg-marginal-low"
-                      : "bg-accent"
-                    : "bg-track"
+                    ? "bg-accent"
+                    : vote === "near"
+                      ? // Just under the bar. Collapsing this into "no" turned a
+                        // two-knot spread into unanimous disagreement.
+                        "bg-accent/30 border border-accent-border"
+                      : "bg-track"
                 }`}
+                title={vote === true ? "clears the bar" : vote === "near" ? "just under" : "no"}
               />
             ))}
           </div>
@@ -77,6 +88,27 @@ export function ModelGrid({ columns, models, agreedByColumn, outlier, sentence }
       {sentence && (
         <p className="text-[12px] leading-[1.45] text-faded-ink mt-3">{sentence}</p>
       )}
+
+      <div className="flex flex-wrap gap-3 mt-2.5 font-data text-[8px] text-dim">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-2 rounded-[2px] bg-accent" />
+          CLEARS
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-2 rounded-[2px] bg-accent/30 border border-accent-border" />
+          JUST UNDER
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-2 rounded-[2px] bg-track" />
+          NO
+        </span>
+        {sourceModel && (
+          <span className="flex items-center gap-1.5">
+            <span className="text-accent">•</span>
+            OUR FORECAST
+          </span>
+        )}
+      </div>
     </section>
   );
 }

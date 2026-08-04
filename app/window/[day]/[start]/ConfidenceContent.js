@@ -96,16 +96,27 @@ export function ConfidenceContent({ dayStart, windowStart }) {
           (t) => t.time >= start && t.time <= end
         );
 
-        // Model data is additive. Its absence must never block the rest of the
-        // screen, and must never be reported as disagreement.
+        // Live from the upstream via our own proxy. The grid needs the models'
+        // current calls, not their history, so it does not depend on the Convex
+        // ingest having been deployed and run.
+        //
+        // Additive either way: a failure degrades to "no model data", never to
+        // an error on the page and never to a claim of disagreement.
         let modelRows = [];
-        try {
-          modelRows = await client.query(api.models.getModelSlotsForSpot, {
-            spotId: chosen.spot._id,
-            sinceTimestamp: start,
-          });
-        } catch {
-          modelRows = [];
+        let sourceModel = null;
+        if (chosen.spot.windySpotId) {
+          try {
+            const res = await fetch(`/api/models/${chosen.spot.windySpotId}`);
+            if (res.ok) {
+              const payload = await res.json();
+              modelRows = (payload.models ?? []).flatMap(({ model, slots }) =>
+                slots.map((slot) => ({ ...slot, model }))
+              );
+              sourceModel = payload.sourceModel ?? null;
+            }
+          } catch {
+            modelRows = [];
+          }
         }
         if (cancelled) return;
 
@@ -121,6 +132,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
             end,
             tides,
             modelRows,
+            sourceModel,
           },
         });
       } catch (error) {
@@ -156,7 +168,15 @@ export function ConfidenceContent({ dayStart, windowStart }) {
         votes: perColumn.map((a) => a?.models.find((m) => m.model === name)?.vote ?? null),
       })),
       agreedByColumn: perColumn.map((a) => a?.agreed ?? 0),
-      windowAgreement: perColumn[0],
+      // The headline describes the window's BEST hour, not its first. Reading
+      // column zero meant a window peaking at 16:00 was summarised by 10:00,
+      // when nothing is on yet — so a strong window reported "0 of 5".
+      windowAgreement:
+        perColumn[columns.findIndex((c) => c.timestamp === data.peak.timestamp)] ??
+        perColumn.reduce(
+          (best, a) => ((a?.agreed ?? -1) > (best?.agreed ?? -1) ? a : best),
+          perColumn[0]
+        ),
     };
   }, [data, sport]);
 
@@ -240,6 +260,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
               agreedByColumn={model.agreedByColumn}
               outlier={model.windowAgreement?.outlier ?? null}
               sentence={agreementSentence(model.windowAgreement)}
+              sourceModel={data.sourceModel}
             />
           )}
 
