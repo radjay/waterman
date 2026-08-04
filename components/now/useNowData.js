@@ -14,6 +14,7 @@ import {
 import { spotsWithSlots } from "../../lib/reportData";
 import { classifyProximity, stationIdFromUrl } from "../../lib/stations";
 import { buildStationCard } from "../../lib/station";
+import { useFlag } from "../flags/FlagProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -45,6 +46,12 @@ function holdsUntil(slots, fromMs) {
  */
 export function useNowData(sport, favoriteIds = []) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  // Gated here, not just at the EvidenceStack card: the card and the verdict
+  // are two different surfaces reading the same reading, and the flag being
+  // off must mean the delta cannot move the verdict either — otherwise the
+  // moment the cron starts running, a station can flip NO to MARGINAL while
+  // the card that would explain why stays hidden (RAD station-evidence).
+  const showStation = useFlag("stationEvidence");
 
   useEffect(() => {
     let cancelled = false;
@@ -138,7 +145,7 @@ export function useNowData(sport, favoriteIds = []) {
         const verdict = deriveVerdict({
           score: chosen.score,
           agreement,
-          stationDelta: station?.delta ?? null,
+          stationDelta: showStation ? (station?.delta ?? null) : null,
         });
 
         // Where the rider should look instead, when the answer is no.
@@ -168,7 +175,7 @@ export function useNowData(sport, favoriteIds = []) {
               verdict,
               holdsUntil: holdsUntil(chosen.slots, now),
               agreement,
-              stationDelta: station?.delta ?? null,
+              stationDelta: showStation ? (station?.delta ?? null) : null,
               nextWindowStart: next?.window?.start ?? null,
             }),
           },
@@ -185,7 +192,7 @@ export function useNowData(sport, favoriteIds = []) {
     return () => {
       cancelled = true;
     };
-  }, [sport, favoriteIds.join(",")]);
+  }, [sport, favoriteIds.join(","), showStation]);
 
   return state;
 }

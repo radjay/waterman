@@ -25,6 +25,20 @@ const startOverride = process.env.BACKFILL_START_DATE;
 const endDate = process.env.BACKFILL_END_DATE || new Date().toISOString().slice(0, 10);
 const stationFilter = process.env.BACKFILL_STATION_ID;
 
+/**
+ * fx_observations was written by fetchWindguruCurrentStation (lib/windguru.js),
+ * whose unguarded path turns a DEAD station into speed 0, gust 0, and no
+ * temperature. `quality` cannot be trusted to catch this: assessQuality's
+ * "suspect" rule only fires when temperatureC is finite, so a dead reading
+ * with an absent temperature is scored "ok" and sails through the
+ * `quality !== "suspect"` filter above. A genuine calm reading carries a
+ * temperature almost every time, so gating on its absence — rather than on
+ * speed/gust alone — keeps real calm readings out of this net.
+ */
+function isFabricatedDeadStationRow(row) {
+  return row.windSpeedKnots === 0 && row.windGustKnots === 0 && !Number.isFinite(row.temperatureC);
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const toMs = (date) => new Date(`${date}T00:00:00Z`).getTime();
 /**
@@ -66,6 +80,7 @@ for (const target of TARGETS) {
       // Matches fx-backfill-windguru-history.mjs: suspect rows are the
       // 0/0-with-temperature pattern, which is not a real calm reading.
       .filter((row) => row.quality !== "suspect")
+      .filter((row) => !isFabricatedDeadStationRow(row))
       .filter((row) => Number.isFinite(row.windSpeedKnots))
       .map((row) => ({
         time: row.observedAt,

@@ -13,6 +13,34 @@ const READING_FIELDS = {
   tempC: v.optional(v.number()),
 };
 
+/** Tolerance for clock skew between us and the station. */
+const FUTURE_TOLERANCE_MS = 60 * 1000;
+/** Well above any real reading, low enough to catch garbage like wind_avg: 9999. */
+const MAX_PLAUSIBLE_SPEED_KNOTS = 150;
+
+/**
+ * Guards that must hold for every write, on every path.
+ *
+ * `parseCurrentReading` (lib/windguru.js) already applies guards like this,
+ * but it sits on only one of the write paths — the cron. The backfill script
+ * bypasses it entirely, and this mutation is public, so any direct caller
+ * bypasses it too. Validating argument *types* is not validating the
+ * *values*: `saveStationReadings({ time: Date.now(), speed: 9999 })` has
+ * always been a legal call by the schema alone. This is the one place every
+ * write to station_readings passes through, so it is the one place these
+ * checks can actually hold.
+ *
+ * Deliberately no lower bound on time: the backfill legitimately writes
+ * readings back to 2020.
+ */
+function isPlausibleReading(reading: { time: number; speed: number }, nowMs: number) {
+  if (!Number.isFinite(reading.time) || reading.time <= 0) return false;
+  if (reading.time > nowMs + FUTURE_TOLERANCE_MS) return false;
+  if (!Number.isFinite(reading.speed) || reading.speed < 0) return false;
+  if (reading.speed > MAX_PLAUSIBLE_SPEED_KNOTS) return false;
+  return true;
+}
+
 /**
  * Readings for one station, newest first.
  *
@@ -53,8 +81,14 @@ export const saveStationReadings = mutation({
   handler: async (ctx, args) => {
     let inserted = 0;
     let skipped = 0;
+    const nowMs = Date.now();
 
     for (const reading of dedupeReadingsByTime(args.readings)) {
+      if (!isPlausibleReading(reading, nowMs)) {
+        skipped += 1;
+        continue;
+      }
+
       const existing = await ctx.db
         .query("station_readings")
         .withIndex("by_station_time", (q) =>
@@ -122,6 +156,11 @@ export const pollStations = internalAction({
         console.error(`station ${target.stationId} poll failed`, error);
       }
     }
+
+    // Log on every run, not just failures. The worker this cron replaced
+    // died silently for eight weeks; a run that inserts zero rows every time
+    // (a Windguru schema change, say) must not be equally silent.
+    console.log(`stations poll: ${targets.length} stations, ${inserted} inserted`);
 
     return { stations: targets.length, inserted };
   },
