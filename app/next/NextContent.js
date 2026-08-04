@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
+import { SpotPicker } from "../../components/next/SpotPicker";
 import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
 import { conditionSummary } from "../../lib/conditions";
 import { spotsWithSlots } from "../../lib/reportData";
@@ -16,7 +18,8 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const fmt = (ms, options) => new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
+const fmt = (ms, options) =>
+  new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
 /** Local midnight for the day containing `ms`, in the spot's timezone. */
 function dayStartOf(ms) {
@@ -33,7 +36,8 @@ function dayStartOf(ms) {
 export function NextContent() {
   const router = useRouter();
   const { sport, meta } = useSport();
-  const [state, setState] = useState({ loading: true, error: null, data: null });
+  const [spotId, setSpotId] = useState(null); // null = best spot across the coast
+  const [state, setState] = useState({ loading: true, error: null, bySpot: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -42,44 +46,15 @@ export function NextContent() {
       try {
         const report = await client.query(api.spots.getReportData, { sports: [sport] });
         if (cancelled) return;
-
         const bySpot = spotsWithSlots(report, sport).map(({ spot, slots }) => ({
           spot,
           slots,
           windows: detectWindows(slots),
         }));
-
-        const now = Date.now();
-        const soonest = soonestWindow(bySpot, now);
-
-        // Six day rows, starting today.
-        const today = dayStartOf(now);
-        const days = Array.from({ length: 6 }, (_, i) => {
-          const dayStart = today + i * DAY_MS;
-          const dayEnd = dayStart + DAY_MS;
-          const windows = bySpot
-            .flatMap(({ windows: ws }) => ws)
-            .filter((w) => w.start < dayEnd && w.end > dayStart);
-          const bestScore = windows.reduce(
-            (best, w) => (w.score !== null && w.score > (best ?? -1) ? w.score : best),
-            null
-          );
-          return {
-            dayStart,
-            label: fmt(dayStart, { weekday: "short" }).toUpperCase(),
-            windows,
-            bestScore,
-          };
-        });
-
-        setState({
-          loading: false,
-          error: null,
-          data: { soonest, days, summaries: spotSummaries(bySpot, now) },
-        });
+        setState({ loading: false, error: null, bySpot });
       } catch (error) {
         if (cancelled) return;
-        setState({ loading: false, error, data: null });
+        setState({ loading: false, error, bySpot: null });
       }
     })();
     return () => {
@@ -87,15 +62,81 @@ export function NextContent() {
     };
   }, [sport]);
 
-  const { loading, error, data } = state;
+  const { loading, error, bySpot } = state;
+
+  const view = useMemo(() => {
+    if (!bySpot) return null;
+    const now = Date.now();
+
+    // "Best spot" reads across the coast; a named spot reads only itself.
+    // Aggregating hides a spot's own week — a Thursday window looks identical
+    // to no window at all when a better spot covers the same hours.
+    const scoped = spotId ? bySpot.filter((s) => s.spot._id === spotId) : bySpot;
+    const soonest = soonestWindow(scoped, now);
+
+    const today = dayStartOf(now);
+    const days = Array.from({ length: 6 }, (_, i) => {
+      const dayStart = today + i * DAY_MS;
+      const dayEnd = dayStart + DAY_MS;
+
+      const windows = scoped
+        .flatMap(({ windows: ws }) => ws)
+        .filter((w) => w.start < dayEnd && w.end > dayStart);
+
+      // One readout per timestamp. In "best spot" mode that is the best-scoring
+      // spot at that hour, named — otherwise the tooltip would show a number
+      // from a beach the band does not represent.
+      const byTimestamp = new Map();
+      for (const { spot, slots } of scoped) {
+        for (const slot of slots) {
+          if (slot.timestamp < dayStart || slot.timestamp >= dayEnd) continue;
+          const existing = byTimestamp.get(slot.timestamp);
+          if (!existing || (slot.score ?? -1) > (existing.score ?? -1)) {
+            byTimestamp.set(slot.timestamp, {
+              ...slot,
+              spotName: spotId ? null : spot.name,
+            });
+          }
+        }
+      }
+
+      const bestScore = windows.reduce(
+        (best, w) => (w.score !== null && w.score > (best ?? -1) ? w.score : best),
+        null
+      );
+
+      return {
+        dayStart,
+        label: fmt(dayStart, { weekday: "short" }).toUpperCase(),
+        windows,
+        bestScore,
+        slots: [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp),
+      };
+    });
+
+    // The list underneath is for the spots the strip is NOT showing — it is a
+    // way to switch to them, not a second copy of what is already on screen.
+    const featuredId = spotId ?? soonest?.spot?._id ?? null;
+    const others = spotSummaries(
+      bySpot.filter(({ spot }) => spot._id !== featuredId),
+      now
+    );
+
+    return { soonest, days, others, featuredId };
+  }, [bySpot, spotId]);
+
+  const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
 
   return (
     <MainLayout wide>
-      <header className="flex items-center justify-between pt-[22px] pb-3">
+      <header className="flex items-center justify-between gap-2 pt-[22px] pb-3">
         <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
           Next windows
         </h1>
-        <SportFilterChip />
+        <div className="flex items-center gap-2">
+          {spots.length > 0 && <SpotPicker spots={spots} value={spotId} onChange={setSpotId} />}
+          <SportFilterChip />
+        </div>
       </header>
 
       {loading && (
@@ -116,26 +157,26 @@ export function NextContent() {
         </div>
       )}
 
-      {!loading && !error && data && (
+      {!loading && !error && view && (
         <>
-          {data.soonest ? (
+          {view.soonest ? (
             <div className="rounded-card-lg bg-accent-tint-card border border-accent-border p-4">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-data text-[9px] tracking-label-wide text-accent">
                   SOONEST GOOD WINDOW
                 </span>
-                <AgreementBars agreement={data.soonest.window.agreement} />
+                <AgreementBars agreement={view.soonest.window.agreement} />
               </div>
               <div className="font-headline font-extrabold text-[30px] tracking-display-tight leading-[1.05] text-ink mt-[9px]">
-                {sameDay(data.soonest.window.start)
+                {dayStartOf(view.soonest.window.start) === dayStartOf(Date.now())
                   ? "Today"
-                  : fmt(data.soonest.window.start, { weekday: "long" })}
-                , {fmt(data.soonest.window.start, { hour: "2-digit", minute: "2-digit" })} –{" "}
-                {fmt(data.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
+                  : fmt(view.soonest.window.start, { weekday: "long" })}
+                , {fmt(view.soonest.window.start, { hour: "2-digit", minute: "2-digit" })} –{" "}
+                {fmt(view.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
               </div>
               <div className="font-data text-[13px] text-accent mt-1.5 uppercase">
-                {data.soonest.spot.name} ·{" "}
-                {conditionSummary(data.soonest.window.peak, sport) ?? "—"}
+                {view.soonest.spot.name} ·{" "}
+                {conditionSummary(view.soonest.window.peak, sport) ?? "—"}
               </div>
             </div>
           ) : (
@@ -144,52 +185,72 @@ export function NextContent() {
                 Nothing on this week
               </p>
               <p className="text-[14px] text-faded-ink mt-2.5">
-                No {meta.label.toLowerCase()} windows clear 60 in the next six days.
+                No {meta.label.toLowerCase()} windows clear 60
+                {spotId ? " here" : ""} in the next six days.
               </p>
             </div>
           )}
 
           <WeekStrip
-            days={data.days}
-            sportLabel={meta.label}
+            days={view.days}
+            sport={sport}
+            sportLabel={
+              spotId ? spots.find((s) => s._id === spotId)?.name?.toUpperCase() : meta.label
+            }
             onSelectWindow={(day, window) =>
               router.push(`/window/${day.dayStart}/${window.start}`)
             }
           />
 
-          <section className="pt-[22px]">
-            <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
-              WHERE, THIS WEEK
-            </h2>
-            <div className="flex flex-col gap-[7px]">
-              {data.summaries.map(({ spot, windowCount, soonest }) => (
-                <div
-                  key={spot._id}
-                  className={`flex items-center gap-[11px] rounded-card-sm border px-[13px] py-[11px] ${
-                    windowCount === 0
-                      ? "border-card opacity-55"
-                      : "bg-surface border-card"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="font-headline font-bold text-[15px] tracking-display text-ink">
-                      {spot.name}
-                    </div>
-                    <div className="font-data text-[10px] text-faded-ink mt-0.5">
-                      {windowCount === 0
-                        ? "Nothing this week"
-                        : `${windowCount} window${windowCount === 1 ? "" : "s"} · ${describeSpot(spot)}`}
-                    </div>
-                  </div>
-                  {soonest && (
-                    <div className="font-data text-[10px] text-accent uppercase">
-                      {sameDay(soonest) ? "TODAY" : fmt(soonest, { weekday: "short" })}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+          {view.others.length > 0 && (
+            <section className="pt-[22px]">
+              <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
+                {spotId ? "OTHER SPOTS" : "ELSEWHERE, THIS WEEK"}
+              </h2>
+              <div className="flex flex-col gap-[7px]">
+                {view.others.map(({ spot, windowCount, soonest }) => (
+                  <button
+                    key={spot._id}
+                    onClick={() => setSpotId(spot._id)}
+                    aria-label={`Show the week for ${spot.name}`}
+                    className={`w-full text-left flex items-center gap-[11px] rounded-card-sm border px-[13px] py-[11px] focus-ring transition-colors duration-fast ease-smooth ${
+                      windowCount === 0
+                        ? "border-card opacity-55 hover:opacity-80"
+                        : "bg-surface border-card hover:bg-ink-hover"
+                    }`}
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
+                        {spot.name}
+                      </span>
+                      <span className="block font-data text-[10px] text-faded-ink mt-0.5">
+                        {windowCount === 0
+                          ? "Nothing this week"
+                          : `${windowCount} window${windowCount === 1 ? "" : "s"}`}
+                      </span>
+                    </span>
+                    {soonest && (
+                      <span className="font-data text-[10px] text-accent uppercase flex-none">
+                        {dayStartOf(soonest) === dayStartOf(Date.now())
+                          ? "TODAY"
+                          : fmt(soonest, { weekday: "short" })}
+                      </span>
+                    )}
+                    <ChevronRight size={16} className="text-dim flex-none" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {spotId && (
+            <button
+              onClick={() => setSpotId(null)}
+              className="mt-4 font-data text-[10px] tracking-label text-faded-ink hover:text-ink focus-ring"
+            >
+              ← BACK TO BEST SPOT
+            </button>
+          )}
         </>
       )}
     </MainLayout>
@@ -214,19 +275,4 @@ function AgreementBars({ agreement, total = 5 }) {
       ))}
     </span>
   );
-}
-
-/**
- * The handoff labels each spot with what kind of riding it offers —
- * "wave + wind", "flat water" — not just a window count. Derived from the
- * spot's own wave data rather than invented.
- */
-function describeSpot(spot) {
-  if (spot.webcamOnly) return "cam only";
-  const hasWaves = Number(spot.maxWaveHeight ?? 0) > 0.5 || spot.sports?.includes("surfing");
-  return hasWaves ? "wave + wind" : "flat water";
-}
-
-function sameDay(ms) {
-  return dayStartOf(ms) === dayStartOf(Date.now());
 }
