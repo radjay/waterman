@@ -92,10 +92,6 @@ export function NextContent() {
       const dayStart = today + i * DAY_MS;
       const dayEnd = dayStart + DAY_MS;
 
-      const windows = scoped
-        .flatMap(({ windows: ws }) => ws)
-        .filter((w) => w.start < dayEnd && w.end > dayStart);
-
       // One readout per timestamp. In "best spot" mode that is the best-scoring
       // spot at that hour, named — otherwise the tooltip would show a number
       // from a beach the band does not represent.
@@ -113,6 +109,15 @@ export function NextContent() {
         }
       }
 
+      const daySlots = [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp);
+
+      // Bands are derived from the day's own resolved slots rather than from
+      // each spot's windows. In best-spot mode those overlap — several spots
+      // cover the same hours — and drawing them on top of each other left
+      // seams at every boundary that looked like arbitrary dividers.
+      // One slot per timestamp means one continuous band.
+      const windows = detectWindows(daySlots);
+
       const bestScore = windows.reduce(
         (best, w) => (w.score !== null && w.score > (best ?? -1) ? w.score : best),
         null
@@ -123,7 +128,7 @@ export function NextContent() {
         label: fmt(dayStart, { weekday: "short" }).toUpperCase(),
         windows,
         bestScore,
-        slots: [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp),
+        slots: daySlots,
       };
     });
 
@@ -174,22 +179,19 @@ export function NextContent() {
         <>
           {view.soonest ? (
             <div className="rounded-card-lg bg-accent-tint-card border border-accent-border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-data text-[9px] tracking-label-wide text-accent">
-                  SOONEST GOOD WINDOW
-                </span>
-                <AgreementBars agreement={view.soonest.window.agreement} />
-              </div>
-              <div className="font-headline font-extrabold text-[30px] tracking-display-tight leading-[1.05] text-ink mt-[9px]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-headline font-extrabold text-[30px] tracking-display-tight leading-[1.05] text-ink">
                 {dayStartOf(view.soonest.window.start) === dayStartOf(Date.now())
                   ? "Today"
                   : fmt(view.soonest.window.start, { weekday: "long" })}
                 , {fmt(view.soonest.window.start, { hour: "2-digit", minute: "2-digit" })} –{" "}
-                {fmt(view.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
+                  {fmt(view.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <AgreementBars agreement={view.soonest.window.agreement} />
               </div>
               <div className="font-data text-[13px] text-accent mt-1.5 uppercase">
                 {view.soonest.spot.name} ·{" "}
-                {conditionSummary(view.soonest.window.peak, sport) ?? "—"}
+                {conditionSummary(view.soonest.window.peak, sport, { gust: true }) ?? "—"}
               </div>
             </div>
           ) : (
@@ -207,10 +209,10 @@ export function NextContent() {
           <WeekStrip
             days={view.days}
             sport={sport}
-            sportLabel={
+            title={
               view.known
-                ? spots.find((s) => s._id === view.known)?.name?.toUpperCase()
-                : meta.label
+                ? `The week @ ${spots.find((s) => s._id === view.known)?.name ?? ""}`
+                : `The week · ${meta.label}`
             }
             onSelectWindow={(day, window) =>
               router.push(`/window/${day.dayStart}/${window.start}`)
@@ -219,8 +221,8 @@ export function NextContent() {
 
           {view.others.length > 0 && (
             <section className="pt-[22px]">
-              <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
-                {view.known ? "OTHER SPOTS" : "ELSEWHERE, THIS WEEK"}
+              <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink mb-3">
+                {view.known ? "Other spots" : "Elsewhere, this week"}
               </h2>
               <div className="flex flex-col gap-[7px]">
                 {view.others.map(({ spot, windowCount, soonest }) => (

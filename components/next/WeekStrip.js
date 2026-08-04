@@ -30,20 +30,20 @@ const TZ = "Europe/Lisbon";
  * Numbers live in a hover/tap readout so the glanceable view stays glanceable
  * and the detail is one gesture away.
  */
-export function WeekStrip({ days, sport, sportLabel = "", onSelectWindow }) {
+export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
   const [hovered, setHovered] = useState(null);
 
   return (
     <section className="pt-[22px]">
-      <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-1">
-        THE WEEK{sportLabel ? ` · ${sportLabel}` : ""}
+      <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink mb-1">
+        {title}
       </h2>
 
-      <div className="flex gap-[5px] font-data text-[8px] text-dim pt-2 pb-1.5" aria-hidden="true">
+      <div className="flex gap-[5px] font-data text-[10px] text-dim pt-2.5 pb-2" aria-hidden="true">
         <div className="w-[34px]" />
         {HOUR_LABELS.map((h) => (
           <div key={h} className="flex-1 text-left">
-            {String(h).padStart(2, "0")}
+            {String(h).padStart(2, "0")}:00
           </div>
         ))}
       </div>
@@ -135,10 +135,14 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
                   background: isSplit ? undefined : windowGradient(window, { marginal: isMarginal }),
                 }}
               >
-                {pos.peak !== null && (
+                {pos.peak !== null && pos.width > 4 && (
                   <span
-                    className="absolute top-0 bottom-0 w-0.5 bg-page"
-                    style={{ left: `${((pos.peak - pos.left) / pos.width) * 100}%` }}
+                    className="absolute top-0 bottom-0 w-0.5 bg-page/70"
+                    style={{
+                      // Clamped so a peak at the very edge still reads as a
+                      // marker rather than as the band's own border.
+                      left: `${Math.min(Math.max(((pos.peak - pos.left) / pos.width) * 100, 4), 96)}%`,
+                    }}
                     aria-hidden="true"
                   />
                 )}
@@ -162,14 +166,14 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
                 key={slot.timestamp}
                 className={`absolute top-0 bottom-0 focus-ring ${active ? "bg-ink/10" : "hover:bg-ink/10"}`}
                 style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
-                onMouseEnter={() => onHover({ dayStart: day.dayStart, slot })}
-                onFocus={() => onHover({ dayStart: day.dayStart, slot })}
+                onMouseEnter={() => onHover({ dayStart: day.dayStart, slot, left, width })}
+                onFocus={() => onHover({ dayStart: day.dayStart, slot, left, width })}
                 onClick={() => {
                   const w = day.windows.find(
                     (win) => slot.timestamp >= win.start && slot.timestamp < win.end
                   );
                   if (w) onSelectWindow?.(day, w);
-                  else onHover({ dayStart: day.dayStart, slot });
+                  else onHover({ dayStart: day.dayStart, slot, left, width });
                 }}
                 aria-label={`${day.label} ${new Intl.DateTimeFormat("en-GB", {
                   hour: "2-digit",
@@ -187,8 +191,17 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
       {metric && (
         <div
           role="status"
-          className="absolute z-20 left-[39px] -top-1 -translate-y-full pointer-events-none"
+          // Centred over the hovered slot rather than pinned to the left of the
+          // chart, so the readout points at the thing it describes. The track
+          // starts 39px in (34px day label + 5px gap) and ends 31px from the
+          // right (26px score + 5px gap); the inner span is positioned within
+          // that, then nudged back by half its own width.
+          className="absolute z-20 left-[39px] right-[31px] -top-1 -translate-y-full pointer-events-none"
         >
+          <div
+            className="absolute -translate-x-1/2 whitespace-nowrap"
+            style={{ left: `${hovered.left + hovered.width / 2}%` }}
+          >
           <div className="inline-flex items-center gap-2 rounded-card-sm bg-nav-bg border border-nav-border shadow-nav backdrop-blur-md px-2.5 py-1.5 font-data text-[10px] whitespace-nowrap">
             <span className="text-dim">
               {new Intl.DateTimeFormat("en-GB", {
@@ -208,6 +221,7 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow }) {
                 {Math.round(readout.score)}
               </span>
             )}
+          </div>
           </div>
         </div>
       )}
