@@ -11,19 +11,28 @@ const TONE_TEXT = {
 };
 
 /**
+ * "GO" alone answered the question but not "where" — and the spot is free to
+ * change hour to hour, so it belongs in the headline rather than buried in the
+ * caption underneath.
+ */
+const VERDICT_WORD = {
+  [VERDICT.GO]: "GO",
+  [VERDICT.MARGINAL]: "MAYBE",
+  [VERDICT.NO]: "NO GO",
+};
+
+/**
  * The answer to "can I go", before anything else.
  *
- * GO paints in the accent, MARGINAL in the accent-2 hue, NO in dim. On a flat
- * day — which is the common case, not an edge case — the card withholds the
- * accent entirely so the only cyan on screen belongs to the next window.
+ * GO paints in the accent, MAYBE in the accent-2 hue, NO GO in dim. On a flat
+ * day — the common case, not an edge case — the card withholds the accent
+ * entirely so the only cyan on screen belongs to the next windows below.
  */
 export function VerdictCard({
   verdict = VERDICT.NO,
   sport = "wingfoil",
-  speed,
-  gust,
-  directionLabel,
-  directionDegrees,
+  spotName,
+  metric,
   reason,
   riderCount,
   camSlot,
@@ -35,9 +44,9 @@ export function VerdictCard({
 
   // The handoff tints the verdict card; the bad-day stress test says accent is
   // withheld from everything except the one thing worth acting on. Both hold if
-  // the tint follows the verdict: accent for GO, the accent-2 hue for MARGINAL,
-  // and a neutral card for NO — where the accent belongs to the next-window
-  // card further down instead.
+  // the tint follows the verdict: accent for GO, the accent-2 hue for MAYBE,
+  // and a neutral card for NO GO — where the accent belongs to the next windows
+  // further down instead.
   const cardTone = isGo
     ? "bg-accent-tint-card border-accent-border"
     : isMarginal
@@ -53,63 +62,75 @@ export function VerdictCard({
     : isMarginal
       ? "border-marginal/40 text-marginal"
       : "border-card text-faded-ink";
+
   const meta = sportMeta(sport);
   // Surfing is not a wind sport; the chip should not claim it is.
   const SportIcon = sport === "surfing" ? Waves : Wind;
 
   return (
-    <div
-      className={`rounded-card-xl px-4 py-[15px] border ${cardTone}`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div
-          className={`font-headline font-extrabold text-[52px] leading-[0.82] tracking-display-tighter ${TONE_TEXT[tone]}`}
-        >
-          {verdict}
+    <div className={`rounded-card-xl px-4 py-[15px] border ${cardTone}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div
+            className={`font-headline font-extrabold text-[46px] leading-[0.86] tracking-display-tighter ${TONE_TEXT[tone]}`}
+          >
+            {VERDICT_WORD[verdict] ?? verdict}
+          </div>
+          {spotName && (
+            <div className="font-headline font-bold text-[17px] tracking-display text-ink mt-1.5 truncate">
+              <span className="font-data font-normal text-faded-ink text-[15px]">@ </span>
+              {spotName}
+            </div>
+          )}
         </div>
         <div
-          className={`flex items-center gap-1.5 rounded-pill px-[11px] py-1.5 font-data text-[10px] tracking-label ${chipTone}`}
+          className={`flex-none flex items-center gap-1.5 rounded-pill px-[11px] py-1.5 font-data text-[10px] tracking-label ${chipTone}`}
         >
           <SportIcon size={12} />
           {meta.label}
         </div>
       </div>
 
-      {speed !== null && speed !== undefined && (
-        <div className="flex items-end gap-[9px] mt-[11px]">
-          <div className="font-data font-bold text-[44px] leading-[0.86] text-ink tabular-nums">
-            {Math.round(speed)}
-          </div>
-          <div className="pb-[3px]">
-            <div className="font-data text-[13px] text-ink leading-[1.2]">
-              kn {directionLabel}
-            </div>
-            {gust !== null && gust !== undefined && (
-              <div className="font-data text-[11px] text-faded-ink leading-[1.2]">
-                ({Math.round(gust)}*)
-              </div>
-            )}
-          </div>
-          {directionDegrees !== null && directionDegrees !== undefined && (
+      {metric && (
+        <div className="flex items-end gap-[11px] mt-[13px]">
+          {/* Direction leads the reading — it is the thing you check first, and
+              sitting left of the number keeps it clear of the unit. */}
+          {metric.directionDegrees !== null && metric.directionDegrees !== undefined && (
             <div
-              className={`ml-auto w-[34px] h-[34px] rounded-full border flex items-center justify-center ${ringTone}`}
+              className={`flex-none w-[34px] h-[34px] mb-1 rounded-full border flex items-center justify-center ${ringTone}`}
               // Matches components/ui/Arrow: rotate by the raw stored bearing.
-              // The +180 "from -> to" conversion lives in the LABEL
-              // (getDisplayWindDirection), not the glyph. Doing it in both
-              // places would point the arrow backwards relative to every other
-              // direction indicator in the app.
-              style={{ transform: `rotate(${directionDegrees}deg)` }}
+              // The from/to conversion lives in the LABEL, not the glyph.
+              style={{ transform: `rotate(${metric.directionDegrees}deg)` }}
               aria-hidden="true"
             >
               <ArrowUp size={16} />
             </div>
           )}
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-data font-bold text-[44px] leading-[0.86] text-ink tabular-nums">
+              {metric.value}
+            </span>
+            <span className="font-data font-bold text-[20px] text-ink">{metric.unit}</span>
+            {metric.directionLabel && (
+              <span className="font-data text-[15px] text-ink">{metric.directionLabel}</span>
+            )}
+          </div>
+          {metric.secondary && (
+            <span className="font-data text-[12px] text-faded-ink pb-1.5">
+              {metric.secondary}
+            </span>
+          )}
         </div>
+      )}
+
+      {metric?.tertiary && (
+        <div className="font-data text-[11px] text-faded-ink mt-2">{metric.tertiary}</div>
       )}
 
       {camSlot && (
         <button
           onClick={onWatchCam}
+          aria-label="Watch the live cam"
           className={`relative block w-full aspect-video rounded-card-sm overflow-hidden mt-[15px] border focus-ring ${
             isGo ? "border-accent-border" : "border-card"
           }`}

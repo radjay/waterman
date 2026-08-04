@@ -5,7 +5,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
 import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
-import { detectWindows, soonestWindow } from "../../lib/windows";
+import { detectWindows, soonestWindow, upcomingWindows } from "../../lib/windows";
 import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -91,6 +91,7 @@ export function useNowData(sport) {
         // Where the rider should look instead, when the answer is no.
         const bySpot = candidates.map((c) => ({ spot: c.spot, windows: detectWindows(c.slots) }));
         const next = soonestWindow(bySpot, now);
+        const nextWindows = upcomingWindows(bySpot, now, 3);
 
         setState({
           loading: false,
@@ -103,9 +104,9 @@ export function useNowData(sport) {
             score: chosen.score,
             reasoning: chosen.slot.reasoning,
             nextWindow: next,
+            nextWindows,
             reason: verdictReason({
               verdict,
-              spotName: chosen.spot.name,
               holdsUntil: holdsUntil(chosen.slots, now),
               agreement,
               stationDelta: null,

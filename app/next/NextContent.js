@@ -9,7 +9,7 @@ import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
 import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
-import { getDisplayWindDirection } from "../../lib/utils";
+import { conditionSummary } from "../../lib/conditions";
 import { spotsWithSlots } from "../../lib/reportData";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -134,8 +134,8 @@ export function NextContent() {
                 {fmt(data.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
               </div>
               <div className="font-data text-[13px] text-accent mt-1.5 uppercase">
-                {data.soonest.spot.name} · {Math.round(data.soonest.window.peak.speed)} kn{" "}
-                {getDisplayWindDirection(data.soonest.window.peak.direction)}
+                {data.soonest.spot.name} ·{" "}
+                {conditionSummary(data.soonest.window.peak, sport) ?? "—"}
               </div>
             </div>
           ) : (

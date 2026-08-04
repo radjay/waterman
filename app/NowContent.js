@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Share, Video } from "lucide-react";
+import { ChevronRight, Share } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
 import { SportSegmented } from "../components/sport/SportSegmented";
 import { useSport } from "../components/sport/SportProvider";
@@ -11,9 +11,16 @@ import { EvidenceStack } from "../components/now/EvidenceStack";
 import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
 import { useNowData } from "../components/now/useNowData";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
-import { VERDICT, relativeDay } from "../lib/verdict";
-import { getDisplayWindDirection } from "../lib/utils";
+import { relativeDay } from "../lib/verdict";
+import { conditionSummary, primaryMetric } from "../lib/conditions";
 import { useShare } from "../hooks/useShare";
+
+const TZ = "Europe/Lisbon";
+const time = (ms) =>
+  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(
+    new Date(ms)
+  );
+const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function NowContent() {
   const router = useRouter();
@@ -29,16 +36,26 @@ export function NowContent() {
 
   // Fixtures only. Never written to Convex — production and development share
   // one deployment, so seeded dummies would be shown to real users.
-  const riderCount =
-    showRiderCounts && data?.spot ? fixtureRiderCount(data.spot._id) : null;
+  const riderCount = showRiderCounts && data?.spot ? fixtureRiderCount(data.spot._id) : null;
 
   return (
     <MainLayout>
       <header className="flex items-center justify-between gap-3 pt-[22px] pb-3.5">
-        <h1 className="font-headline font-extrabold text-[22px] tracking-display-tight text-ink leading-none">
+        {/* The wordmark is in TopNav at md+, so repeating it here stacks a
+            second logo under the first. Mobile has no TopNav, so it stays. */}
+        <h1 className="md:hidden font-headline font-extrabold text-[22px] tracking-display-tight text-ink leading-none">
           Waterman
         </h1>
-        <SportSegmented />
+        <div className="flex items-center gap-2 ml-auto">
+          <SportSegmented />
+          <button
+            onClick={share}
+            aria-label="Share"
+            className="md:hidden w-9 h-9 flex-none flex items-center justify-center rounded-pill border border-btn text-faded-ink focus-ring"
+          >
+            <Share size={14} />
+          </button>
+        </div>
       </header>
 
       {loading && <NowSkeleton />}
@@ -65,21 +82,54 @@ export function NowContent() {
       {!loading && !error && data && (
         <>
           <VerdictCard
-            verdict={data.verdict ?? VERDICT.NO}
+            verdict={data.verdict}
             sport={sport}
-            speed={data.slot?.speed}
-            gust={data.slot?.gust}
-            directionLabel={
-              data.slot ? getDisplayWindDirection(data.slot.direction) : null
-            }
-            directionDegrees={data.slot?.direction}
+            spotName={data.spot?.name}
+            metric={primaryMetric(data.slot, sport)}
             reason={data.reason}
             riderCount={riderCount}
-            camSlot={
-              data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null
-            }
+            camSlot={data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null}
+            // The cam itself is the affordance — a separate WATCH CAM button
+            // underneath was a second control for the same thing.
             onWatchCam={() => router.push("/cams")}
           />
+
+          {/* Three, not one. A single next window answers "when" but not "or
+              else what", and on a flat day the second and third options are the
+              ones that actually get someone on the water. */}
+          {data.nextWindows?.length > 0 && (
+            <section className="pt-5">
+              <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-[11px]">
+                NEXT WINDOWS
+              </h2>
+              <div className="flex flex-col gap-2">
+                {data.nextWindows.map(({ spot, window }, i) => (
+                  <button
+                    key={`${spot._id}-${window.start}`}
+                    onClick={() => router.push(`/window/${window.start}/${window.start}`)}
+                    className={`w-full text-left flex items-center gap-3 rounded-[15px] border px-[14px] py-[13px] focus-ring transition-colors duration-fast ease-smooth ${
+                      i === 0
+                        ? "bg-accent-tint-card border-accent-border"
+                        : "bg-surface border-card hover:bg-ink-hover"
+                    }`}
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
+                        {capitalise(relativeDay(window.start))} · {spot.name}
+                      </span>
+                      <span className="block font-data text-[10px] text-faded-ink mt-0.5">
+                        {time(window.start)}–{time(window.end)}
+                        {conditionSummary(window.peak, sport)
+                          ? ` · ${conditionSummary(window.peak, sport)}`
+                          : ""}
+                      </span>
+                    </span>
+                    <ChevronRight size={16} className={i === 0 ? "text-accent" : "text-dim"} />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
           <EvidenceStack
             riderCount={riderCount}
@@ -88,48 +138,6 @@ export function NowContent() {
             reasoning={data.reasoning}
             sportNoun={meta.noun}
           />
-
-          <div className="flex gap-2 pt-[18px]">
-            <button
-              onClick={() => router.push("/cams")}
-              className="flex-1 flex items-center justify-center gap-[7px] rounded-pill bg-accent text-page py-[13px] font-data text-[11px] font-bold tracking-[0.1em] focus-ring active:scale-[0.98] transition-transform duration-fast ease-smooth"
-            >
-              <Video size={14} />
-              WATCH CAM
-            </button>
-            <button
-              onClick={share}
-              aria-label="Share"
-              className="w-12 flex items-center justify-center rounded-pill border border-btn text-faded-ink focus-ring"
-            >
-              <Share size={15} />
-            </button>
-          </div>
-
-          {/* When the answer is no, the screen pivots to where to look instead.
-              A flat day is the most common real screen, not an edge case. */}
-          {data.verdict === VERDICT.NO && data.nextWindow && (
-            <button
-              onClick={() => router.push("/next")}
-              className="w-full text-left mt-4 rounded-card-lg bg-accent-tint-card border border-accent-border p-4 focus-ring"
-            >
-              <div className="font-data text-[9px] tracking-label-wide text-accent mb-1">
-                NEXT WINDOW
-              </div>
-              <div className="font-headline font-bold text-[17px] tracking-display text-ink">
-                {capitalise(relativeDay(data.nextWindow.window.start))} ·{" "}
-                {data.nextWindow.spot.name}
-              </div>
-              <div className="font-data text-[11px] text-faded-ink mt-0.5">
-                from{" "}
-                {new Intl.DateTimeFormat("en-GB", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  timeZone: "Europe/Lisbon",
-                }).format(new Date(data.nextWindow.window.start))}
-              </div>
-            </button>
-          )}
 
           {!data.spot && (
             <div className="pt-10 text-center">
@@ -152,16 +160,15 @@ export function NowContent() {
  * different round trips — so each card needs its own resting state rather than
  * the whole screen blocking on the slowest one.
  */
-const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-
 function NowSkeleton() {
   return (
     <div className="animate-pulse" aria-hidden="true">
       <div className="rounded-card-xl bg-surface border border-card h-[260px]" />
       <div className="h-3 w-28 bg-surface rounded mt-6 mb-3" />
       <div className="flex flex-col gap-2">
-        <div className="rounded-card-sm bg-surface border border-card h-[104px]" />
-        <div className="rounded-card-sm bg-surface border border-card h-[104px]" />
+        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
+        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
+        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
       </div>
     </div>
   );
