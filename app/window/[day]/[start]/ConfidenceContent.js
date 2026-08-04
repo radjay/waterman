@@ -8,7 +8,7 @@ import { api } from "../../../../convex/_generated/api";
 import { MainLayout } from "../../../../components/layout/MainLayout";
 import { ScoreDial } from "../../../../components/ui/ScoreDial";
 import { ModelGrid, CriteriaPanel } from "../../../../components/confidence/ModelGrid";
-import { LabsSection } from "../../../../components/confidence/LabsSection";
+import { LabsSection } from "../../../../components/ui/LabsSection";
 import { ScoreFactors } from "../../../../components/confidence/ScoreFactors";
 import { HourByHour } from "../../../../components/confidence/HourByHour";
 import { useSport, isWindSport } from "../../../../components/sport/SportProvider";

@@ -3,6 +3,7 @@
 import { ArrowUp, Users } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { Badge } from "../ui/Badge";
+import { ScoreDial } from "../ui/ScoreDial";
 import { SportFilterChip } from "../sport/SportFilterChip";
 import {
   LiveWindIndicator,
@@ -37,6 +38,7 @@ export function VerdictCard({
   verdict = VERDICT.NO,
   sport = "wingfoil",
   spotName,
+  score,
   metric,
   liveReportUrl,
   reason,
@@ -81,8 +83,14 @@ export function VerdictCard({
           )}
         </div>
         {/* The same control as Next, rather than a label that looked
-            interactive and was not. */}
-        <SportFilterChip className="flex-none" />
+            interactive and was not. The score sits under it: the verdict is the
+            headline, the number is the supporting detail — but it is the same
+            number the next-window cards are ranked by, so it has to be here for
+            those to be comparable against right now. */}
+        <div className="flex-none flex flex-col items-end gap-2.5">
+          <SportFilterChip />
+          <ScoreDial score={score} size="md" showAll label="NOW" on={isGo || isMarginal ? "card" : "page"} />
+        </div>
       </div>
 
       {metric && (
@@ -139,10 +147,19 @@ export function VerdictCard({
         >
           {camSlot}
           <span className="absolute top-[9px] left-[9px] flex items-center gap-[7px] pointer-events-none">
-            <Badge variant="live">
-              <span className="w-1.5 h-1.5 rounded-full bg-page" />
-              LIVE
-            </Badge>
+            {/* What the spot reads right now beats a chip that only says the
+                video is live — the video being live is already obvious. Falls
+                back to that chip when the station has nothing usable. */}
+            <LiveWindIndicator
+              stationId={extractWindguruStationId(liveReportUrl)}
+              compact
+              fallback={
+                <Badge variant="live">
+                  <span className="w-1.5 h-1.5 rounded-full bg-page" />
+                  LIVE
+                </Badge>
+              }
+            />
             {riderCount && (
               <Badge variant="accent-solid">
                 <Users size={11} />

@@ -1,26 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarClock, ChevronRight, MapPin, Share } from "lucide-react";
+import { CalendarClock, MapPin, Share } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
 import { useSport } from "../components/sport/SportProvider";
 import { useUser } from "../components/auth/AuthProvider";
 import { useFlag } from "../components/flags/FlagProvider";
 import { VerdictCard } from "../components/now/VerdictCard";
-import { EvidenceStack } from "../components/now/EvidenceStack";
+import { EvidenceStack, InTheWaterCard } from "../components/now/EvidenceStack";
+import { LabsSection } from "../components/ui/LabsSection";
 import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
 import { useNowData } from "../components/now/useNowData";
+import { WindowCard } from "../components/next/WindowCard";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
-import { relativeDay } from "../lib/verdict";
-import { conditionSummary, primaryMetric } from "../lib/conditions";
+import { primaryMetric } from "../lib/conditions";
 import { useShare } from "../hooks/useShare";
-
-const TZ = "Europe/Lisbon";
-const time = (ms) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(
-    new Date(ms)
-  );
-const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function NowContent() {
   const router = useRouter();
@@ -115,6 +109,7 @@ export function NowContent() {
             verdict={data.verdict}
             sport={sport}
             spotName={data.spot?.name}
+            score={data.slot?.score}
             metric={primaryMetric(data.slot, sport)}
             liveReportUrl={data.spot?.liveReportUrl}
             reason={data.reason}
@@ -133,46 +128,34 @@ export function NowContent() {
               <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-[11px]">
                 NEXT WINDOWS
               </h2>
-              <div className="flex flex-col gap-2">
+              <div className="grid gap-2 md:grid-cols-3">
                 {data.nextWindows.map(({ spot, window }, i) => (
-                  <button
+                  <WindowCard
                     key={`${spot._id}-${window.start}`}
+                    spot={spot}
+                    window={window}
+                    sport={sport}
+                    highlight={i === 0}
                     onClick={() =>
-                      router.push(
-                        `/window/${window.start}/${window.start}?spot=${spot._id}`
-                      )
+                      router.push(`/window/${window.start}/${window.start}?spot=${spot._id}`)
                     }
-                    className={`w-full text-left flex items-center gap-3 rounded-[15px] border px-[14px] py-[13px] focus-ring transition-colors duration-fast ease-smooth ${
-                      i === 0
-                        ? "bg-accent-tint-card border-accent-border"
-                        : "bg-surface border-card hover:bg-ink-hover"
-                    }`}
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
-                        {capitalise(relativeDay(window.start))} · {spot.name}
-                      </span>
-                      <span className="block font-data text-[10px] text-faded-ink mt-0.5">
-                        {time(window.start)}–{time(window.end)}
-                        {conditionSummary(window.peak, sport)
-                          ? ` · ${conditionSummary(window.peak, sport)}`
-                          : ""}
-                      </span>
-                    </span>
-                    <ChevronRight size={16} className={i === 0 ? "text-accent" : "text-dim"} />
-                  </button>
+                  />
                 ))}
               </div>
             </section>
           )}
 
           <EvidenceStack
-            riderCount={riderCount}
             station={showStation ? data.station : null}
             agreement={showModels ? data.agreement : null}
             reasoning={data.reasoning}
-            sportNoun={meta.noun}
           />
+
+          {riderCount && (
+            <LabsSection title="IN THE WATER" caption="Estimated from webcam footage">
+              <InTheWaterCard reading={riderCount} sportNoun={meta.noun} bare />
+            </LabsSection>
+          )}
 
           {!data.spot && (
             <div className="pt-10 text-center">

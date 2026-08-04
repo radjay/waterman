@@ -12,8 +12,18 @@ import { Badge } from "../ui/Badge";
  * @param {string} stationId - Windguru station ID (extracted from liveReportUrl)
  * @param {string} className - Additional CSS classes
  * @param {boolean} compact - If true, show compact version (for overlays)
+ * @param {ReactNode} fallback - Rendered instead of nothing when there is no
+ *   usable reading. Only for slots that must not collapse — the cam overlay
+ *   wants the real numbers when they exist and a plain LIVE chip when they do
+ *   not, and the caller cannot know which until the fetch resolves.
  */
-export function LiveWindIndicator({ stationId, className = "", compact = false, label = null }) {
+export function LiveWindIndicator({
+  stationId,
+  className = "",
+  compact = false,
+  label = null,
+  fallback = null,
+}) {
   const [liveWind, setLiveWind] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -61,7 +71,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false, 
   }, [stationId]);
 
   if (loading || error || !liveWind || !Number.isFinite(liveWind.windSpeedKnots)) {
-    return null;
+    return fallback;
   }
 
   // Calculate how old the data is
@@ -69,7 +79,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false, 
   const isStale = ageMinutes > 60; // Consider stale if older than 60 minutes (stations report every 10-30 min)
 
   // Don't show stale data — hiding is less confusing than showing old readings
-  if (isStale) return null;
+  if (isStale) return fallback;
 
   const speed = Math.round(liveWind.windSpeedKnots);
   const gust = Number.isFinite(liveWind.windGustKnots)

@@ -12,9 +12,8 @@ import { BANDS, agreementSentence } from "../../lib/agreement";
  * have neither a cam nor a live station, and one honest card is a legitimate
  * screen — three skeletons that never resolve are not.
  */
-export function EvidenceStack({ riderCount, station, agreement, reasoning, sportNoun = "out" }) {
+export function EvidenceStack({ station, agreement, reasoning }) {
   const cards = [
-    riderCount && <InTheWaterCard key="water" reading={riderCount} sportNoun={sportNoun} />,
     station && <StationCard key="station" station={station} />,
     agreement && agreement.band !== BANDS.UNKNOWN && (
       <ModelAgreementCard key="models" agreement={agreement} />
@@ -57,11 +56,17 @@ function ForecastCard({ reasoning }) {
   );
 }
 
-function InTheWaterCard({ reading, sportNoun }) {
+/**
+ * Rider counts are a computer-vision estimate, not a measurement, and they are
+ * fixtures until the model ships. That belongs in Labs on Now rather than in
+ * "why we think so", where it sat above the station reading and outranked it.
+ * Exported for that; `bare` drops the card chrome when it is already inside one.
+ */
+export function InTheWaterCard({ reading, sportNoun, bare = false }) {
   const Trend = reading.trend === "down" ? TrendingDown : TrendingUp;
 
   return (
-    <div className={CARD}>
+    <div className={bare ? "" : CARD}>
       <div className="flex items-center gap-[9px]">
         <Users size={15} className="text-accent" />
         <span className="font-data text-[10px] tracking-label text-accent">IN THE WATER</span>

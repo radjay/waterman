@@ -59,7 +59,12 @@
      is a position marker rather than a judgement — reusing either would collide
      with the score semantics the strip already encodes. */
   --wm-now: #ff9d42;
-  --wm-caution: #ff9d42;
+  /* Channel triple, not a hex: the verdict card uses bg-caution/10 and
+     border-caution/30, and Tailwind opacity modifiers only work against
+     `rgb(var(--x) / <alpha-value>)`. As a composite var those classes emitted
+     invalid CSS and the border fell back to currentColor — which is what put a
+     white outline around MAYBE and the direction ring. */
+  --wm-caution: 255 157 66;
   /* Near-black, not white: white on this orange is 2.07:1 and fails AA
      outright, where near-black clears 10:1. */
   --wm-now-text: #0a1420;
@@ -117,7 +122,7 @@
      rule still holds 3.37:1 against the light page. Both thresholds matter:
      one is text, the other a graphic. */
   --wm-now: #cc6a10;
-  --wm-caution: #cc6a10;
+  --wm-caution: 204 106 16;
   --wm-now-text: #0a1420;
 
   /* See the Nightglass note — page composited with accent-tint-card. */

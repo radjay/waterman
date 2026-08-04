@@ -352,7 +352,7 @@ export default function CamsContent({ initialData = null }) {
               <div
                 key={webcam._id}
                 onClick={() => handleWebcamClick(webcam)}
-                className={`relative cursor-pointer group rounded-card overflow-hidden ${
+                className={`relative h-full cursor-pointer group rounded-card overflow-hidden ${
                   showRiderCounts && (fixtureRiderCount(webcam._id)?.count ?? 0) > 0
                     ? "ring-1 ring-inset ring-accent-border"
                     : ""
@@ -367,10 +367,7 @@ export default function CamsContent({ initialData = null }) {
                   onScoreClick={forecastBySpot[webcam._id]?.slot?.score ? () => setScoreModalSlot(forecastBySpot[webcam._id].slot) : undefined}
                   overlayBadge={
                     showRiderCounts ? (
-                      <RiderBadge
-                        reading={fixtureRiderCount(webcam._id)}
-                        sports={selectedSports}
-                      />
+                      <RiderBadge reading={fixtureRiderCount(webcam._id)} />
                     ) : null
                   }
                 />
@@ -432,26 +429,21 @@ export default function CamsContent({ initialData = null }) {
  *   nobody   — "NOBODY OUT" in muted text. A real answer, not an empty state.
  *   no data  — nothing rendered, which is different again from nobody out
  */
-function RiderBadge({ reading, sports }) {
+function RiderBadge({ reading }) {
   if (!reading) return null;
 
-  // The sport filter is multi-select (RAD-22), so the noun is only specific
-  // when exactly one sport is showing. "4 OUT" is honest when the grid mixes
-  // sports; "4 WINGS" would not be.
-  const only = sports?.length === 1 ? sports[0] : null;
-  const noun =
-    only === "kitesurfing" ? "KITES" : only === "surfing" ? "SURFERS" : only === "wingfoil" ? "WINGS" : "OUT";
-
+  // Icon and number only. The noun was doing no work — the users glyph already
+  // says these are people, and it had to degrade to a vague "OUT" whenever the
+  // sport filter held more than one sport.
+  //
+  // Zero still gets words: "0" beside a person icon reads as a missing value,
+  // where "NOBODY OUT" is the answer.
   const empty = reading.count === 0;
-  const busy = reading.count >= 5;
 
-  // Shares the Badge component with the live wind chip beside it, so the two
-  // are the same height and radius by construction rather than by two sets of
-  // hand-tuned padding that drifted apart.
   return (
-    <Badge variant={busy ? "live" : "overlay"}>
+    <Badge variant={reading.count >= 5 ? "live" : "overlay"}>
       <Users size={11} />
-      {empty ? "NOBODY OUT" : `${reading.count} ${noun}`}
+      {empty ? "NOBODY OUT" : reading.count}
     </Badge>
   );
 }

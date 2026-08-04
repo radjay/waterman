@@ -17,13 +17,14 @@ import {
   isChartedSlot,
   soonestWindow,
   spotSummaries,
+  upcomingWindows,
 } from "../../lib/windows";
-import { conditionSummary } from "../../lib/conditions";
 import {
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../../components/wind/LiveWindIndicator";
 import { spotsWithSlots } from "../../lib/reportData";
+import { WindowCard } from "../../components/next/WindowCard";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -110,6 +111,10 @@ export function NextContent() {
         ? bySpot.filter(({ spot }) => favoriteIds.includes(spot._id))
         : bySpot;
     const soonest = soonestWindow(scoped, now);
+    // Three, not one. A single window answers "when" but not "or else what".
+    // Scoped to one spot the question is "when here", so the same beach may
+    // legitimately fill all three rows.
+    const upcoming = upcomingWindows(scoped, now, 3, !known);
 
     const today = dayStartOf(now);
     const days = Array.from({ length: 6 }, (_, i) => {
@@ -172,7 +177,7 @@ export function NextContent() {
       now
     );
 
-    return { soonest, days, others, featuredId, known, usingFavorites };
+    return { soonest, upcoming, days, others, featuredId, known, usingFavorites };
   }, [bySpot, scope, favoriteIds.join(",")]);
 
   const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
@@ -193,7 +198,19 @@ export function NextContent() {
             hasFavorites={favoriteIds.length > 0}
           />
         </h1>
-        <SportFilterChip className="flex-none mt-1" />
+        <div className="flex items-center gap-2 flex-none mt-1">
+          {/* Only when the screen names one spot. Across favourites there is no
+              single station the reading could honestly belong to. */}
+          {view?.known && (
+            <LiveWindIndicator
+              stationId={extractWindguruStationId(
+                spots.find((s) => s._id === view.known)?.liveReportUrl
+              )}
+              label="LIVE"
+            />
+          )}
+          <SportFilterChip />
+        </div>
       </header>
 
       {loading && (
@@ -216,29 +233,25 @@ export function NextContent() {
 
       {!loading && !error && view && (
         <>
-          {view.soonest ? (
-            <div className="rounded-card-lg bg-accent-tint-card border border-accent-border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="font-headline font-extrabold text-[30px] tracking-display-tight leading-[1.05] text-ink">
-                {dayStartOf(view.soonest.window.start) === dayStartOf(Date.now())
-                  ? "Today"
-                  : fmt(view.soonest.window.start, { weekday: "long" })}
-                , {fmt(view.soonest.window.start, { hour: "2-digit", minute: "2-digit" })} –{" "}
-                  {fmt(view.soonest.window.end, { hour: "2-digit", minute: "2-digit" })}
-                </div>
-                <AgreementBars agreement={view.soonest.window.agreement} />
-              </div>
-              <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
-                <span className="font-data text-[13px] text-accent uppercase">
-                  {view.soonest.spot.name} ·{" "}
-                  {conditionSummary(view.soonest.window.peak, sport, { gust: true }) ?? "—"}
-                </span>
-                {/* What the spot reads right now, against what is forecast. */}
-                <LiveWindIndicator
-                  stationId={extractWindguruStationId(view.soonest.spot.liveReportUrl)}
-                  label="LIVE"
+          {view.upcoming.length > 0 ? (
+            <div className="grid gap-2 md:grid-cols-3">
+              {view.upcoming.map(({ spot, window }, i) => (
+                <WindowCard
+                  key={`${spot._id}-${window.start}`}
+                  spot={spot}
+                  window={window}
+                  sport={sport}
+                  // Naming the spot on every card is noise once the title
+                  // already says which spot the screen is about.
+                  showSpot={!view.known}
+                  highlight={i === 0}
+                  onClick={() =>
+                    router.push(
+                      `/window/${dayStartOf(window.start)}/${window.start}?spot=${spot._id}`
+                    )
+                  }
                 />
-              </div>
+              ))}
             </div>
           ) : (
             <div className="rounded-card-lg border border-card bg-surface p-5 text-center">
@@ -269,7 +282,7 @@ export function NextContent() {
           {view.others.length > 0 && (
             <section className="pt-[22px]">
               <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink mb-3">
-                {view.known ? "Other spots" : "Elsewhere, this week"}
+                {view.known ? "At other spots" : "Elsewhere, this week"}
               </h2>
               <div className="flex flex-col gap-[7px]">
                 {view.others.map(({ spot, windowCount, soonest }) => (
@@ -291,13 +304,6 @@ export function NextContent() {
                         {windowCount === 0
                           ? "Nothing this week"
                           : `${windowCount} window${windowCount === 1 ? "" : "s"}`}
-                        {/* Not the compact variant: that one is styled for
-                            video overlays (bg-black/70) and reads as a black
-                            chip on a card. */}
-                        <LiveWindIndicator
-                          stationId={extractWindguruStationId(spot.liveReportUrl)}
-                          label="LIVE"
-                        />
                       </span>
                     </span>
                     {soonest && (
@@ -325,25 +331,5 @@ export function NextContent() {
         </>
       )}
     </MainLayout>
-  );
-}
-
-/**
- * Five bars showing how many models back the window, matching the handoff's
- * 13x5px row. Renders track-coloured throughout when there is no per-model data
- * — five empty bars say "we cannot tell", which is honest; omitting them would
- * silently imply the question was never asked.
- */
-function AgreementBars({ agreement, total = 5 }) {
-  const agreed = agreement?.agreed ?? 0;
-  return (
-    <span className="flex gap-[3px] flex-none" aria-hidden="true">
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={`w-[13px] h-[5px] rounded-[2px] ${i < agreed ? "bg-accent" : "bg-track"}`}
-        />
-      ))}
-    </span>
   );
 }
