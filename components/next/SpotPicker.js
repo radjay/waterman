@@ -1,59 +1,82 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, MapPin } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
-export const BEST_SPOT = "__best__";
+/** Scope sentinels. Anything else is a spot id. */
+export const FAVORITES = "__favorites__";
+export const ALL_SPOTS = "__all__";
 
 /**
- * "Best spot" or one named spot.
+ * The scope picker, worn as part of the page title.
  *
- * Next answers "when" across the whole coast by default, which is right for
- * "where should I go". But a rider who only ever drives to one beach wants that
- * beach's week, and aggregating hides it — a spot with a Thursday window looks
- * identical to no window at all when a better spot covers the same hours.
+ * Reads as a sentence — "Next windows at My favorites" — rather than as a
+ * control bolted beside a heading, so the thing being scoped and the scope sit
+ * in one phrase. The dotted underline and chevron are what mark it as
+ * changeable; without them it reads as static text.
  */
-export function SpotPicker({ spots, value, onChange, className = "" }) {
+export function SpotPicker({ spots, value, onChange, hasFavorites, className = "" }) {
   const [open, setOpen] = useState(false);
-  const selected = spots.find((s) => s._id === value);
-  const label = selected ? selected.name : "Best spot";
+
+  // Spots carry `_id`; the scope sentinels do not. Normalising here rather
+  // than spreading raw spots is what stops `onChange` firing with undefined.
+  const options = [
+    hasFavorites ? { id: FAVORITES, name: "My favorites" } : null,
+    { id: ALL_SPOTS, name: "All spots" },
+    ...spots.map((spot) => ({ id: spot._id, name: spot.name })),
+  ].filter(Boolean);
+
+  const label =
+    value === FAVORITES
+      ? hasFavorites
+        ? "My favorites"
+        : // The default scope with nothing to scope to. Prompting beats showing
+          // "My favorites" over a set the rider has never chosen.
+          "Select a spot"
+      : value === ALL_SPOTS || !value
+        ? "All spots"
+        : (spots.find((s) => s._id === value)?.name ?? "All spots");
 
   return (
-    <div className={`relative ${className}`}>
+    <span className={`relative inline-block ${className}`}>
       <button
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring max-w-[190px]"
+        aria-label={`Scope: ${label}`}
+        className="inline-flex items-baseline gap-1.5 border-b-2 border-dotted border-ink/35 hover:border-ink/60 transition-colors duration-fast ease-smooth focus-ring text-left"
       >
-        <MapPin size={12} className="flex-none" />
-        <span className="truncate uppercase">{label}</span>
-        <ChevronDown size={12} className="flex-none" />
+        {label}
+        <ChevronDown size={20} className="self-center flex-none text-faded-ink" />
       </button>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
+          <span
+            className="fixed inset-0 z-10 block"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
           <ul
             role="listbox"
-            className="absolute right-0 top-full mt-2 z-20 min-w-[210px] max-h-[300px] overflow-y-auto rounded-card-sm bg-nav-bg border border-nav-border shadow-nav backdrop-blur-md"
+            className="absolute left-0 top-full mt-2 z-20 min-w-[220px] max-h-[320px] overflow-y-auto rounded-card-sm bg-nav-bg border border-nav-border shadow-nav backdrop-blur-md"
           >
-            {[{ _id: BEST_SPOT, name: "Best spot" }, ...spots].map((spot) => {
-              const active = (value ?? BEST_SPOT) === spot._id;
+            {options.map((option) => {
+              const active = (value ?? ALL_SPOTS) === option.id;
               return (
-                <li key={spot._id}>
+                <li key={option.id}>
                   <button
                     role="option"
                     aria-selected={active}
                     onClick={() => {
-                      onChange(spot._id === BEST_SPOT ? null : spot._id);
+                      onChange(option.id);
                       setOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2 text-left px-3.5 py-2.5 text-[13px] transition-colors duration-fast ease-smooth ${
+                    className={`w-full flex items-center gap-2 text-left px-3.5 py-2.5 font-body text-[13px] font-normal tracking-normal transition-colors duration-fast ease-smooth ${
                       active ? "bg-accent-tint text-accent" : "text-ink hover:bg-ink-hover"
                     }`}
                   >
-                    <span className="flex-1 truncate">{spot.name}</span>
+                    <span className="flex-1 truncate">{option.name}</span>
                     {active && <Check size={14} className="flex-none" />}
                   </button>
                 </li>
@@ -62,6 +85,6 @@ export function SpotPicker({ spots, value, onChange, className = "" }) {
           </ul>
         </>
       )}
-    </div>
+    </span>
   );
 }

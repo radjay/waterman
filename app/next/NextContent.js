@@ -10,7 +10,8 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
-import { SpotPicker } from "../../components/next/SpotPicker";
+import { ALL_SPOTS, FAVORITES, SpotPicker } from "../../components/next/SpotPicker";
+import { useUser } from "../../components/auth/AuthProvider";
 import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
 import { conditionSummary } from "../../lib/conditions";
 import { spotsWithSlots } from "../../lib/reportData";
@@ -41,11 +42,16 @@ export function NextContent() {
   // Persisted: a rider who only drives to one beach should not have to pick it
   // again on every visit. Validated against null-or-string so a stale key from
   // an older build cannot put the screen into an unrenderable state.
-  const [spotId, setSpotId] = usePersistedState(
+  // Defaults to the rider's own spots. Somebody who has told us where they go
+  // should not have to say it again on every visit, and a coast-wide view is a
+  // worse first answer for them than their own three beaches.
+  const [scope, setScope] = usePersistedState(
     NEXT_SPOT_STORAGE_KEY,
-    null, // null = best spot across the coast
-    (v) => v === null || typeof v === "string"
+    FAVORITES,
+    (v) => typeof v === "string"
   );
+  const user = useUser();
+  const favoriteIds = user?.favoriteSpots ?? [];
   const [state, setState] = useState({ loading: true, error: null, bySpot: null });
 
   useEffect(() => {
@@ -81,10 +87,19 @@ export function NextContent() {
     // Aggregating hides a spot's own week — a Thursday window looks identical
     // to no window at all when a better spot covers the same hours.
     // A stored spot can outlive the spot itself, or stop supporting the
-    // selected sport. Falling back to best-spot beats rendering an empty week
-    // with no explanation.
-    const known = spotId && bySpot.some((s) => s.spot._id === spotId) ? spotId : null;
-    const scoped = known ? bySpot.filter((s) => s.spot._id === known) : bySpot;
+    // selected sport. Falling back to the whole coast beats rendering an empty
+    // week with no explanation.
+    const isSpot = scope && scope !== FAVORITES && scope !== ALL_SPOTS;
+    const known = isSpot && bySpot.some((s) => s.spot._id === scope) ? scope : null;
+
+    const usingFavorites =
+      scope === FAVORITES && bySpot.some(({ spot }) => favoriteIds.includes(spot._id));
+
+    const scoped = known
+      ? bySpot.filter((s) => s.spot._id === known)
+      : usingFavorites
+        ? bySpot.filter(({ spot }) => favoriteIds.includes(spot._id))
+        : bySpot;
     const soonest = soonestWindow(scoped, now);
 
     const today = dayStartOf(now);
@@ -146,21 +161,27 @@ export function NextContent() {
       now
     );
 
-    return { soonest, days, others, featuredId, known };
-  }, [bySpot, spotId]);
+    return { soonest, days, others, featuredId, known, usingFavorites };
+  }, [bySpot, scope, favoriteIds.join(",")]);
 
   const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
 
   return (
     <MainLayout wide>
-      <header className="flex items-center justify-between gap-2 pt-[22px] pb-3">
-        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
-          Next windows
+      <header className="flex items-start justify-between gap-3 pt-[22px] pb-3">
+        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-tight">
+          Next windows{" "}
+          {/* Lighter, so the phrase breaks into "what" and "where" rather than
+              reading as one long run of bold. */}
+          <span className="text-faded-ink font-normal">at</span>{" "}
+          <SpotPicker
+            spots={spots}
+            value={scope}
+            onChange={setScope}
+            hasFavorites={favoriteIds.length > 0}
+          />
         </h1>
-        <div className="flex items-center gap-2">
-          {spots.length > 0 && <SpotPicker spots={spots} value={view?.known ?? null} onChange={setSpotId} />}
-          <SportFilterChip />
-        </div>
+        <SportFilterChip className="flex-none mt-1" />
       </header>
 
       {loading && (
@@ -207,7 +228,7 @@ export function NextContent() {
               </p>
               <p className="text-[14px] text-faded-ink mt-2.5">
                 No {meta.label.toLowerCase()} windows clear 60
-                {view.known ? " here" : ""} in the next six days.
+                {view.known || view.usingFavorites ? " here" : ""} in the next six days.
               </p>
             </div>
           )}
@@ -215,11 +236,7 @@ export function NextContent() {
           <WeekStrip
             days={view.days}
             sport={sport}
-            title={
-              view.known
-                ? `The week @ ${spots.find((s) => s._id === view.known)?.name ?? ""}`
-                : `The week · ${meta.label}`
-            }
+            title="The week"
             onSelectWindow={(day, window) =>
               router.push(`/window/${day.dayStart}/${window.start}`)
             }
@@ -234,7 +251,7 @@ export function NextContent() {
                 {view.others.map(({ spot, windowCount, soonest }) => (
                   <button
                     key={spot._id}
-                    onClick={() => setSpotId(spot._id)}
+                    onClick={() => setScope(spot._id)}
                     aria-label={`Show the week for ${spot.name}`}
                     className={`w-full text-left flex items-center gap-[11px] rounded-card-sm border px-[13px] py-[11px] focus-ring transition-colors duration-fast ease-smooth ${
                       windowCount === 0
@@ -268,10 +285,10 @@ export function NextContent() {
 
           {view.known && (
             <button
-              onClick={() => setSpotId(null)}
+              onClick={() => setScope(FAVORITES)}
               className="mt-4 font-data text-[10px] tracking-label text-faded-ink hover:text-ink focus-ring"
             >
-              ← BACK TO BEST SPOT
+              ← BACK TO ALL WINDOWS
             </button>
           )}
         </>
