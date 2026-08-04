@@ -1,6 +1,6 @@
 "use client";
 
-import { Layers, TrendingUp, TrendingDown, Users, Wind } from "lucide-react";
+import { CircleGauge, Layers, TrendingUp, TrendingDown, Users, Wind } from "lucide-react";
 import { BANDS, agreementSentence } from "../../lib/agreement";
 
 /**
@@ -12,7 +12,7 @@ import { BANDS, agreementSentence } from "../../lib/agreement";
  * have neither a cam nor a live station, and one honest card is a legitimate
  * screen — three skeletons that never resolve are not.
  */
-export function EvidenceStack({ riderCount, station, agreement, sportNoun = "out" }) {
+export function EvidenceStack({ riderCount, station, agreement, reasoning, sportNoun = "out" }) {
   const cards = [
     riderCount && <InTheWaterCard key="water" reading={riderCount} sportNoun={sportNoun} />,
     station && <StationCard key="station" station={station} />,
@@ -20,6 +20,15 @@ export function EvidenceStack({ riderCount, station, agreement, sportNoun = "out
       <ModelAgreementCard key="models" agreement={agreement} />
     ),
   ].filter(Boolean);
+
+  // Most spots have no cam and no live station, and a spot with no per-model
+  // rows yet contributes nothing either — which left the whole section missing
+  // and the screen reduced to a verdict and a button. The scorer's own
+  // explanation is real evidence and is always available, so it backstops the
+  // stack rather than letting "why we think so" answer with silence.
+  if (cards.length === 0 && reasoning) {
+    cards.push(<ForecastCard key="forecast" reasoning={reasoning} />);
+  }
 
   if (cards.length === 0) return null;
 
@@ -33,7 +42,20 @@ export function EvidenceStack({ riderCount, station, agreement, sportNoun = "out
   );
 }
 
-const CARD = "rounded-card-sm bg-surface border border-card px-[14px] py-[13px]";
+// 15px radius per the handoff; rounded-card-sm is 14px.
+const CARD = "rounded-[15px] bg-surface border border-card px-[14px] py-[13px]";
+
+function ForecastCard({ reasoning }) {
+  return (
+    <div className={CARD}>
+      <div className="flex items-center gap-[9px]">
+        <CircleGauge size={15} className="text-faded-ink" />
+        <span className="font-data text-[10px] tracking-label text-faded-ink">FORECAST</span>
+      </div>
+      <p className="text-[13px] leading-[1.45] text-ink mt-[11px]">{reasoning}</p>
+    </div>
+  );
+}
 
 function InTheWaterCard({ reading, sportNoun }) {
   const Trend = reading.trend === "down" ? TrendingDown : TrendingUp;

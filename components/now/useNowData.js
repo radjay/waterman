@@ -101,6 +101,7 @@ export function useNowData(sport) {
             slot: chosen.slot,
             agreement,
             score: chosen.score,
+            reasoning: chosen.slot.reasoning,
             nextWindow: next,
             reason: verdictReason({
               verdict,

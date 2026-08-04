@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SlidersHorizontal } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
-import { SportSegmented } from "../../components/sport/SportSegmented";
+import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
 import { detectWindows, soonestWindow, spotSummaries } from "../../lib/windows";
@@ -96,7 +95,7 @@ export function NextContent() {
         <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
           Next windows
         </h1>
-        <SportSegmented />
+        <SportFilterChip />
       </header>
 
       {loading && (
@@ -121,10 +120,11 @@ export function NextContent() {
         <>
           {data.soonest ? (
             <div className="rounded-card-lg bg-accent-tint-card border border-accent-border p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="font-data text-[9px] tracking-label-wide text-accent">
                   SOONEST GOOD WINDOW
                 </span>
+                <AgreementBars agreement={data.soonest.window.agreement} />
               </div>
               <div className="font-headline font-extrabold text-[30px] tracking-display-tight leading-[1.05] text-ink mt-[9px]">
                 {sameDay(data.soonest.window.start)
@@ -178,7 +178,7 @@ export function NextContent() {
                     <div className="font-data text-[10px] text-faded-ink mt-0.5">
                       {windowCount === 0
                         ? "Nothing this week"
-                        : `${windowCount} window${windowCount === 1 ? "" : "s"}`}
+                        : `${windowCount} window${windowCount === 1 ? "" : "s"} · ${describeSpot(spot)}`}
                     </div>
                   </div>
                   {soonest && (
@@ -194,6 +194,37 @@ export function NextContent() {
       )}
     </MainLayout>
   );
+}
+
+/**
+ * Five bars showing how many models back the window, matching the handoff's
+ * 13x5px row. Renders track-coloured throughout when there is no per-model data
+ * — five empty bars say "we cannot tell", which is honest; omitting them would
+ * silently imply the question was never asked.
+ */
+function AgreementBars({ agreement, total = 5 }) {
+  const agreed = agreement?.agreed ?? 0;
+  return (
+    <span className="flex gap-[3px] flex-none" aria-hidden="true">
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`w-[13px] h-[5px] rounded-[2px] ${i < agreed ? "bg-accent" : "bg-track"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * The handoff labels each spot with what kind of riding it offers —
+ * "wave + wind", "flat water" — not just a window count. Derived from the
+ * spot's own wave data rather than invented.
+ */
+function describeSpot(spot) {
+  if (spot.webcamOnly) return "cam only";
+  const hasWaves = Number(spot.maxWaveHeight ?? 0) > 0.5 || spot.sports?.includes("surfing");
+  return hasWaves ? "wave + wind" : "flat water";
 }
 
 function sameDay(ms) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Users, Wind } from "lucide-react";
+import { ArrowUp, Users, Waves, Wind } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { sportMeta } from "../sport/SportProvider";
 
@@ -31,13 +31,35 @@ export function VerdictCard({
 }) {
   const tone = VERDICT_TONE[verdict] || "dim";
   const isGo = verdict === VERDICT.GO;
+  const isMarginal = verdict === VERDICT.MARGINAL;
+
+  // The handoff tints the verdict card; the bad-day stress test says accent is
+  // withheld from everything except the one thing worth acting on. Both hold if
+  // the tint follows the verdict: accent for GO, the accent-2 hue for MARGINAL,
+  // and a neutral card for NO — where the accent belongs to the next-window
+  // card further down instead.
+  const cardTone = isGo
+    ? "bg-accent-tint-card border-accent-border"
+    : isMarginal
+      ? "bg-marginal/10 border-marginal/30"
+      : "bg-surface border-card";
+  const chipTone = isGo
+    ? "bg-accent-tint text-accent"
+    : isMarginal
+      ? "bg-marginal/15 text-marginal"
+      : "bg-ink/5 text-faded-ink";
+  const ringTone = isGo
+    ? "border-accent-border text-accent"
+    : isMarginal
+      ? "border-marginal/40 text-marginal"
+      : "border-card text-faded-ink";
   const meta = sportMeta(sport);
+  // Surfing is not a wind sport; the chip should not claim it is.
+  const SportIcon = sport === "surfing" ? Waves : Wind;
 
   return (
     <div
-      className={`rounded-card-xl px-4 py-[15px] border ${
-        isGo ? "bg-accent-tint-card border-accent-border" : "bg-surface border-card"
-      }`}
+      className={`rounded-card-xl px-4 py-[15px] border ${cardTone}`}
     >
       <div className="flex items-center justify-between gap-3">
         <div
@@ -46,11 +68,9 @@ export function VerdictCard({
           {verdict}
         </div>
         <div
-          className={`flex items-center gap-1.5 rounded-pill px-[11px] py-1.5 font-data text-[10px] tracking-label ${
-            isGo ? "bg-accent-tint text-accent" : "bg-ink/5 text-faded-ink"
-          }`}
+          className={`flex items-center gap-1.5 rounded-pill px-[11px] py-1.5 font-data text-[10px] tracking-label ${chipTone}`}
         >
-          <Wind size={12} />
+          <SportIcon size={12} />
           {meta.label}
         </div>
       </div>
@@ -72,9 +92,7 @@ export function VerdictCard({
           </div>
           {directionDegrees !== null && directionDegrees !== undefined && (
             <div
-              className={`ml-auto w-[34px] h-[34px] rounded-full border flex items-center justify-center ${
-                isGo ? "border-accent-border text-accent" : "border-card text-faded-ink"
-              }`}
+              className={`ml-auto w-[34px] h-[34px] rounded-full border flex items-center justify-center ${ringTone}`}
               // Matches components/ui/Arrow: rotate by the raw stored bearing.
               // The +180 "from -> to" conversion lives in the LABEL
               // (getDisplayWindDirection), not the glyph. Doing it in both

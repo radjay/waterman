@@ -8,6 +8,7 @@ import { useSport } from "../components/sport/SportProvider";
 import { useFlag } from "../components/flags/FlagProvider";
 import { VerdictCard } from "../components/now/VerdictCard";
 import { EvidenceStack } from "../components/now/EvidenceStack";
+import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
 import { useNowData } from "../components/now/useNowData";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
 import { VERDICT, relativeDay } from "../lib/verdict";
@@ -74,6 +75,9 @@ export function NowContent() {
             directionDegrees={data.slot?.direction}
             reason={data.reason}
             riderCount={riderCount}
+            camSlot={
+              data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null
+            }
             onWatchCam={() => router.push("/cams")}
           />
 
@@ -81,6 +85,7 @@ export function NowContent() {
             riderCount={riderCount}
             station={showStation ? data.station : null}
             agreement={showModels ? data.agreement : null}
+            reasoning={data.reasoning}
             sportNoun={meta.noun}
           />
 

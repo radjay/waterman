@@ -9,12 +9,13 @@ import { Header } from "../../components/layout/Header";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useFlag } from "../../components/flags/FlagProvider";
+import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { riderCount as fixtureRiderCount } from "../../lib/fixtures/riderCounts";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
-import { Tv, MapPin, SlidersHorizontal, X } from "lucide-react";
+import { Tv, MapPin, SlidersHorizontal, Users, X } from "lucide-react";
 import { FilterGroup } from "../../components/ui/FilterGroup";
 import { SportFilter, ALL_SPORT_IDS } from "../../components/ui/SportFilter";
 import { usePersistedState } from "../../lib/hooks/usePersistedState";
@@ -262,6 +263,14 @@ export default function CamsContent({ initialData = null }) {
    * orderings have to look deliberate. With riderCounts off we keep the
    * existing order rather than inventing a different one.
    */
+  const countsUpdatedAt = showRiderCounts
+    ? new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Lisbon",
+      }).format(new Date())
+    : null;
+
   const orderedWebcams = showRiderCounts
     ? [...webcams].sort((a, b) => {
         const countOf = (cam) => fixtureRiderCount(cam._id)?.count ?? -1;
@@ -273,84 +282,32 @@ export default function CamsContent({ initialData = null }) {
 
   return (
     <MainLayout>
-      <Header />
+      {/* "Who's out" — the screen is about who is on the water, not about
+          listing cameras. The disclaimer sits directly under the title because
+          the counts are estimates and must never read as measurements. */}
+      <header className="flex items-center justify-between pt-[22px] pb-3">
+        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
+          {showRiderCounts ? "Who's out" : "Cams"}
+        </h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTvMode(true)}
+            className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
+            aria-label="TV Mode"
+          >
+            <Tv size={12} />
+            TV
+          </button>
+          <SportFilterChip />
+        </div>
+      </header>
 
-      {/* Filter bar — always in normal document flow, never overlaying cams */}
-      {!loading && <div className="pb-4 pt-2">
-        {filtersExpanded ? (
-          /* Expanded: full filter bar, TV Mode hidden */
-          <div className="rounded-xl bg-ink/[0.04] px-4 md:-mx-2 py-3">
-            <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-
-              {/* Filters label */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setFiltersExpanded(false)}
-                  className="flex items-center gap-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-                  aria-expanded={true}
-                >
-                  <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
-                </button>
-                <div className="flex-1 md:hidden" />
-                <button
-                  onClick={() => setFiltersExpanded(false)}
-                  className="md:hidden p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
-                  aria-label="Close filters"
-                >
-                  <X size={14} strokeWidth={2} />
-                </button>
-              </div>
-
-              {/* Vertical divider (desktop) */}
-              <div className="hidden md:block w-px h-4 bg-ink/20 shrink-0" />
-
-              {/* Sport filter */}
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mt-3 pt-3 border-t border-ink/[0.06] md:mt-0 md:pt-0 md:border-0 flex-1">
-                <FilterGroup label="Sport">
-                  <SportFilter
-                    selectedSports={selectedSports}
-                    onToggle={handleSportToggle}
-                  />
-                </FilterGroup>
-              </div>
-
-              {/* X (desktop) */}
-              <button
-                onClick={() => setFiltersExpanded(false)}
-                className="hidden md:flex p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
-                aria-label="Close filters"
-              >
-                <X size={14} strokeWidth={2} />
-              </button>
-
-            </div>
-          </div>
-        ) : (
-          /* Collapsed: [TV Mode] [Filter pill] right-aligned */
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => setTvMode(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-              aria-label="TV Mode"
-            >
-              <Tv size={14} strokeWidth={2} />
-              <span className="text-xs font-semibold uppercase tracking-wider leading-none">TV Mode</span>
-            </button>
-
-            <button
-              onClick={() => setFiltersExpanded(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-              aria-expanded={false}
-            >
-              <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-wider leading-none">
-                {activeFilterLabel}
-              </span>
-            </button>
-          </div>
-        )}
-      </div>}
+      {showRiderCounts && (
+        <p className="font-data text-[9px] text-dim pb-3">
+          RIDER COUNTS ESTIMATED FROM CAM FOOTAGE
+          {countsUpdatedAt ? ` · UPDATED ${countsUpdatedAt}` : ""}
+        </p>
+      )}
 
       {/* Webcam grid */}
       <div className="pb-12">
@@ -364,8 +321,15 @@ export default function CamsContent({ initialData = null }) {
               <div
                 key={webcam._id}
                 onClick={() => handleWebcamClick(webcam)}
-                className="cursor-pointer group"
+                className={`relative cursor-pointer group rounded-card overflow-hidden ${
+                  showRiderCounts && (fixtureRiderCount(webcam._id)?.count ?? 0) > 0
+                    ? "ring-1 ring-inset ring-accent-border"
+                    : ""
+                }`}
               >
+                {showRiderCounts && (
+                  <RiderBadge reading={fixtureRiderCount(webcam._id)} sport={selectedSport} />
+                )}
                 <WebcamCard
                   spot={webcam}
                   showHoverButtons
@@ -421,5 +385,37 @@ export default function CamsContent({ initialData = null }) {
       )}
 
     </MainLayout>
+  );
+}
+
+/**
+ * The four states from the handoff, in one badge.
+ *
+ *   active   — solid accent, count leading
+ *   quieter  — neutral fill, count leading
+ *   nobody   — "NOBODY OUT" in muted text. A real answer, not an empty state.
+ *   no data  — nothing rendered, which is different again from nobody out
+ */
+function RiderBadge({ reading, sport }) {
+  if (!reading) return null;
+
+  const noun =
+    sport === "kitesurfing" ? "KITES" : sport === "surfing" ? "SURFERS" : "WINGS";
+  const busy = reading.count >= 5;
+  const empty = reading.count === 0;
+
+  return (
+    <span
+      className={`absolute top-[7px] left-[7px] z-10 flex items-center gap-[5px] rounded-pill px-[9px] py-[5px] font-data text-[10px] pointer-events-none ${
+        empty
+          ? "bg-page border border-nav-border text-faded-ink"
+          : busy
+            ? "bg-accent text-page font-bold"
+            : "bg-page border border-nav-border text-ink"
+      }`}
+    >
+      <Users size={11} />
+      {empty ? "NOBODY OUT" : `${reading.count} ${noun}`}
+    </span>
   );
 }
