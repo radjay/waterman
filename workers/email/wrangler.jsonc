@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "waterman-email",
+  "account_id": "1a01a13db2af69babc5d1c3d98826578",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-04",
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["waterman@radx.dev"]
+    }
+  ]
+}

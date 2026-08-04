@@ -11,6 +11,7 @@ yarn-error.log
 # Environment
 .env
 .env.local
+.dev.vars
 
 # Editor
 .vscode/
@@ -20,6 +21,9 @@ yarn-error.log
 
 # Next.js
 .next/
+
+# Cloudflare Workers
+.wrangler/
 
 # Analysis/Test artifacts
 *-analysis.json
