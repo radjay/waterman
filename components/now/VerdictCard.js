@@ -104,8 +104,11 @@ export function VerdictCard({
           >
             {VERDICT_WORD[verdict] ?? verdict}
           </span>
+          {/* min-w-0 as well as truncate: a flex item's min-width is auto, so
+              without it the span refuses to shrink below the full spot name and
+              the card's min-content width blows past a narrow phone. */}
           {spotName && (
-            <span className="font-headline font-bold text-[17px] tracking-display text-ink truncate">
+            <span className="font-headline font-bold text-[17px] tracking-display text-ink truncate min-w-0">
               <span className="font-data font-normal text-faded-ink text-[15px]">@ </span>
               {spotName}
             </span>
