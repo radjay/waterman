@@ -11,7 +11,6 @@ yarn-error.log
 # Environment
 .env
 .env.local
-.dev.vars
 
 # Editor
 .vscode/
@@ -21,9 +20,6 @@ yarn-error.log
 
 # Next.js
 .next/
-
-# Cloudflare Workers
-.wrangler/
 
 # Analysis/Test artifacts
 *-analysis.json
@@ -35,5 +31,9 @@ poc.js
 *.tmp
 *.log
 
-# Python venv (local ML training)
-ml/bay-wind/.venv/
+# design-sync (claude.ai/design import)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
