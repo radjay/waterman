@@ -59,6 +59,7 @@
      is a position marker rather than a judgement — reusing either would collide
      with the score semantics the strip already encodes. */
   --wm-now: #ff9d42;
+  --wm-caution: #ff9d42;
   /* Near-black, not white: white on this orange is 2.07:1 and fails AA
      outright, where near-black clears 10:1. */
   --wm-now-text: #0a1420;
@@ -116,6 +117,7 @@
      rule still holds 3.37:1 against the light page. Both thresholds matter:
      one is text, the other a graphic. */
   --wm-now: #cc6a10;
+  --wm-caution: #cc6a10;
   --wm-now-text: #0a1420;
 
   /* See the Nightglass note — page composited with accent-tint-card. */

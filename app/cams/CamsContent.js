@@ -10,6 +10,8 @@ import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useFlag } from "../../components/flags/FlagProvider";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
+import { Badge } from "../../components/ui/Badge";
+import { SpotPicker, FAVORITES } from "../../components/next/SpotPicker";
 import { riderCount as fixtureRiderCount } from "../../lib/fixtures/riderCounts";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
@@ -25,6 +27,7 @@ import { ScoreModal } from "../../components/common/ScoreModal";
 import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+const CAMS_SCOPE_STORAGE_KEY = "waterman_cams_scope";
 
 // ---------------------------------------------------------------------------
 // Helpers for initializing state from server-prefetched data
@@ -65,6 +68,14 @@ export default function CamsContent({ initialData = null }) {
   const user = useUser();
 
   const showRiderCounts = useFlag("riderCounts");
+
+  // Same scope model as Next, and persisted, so the two screens agree about
+  // what "mine" means and the choice survives a refresh.
+  const [scope, setScope] = usePersistedState(
+    CAMS_SCOPE_STORAGE_KEY,
+    FAVORITES,
+    (v) => typeof v === "string"
+  );
 
   const [webcams, setWebcams] = useState(() => buildInitialWebcams(initialData));
   const [enrichedSlots, setEnrichedSlots] = useState(() => buildInitialSlots(initialData));
@@ -271,12 +282,26 @@ export default function CamsContent({ initialData = null }) {
       }).format(new Date())
     : null;
 
+  const favoriteIds = user?.favoriteSpots ?? [];
+  const hasFavorites = favoriteIds.length > 0;
+
+  // Scope first, then order. Falls back to everything when the rider has no
+  // favourites, or when none of them have a cam — an empty grid would look
+  // broken where the full list merely looks unfiltered.
+  const scopedWebcams =
+    scope === FAVORITES && hasFavorites
+      ? (() => {
+          const mine = webcams.filter((w) => favoriteIds.includes(w._id));
+          return mine.length ? mine : webcams;
+        })()
+      : webcams;
+
   const orderedWebcams = showRiderCounts
-    ? [...webcams].sort((a, b) => {
+    ? [...scopedWebcams].sort((a, b) => {
         const countOf = (cam) => fixtureRiderCount(cam._id)?.count ?? -1;
         return countOf(b) - countOf(a);
       })
-    : webcams;
+    : scopedWebcams;
   const handleCloseFullscreen = () => setFocusedWebcam(null);
   const handleNavigateWebcam = (webcam) => setFocusedWebcam(webcam);
 
@@ -290,6 +315,12 @@ export default function CamsContent({ initialData = null }) {
           {showRiderCounts ? "Who's out" : "Cams"}
         </h1>
         <div className="flex items-center gap-2">
+          <SpotPicker
+            spots={[]}
+            value={scope}
+            onChange={setScope}
+            hasFavorites={hasFavorites}
+          />
           <button
             onClick={() => setTvMode(true)}
             className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
@@ -327,9 +358,6 @@ export default function CamsContent({ initialData = null }) {
                     : ""
                 }`}
               >
-                {showRiderCounts && (
-                  <RiderBadge reading={fixtureRiderCount(webcam._id)} sports={selectedSports} />
-                )}
                 <WebcamCard
                   spot={webcam}
                   showHoverButtons
@@ -337,6 +365,14 @@ export default function CamsContent({ initialData = null }) {
                   onToggleFavorite={(e) => handleToggleFavorite(webcam._id, e)}
                   forecastData={forecastBySpot[webcam._id]?.forecastData || null}
                   onScoreClick={forecastBySpot[webcam._id]?.slot?.score ? () => setScoreModalSlot(forecastBySpot[webcam._id].slot) : undefined}
+                  overlayBadge={
+                    showRiderCounts ? (
+                      <RiderBadge
+                        reading={fixtureRiderCount(webcam._id)}
+                        sports={selectedSports}
+                      />
+                    ) : null
+                  }
                 />
               </div>
             ))}
@@ -405,21 +441,17 @@ function RiderBadge({ reading, sports }) {
   const only = sports?.length === 1 ? sports[0] : null;
   const noun =
     only === "kitesurfing" ? "KITES" : only === "surfing" ? "SURFERS" : only === "wingfoil" ? "WINGS" : "OUT";
-  const busy = reading.count >= 5;
-  const empty = reading.count === 0;
 
+  const empty = reading.count === 0;
+  const busy = reading.count >= 5;
+
+  // Shares the Badge component with the live wind chip beside it, so the two
+  // are the same height and radius by construction rather than by two sets of
+  // hand-tuned padding that drifted apart.
   return (
-    <span
-      className={`absolute top-[7px] left-[7px] z-10 flex items-center gap-[5px] rounded-pill px-[9px] py-[5px] font-data text-[10px] pointer-events-none ${
-        empty
-          ? "bg-page border border-nav-border text-faded-ink"
-          : busy
-            ? "bg-accent text-page font-bold"
-            : "bg-page border border-nav-border text-ink"
-      }`}
-    >
+    <Badge variant={busy ? "live" : "overlay"}>
       <Users size={11} />
       {empty ? "NOBODY OUT" : `${reading.count} ${noun}`}
-    </span>
+    </Badge>
   );
 }

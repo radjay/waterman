@@ -101,3 +101,31 @@ describe("interaction", () => {
     expect(screen.getByRole("button").getAttribute("aria-label")).toBe("Scope: My favorites");
   });
 });
+
+describe("scope-only usage", () => {
+  // Cams uses the picker for scope alone and passes no spots. Prompting to
+  // "Select a spot" there would point at options that do not exist.
+  const scopeOnly = (props = {}) =>
+    render(
+      <SpotPicker spots={[]} value={FAVORITES} onChange={() => {}} hasFavorites={false} {...props} />
+    );
+
+  it("says All spots rather than prompting when there are no spots to offer", () => {
+    scopeOnly();
+    expect(screen.getByRole("button").textContent).toContain("All spots");
+  });
+
+  it("still says My favorites when the rider has some", () => {
+    scopeOnly({ hasFavorites: true });
+    expect(screen.getByRole("button").textContent).toContain("My favorites");
+  });
+
+  it("offers only the scopes", () => {
+    scopeOnly({ hasFavorites: true });
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getAllByRole("option").map((o) => o.textContent.trim())).toEqual([
+      "My favorites",
+      "All spots",
+    ]);
+  });
+});

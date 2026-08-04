@@ -31,8 +31,12 @@ export function SpotPicker({ spots, value, onChange, hasFavorites, className = "
       ? hasFavorites
         ? "My favorites"
         : // The default scope with nothing to scope to. Prompting beats showing
-          // "My favorites" over a set the rider has never chosen.
-          "Select a spot"
+          // "My favorites" over a set the rider has never chosen — but only
+          // where the picker can actually offer spots. On Cams it lists scopes
+          // only, so "Select a spot" would point at nothing.
+          spots.length
+          ? "Select a spot"
+          : "All spots"
       : value === ALL_SPOTS || !value
         ? "All spots"
         : (spots.find((s) => s._id === value)?.name ?? "All spots");

@@ -20,7 +20,7 @@ const CAM_TIMEOUT_MS = 12000;
  * @param {boolean} isFavorite - Whether this spot is favorited by the user
  * @param {Function} onToggleFavorite - Callback when favorite button is clicked
  */
-export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick }) {
+export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick, overlayBadge = null }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error" | "offline"
@@ -252,15 +252,19 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
           </div>
         )}
 
-        {/* Live wind indicator overlay - top left corner */}
-        {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
-          <div className="absolute top-2 left-2">
+        {/* Top-left overlays share one row. They used to be two independent
+            absolutes in the same corner, so the rider count sat on top of the
+            live wind reading. `overlayBadge` is a slot rather than a second
+            absolute so either can be absent without leaving a gap. */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
+          {overlayBadge}
+          {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
             <LiveWindIndicator
               stationId={extractWindguruStationId(spot.liveReportUrl)}
               compact={true}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Hover buttons overlay - top right corner */}
         {/* RAD-21: Hidden on mobile (one tap = fullscreen). Desktop: appear on hover. */}

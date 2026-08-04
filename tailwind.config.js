@@ -63,6 +63,7 @@ export default {
         knob: "var(--wm-knob)",
         now: "var(--wm-now)",
         "now-text": "var(--wm-now-text)",
+        caution: "var(--wm-caution)",
         "sport-pill": "var(--wm-sport-pill-bg)",
         "sport-pill-text": "var(--wm-sport-pill-text)",
       },

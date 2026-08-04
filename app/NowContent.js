@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronRight, Share } from "lucide-react";
+import { CalendarClock, ChevronRight, MapPin, Share } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
-import { SportSegmented } from "../components/sport/SportSegmented";
 import { useSport } from "../components/sport/SportProvider";
+import { useUser } from "../components/auth/AuthProvider";
 import { useFlag } from "../components/flags/FlagProvider";
 import { VerdictCard } from "../components/now/VerdictCard";
 import { EvidenceStack } from "../components/now/EvidenceStack";
@@ -28,7 +28,9 @@ export function NowContent() {
   const showRiderCounts = useFlag("riderCounts");
   const showStation = useFlag("stationEvidence");
   const showModels = useFlag("modelConfidence");
-  const { loading, error, data } = useNowData(sport);
+  const user = useUser();
+  const favoriteIds = user?.favoriteSpots ?? [];
+  const { loading, error, data } = useNowData(sport, favoriteIds);
   const { share } = useShare({
     url: typeof window !== "undefined" ? window.location.href : "",
     title: "Waterman",
@@ -47,7 +49,6 @@ export function NowContent() {
           Waterman
         </h1>
         <div className="flex items-center gap-2 ml-auto">
-          <SportSegmented />
           <button
             onClick={share}
             aria-label="Share"
@@ -79,7 +80,36 @@ export function NowContent() {
         </div>
       )}
 
-      {!loading && !error && data && (
+      {!loading && !error && data?.needsFavorites && (
+        <div className="rounded-card-xl border border-card bg-surface p-5 mt-1">
+          <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-[1.1]">
+            Which spots are yours?
+          </h2>
+          <p className="text-[14px] text-faded-ink mt-2.5 leading-[1.5]">
+            Now answers &ldquo;can I go&rdquo; for one spot. Tell us where you actually ride and
+            it will speak for those — otherwise it would rank the whole coast and could send
+            you an hour up the road without saying so.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-5">
+            <button
+              onClick={() => router.push("/settings")}
+              className="flex items-center gap-2 rounded-pill bg-accent text-page px-4 py-2.5 font-data text-[11px] font-bold tracking-[0.1em] focus-ring active:scale-[0.98] transition-transform duration-fast ease-smooth"
+            >
+              <MapPin size={14} />
+              CHOOSE YOUR SPOTS
+            </button>
+            <button
+              onClick={() => router.push("/next")}
+              className="flex items-center gap-2 rounded-pill border border-btn text-ink px-4 py-2.5 font-data text-[11px] tracking-[0.1em] focus-ring hover:bg-ink-hover transition-colors duration-fast ease-smooth"
+            >
+              <CalendarClock size={14} />
+              SEE NEXT WINDOWS
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && data && !data.needsFavorites && (
         <>
           <VerdictCard
             verdict={data.verdict}
@@ -147,11 +177,21 @@ export function NowContent() {
           {!data.spot && (
             <div className="pt-10 text-center">
               <p className="font-headline font-extrabold text-[27px] tracking-display-tight text-ink leading-[1.1]">
-                Nothing on right now
+                {data.noSpotForSport
+                  ? `None of your spots do ${meta.label.toLowerCase()}`
+                  : "Nothing on right now"}
               </p>
               <p className="text-[14px] text-faded-ink mt-3">
-                No spot has conditions for {meta.label.toLowerCase()} at the moment.
+                {data.noSpotForSport
+                  ? "Pick another sport, or add a spot that does."
+                  : `No conditions for ${meta.label.toLowerCase()} at your spots at the moment.`}
               </p>
+              <button
+                onClick={() => router.push("/next")}
+                className="mt-5 font-data text-[11px] tracking-label text-accent focus-ring"
+              >
+                SEE NEXT WINDOWS →
+              </button>
             </div>
           )}
         </>

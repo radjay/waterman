@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowUp, Users, Waves, Wind } from "lucide-react";
+import { ArrowUp, Users } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
-import { sportMeta } from "../sport/SportProvider";
+import { Badge } from "../ui/Badge";
+import { SportFilterChip } from "../sport/SportFilterChip";
 import {
   LiveWindIndicator,
   extractWindguruStationId,
@@ -10,7 +11,7 @@ import {
 
 const TONE_TEXT = {
   accent: "text-accent",
-  marginal: "text-marginal",
+  caution: "text-caution",
   dim: "text-dim",
 };
 
@@ -55,22 +56,13 @@ export function VerdictCard({
   const cardTone = isGo
     ? "bg-accent-tint-card border-accent-border"
     : isMarginal
-      ? "bg-marginal/10 border-marginal/30"
+      ? "bg-caution/10 border-caution/30"
       : "bg-surface border-card";
-  const chipTone = isGo
-    ? "bg-accent-tint text-accent"
-    : isMarginal
-      ? "bg-marginal/15 text-marginal"
-      : "bg-ink/5 text-faded-ink";
   const ringTone = isGo
     ? "border-accent-border text-accent"
     : isMarginal
-      ? "border-marginal/40 text-marginal"
+      ? "border-caution/40 text-caution"
       : "border-card text-faded-ink";
-
-  const meta = sportMeta(sport);
-  // Surfing is not a wind sport; the chip should not claim it is.
-  const SportIcon = sport === "surfing" ? Waves : Wind;
 
   return (
     <div className={`rounded-card-xl px-4 py-[15px] border ${cardTone}`}>
@@ -88,12 +80,9 @@ export function VerdictCard({
             </div>
           )}
         </div>
-        <div
-          className={`flex-none flex items-center gap-1.5 rounded-pill px-[11px] py-1.5 font-data text-[10px] tracking-label ${chipTone}`}
-        >
-          <SportIcon size={12} />
-          {meta.label}
-        </div>
+        {/* The same control as Next, rather than a label that looked
+            interactive and was not. */}
+        <SportFilterChip className="flex-none" />
       </div>
 
       {metric && (
@@ -150,15 +139,15 @@ export function VerdictCard({
         >
           {camSlot}
           <span className="absolute top-[9px] left-[9px] flex items-center gap-[7px] pointer-events-none">
-            <span className="flex items-center gap-1.5 bg-accent text-page rounded-pill px-2.5 py-[5px] font-data text-[10px] font-bold">
+            <Badge variant="live">
               <span className="w-1.5 h-1.5 rounded-full bg-page" />
               LIVE
-            </span>
+            </Badge>
             {riderCount && (
-              <span className="flex items-center gap-[5px] bg-page border border-accent-border rounded-pill px-2.5 py-[5px] font-data text-[10px] text-accent">
+              <Badge variant="accent-solid">
                 <Users size={11} />
                 {riderCount.count}
-              </span>
+              </Badge>
             )}
           </span>
         </button>

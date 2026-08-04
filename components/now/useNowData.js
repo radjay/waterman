@@ -41,7 +41,7 @@ function holdsUntil(slots, fromMs) {
  * and station shown always belong to the returned spot; a verdict for one spot
  * beside another's cam would be actively misleading.
  */
-export function useNowData(sport) {
+export function useNowData(sport, favoriteIds = []) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
   useEffect(() => {
@@ -56,7 +56,25 @@ export function useNowData(sport) {
         const now = Date.now();
         const candidates = [];
 
-        for (const { spot, slots, config } of spotsWithSlots(report, sport)) {
+        // Now speaks for ONE spot, so it has to be one the rider actually goes
+        // to. Ranking the whole coast would send someone an hour up the road
+        // without saying so — with favourites it is their own beaches, and
+        // without them the screen asks rather than guesses.
+        const all = spotsWithSlots(report, sport);
+        const mine = favoriteIds.length
+          ? all.filter(({ spot }) => favoriteIds.includes(spot._id))
+          : [];
+
+        if (favoriteIds.length === 0) {
+          setState({
+            loading: false,
+            error: null,
+            data: { needsFavorites: true, verdict: null, spot: null },
+          });
+          return;
+        }
+
+        for (const { spot, slots, config } of (mine.length ? mine : all)) {
           if (slots.length === 0) continue;
           const slot = currentSlot(slots, now);
           if (!slot) continue;
@@ -65,7 +83,13 @@ export function useNowData(sport) {
 
         const chosen = pickNowSpot(candidates);
         if (!chosen) {
-          setState({ loading: false, error: null, data: { verdict: null, spot: null } });
+          setState({
+            loading: false,
+            error: null,
+            // Favourites exist but none of them support this sport, or none
+            // have slots — different from having no favourites at all.
+            data: { verdict: null, spot: null, noSpotForSport: mine.length === 0 },
+          });
           return;
         }
 
@@ -136,7 +160,7 @@ export function useNowData(sport) {
     return () => {
       cancelled = true;
     };
-  }, [sport]);
+  }, [sport, favoriteIds.join(",")]);
 
   return state;
 }
