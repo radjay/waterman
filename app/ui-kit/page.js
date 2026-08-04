@@ -855,14 +855,20 @@ export default function UIKitPage() {
               columns={MODEL_COLUMNS}
               sourceModel="gfs27_long"
               agreedByColumn={[4, 4, 3]}
-              outlier="icon_eu"
+              outlier="iconeuro"
               sentence="Four of five models back this window; ICON-EU is alone in calling it light."
+              // The keys MUST come from lib/agreement WIND_MODELS — modelLabel()
+              // falls back to raw uppercase for anything it does not know, so an
+              // invented key like "icon_eu" renders as ICON_EU, underscore and
+              // all, and the kit ends up teaching a model list that does not
+              // exist. "arome" is worse than wrong: the scraper distrusts it by
+              // name because it echoes its own id and returns GFS data.
               models={[
                 { model: "gfs27_long", votes: [true, true, true] },
                 { model: "ecmwf", votes: [true, true, "near"] },
-                { model: "icon_eu", votes: [false, false, false] },
-                { model: "arome", votes: ["near", true, true] },
-                { model: "nam", votes: [true, true, true] },
+                { model: "iconeuro", votes: [false, false, false] },
+                { model: "iconglobal", votes: ["near", true, true] },
+                { model: "lew", votes: [true, true, true] },
               ]}
             />
           </Row>
