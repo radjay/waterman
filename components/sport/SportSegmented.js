@@ -1,6 +1,7 @@
 "use client";
 
 import { SPORTS, useSport } from "./SportProvider";
+import { SportBadge } from "../ui/SportBadge";
 
 /**
  * The three-segment sport selector from the Now header.
@@ -27,12 +28,19 @@ export function SportSegmented({ className = "" }) {
             role="tab"
             aria-selected={active}
             onClick={() => setSport(option.id)}
-            className={`px-3 py-1.5 font-data text-[10px] tracking-[0.08em] transition-colors duration-fast ease-smooth focus-ring ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 font-data text-[10px] tracking-[0.08em] transition-colors duration-fast ease-smooth focus-ring ${
               active
                 ? "bg-sport-pill text-sport-pill-text"
                 : "text-dim hover:text-faded-ink"
             }`}
           >
+            <SportBadge
+              sport={option.id}
+              size={13}
+              // Inherit the segment's colour; SportBadge defaults to ink/30,
+              // which would wash the icon out inside the filled pill.
+              className={active ? "text-sport-pill-text" : "text-dim"}
+            />
             {option.label}
           </button>
         );

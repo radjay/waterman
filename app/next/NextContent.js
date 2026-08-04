@@ -170,10 +170,11 @@ export function NextContent() {
     <MainLayout wide>
       <header className="flex items-start justify-between gap-3 pt-[22px] pb-3">
         <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-tight">
-          Next windows{" "}
-          {/* Lighter, so the phrase breaks into "what" and "where" rather than
-              reading as one long run of bold. */}
-          <span className="text-faded-ink font-normal">at</span>{" "}
+          Next windows
+          {/* Lighter and set off with its own space on each side, so the phrase
+              breaks into "what" and "where" rather than reading as one long run
+              of bold. A plain word space was not enough separation at 25px. */}
+          <span className="text-faded-ink font-normal mx-[0.28em]">at</span>
           <SpotPicker
             spots={spots}
             value={scope}
