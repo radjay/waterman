@@ -196,8 +196,16 @@ Note that fx's own `assessQuality` would not have caught this either: its
 A reading is rejected when:
 
 - `unixtime` is absent or unusable;
-- both wind fields are absent, which is distinct from present-and-zero;
 - the timestamp is in the future, or more than 24 hours before the poll.
+
+Absent wind fields are **not** grounds for rejection, and this is the subtle
+part. A calm live station omits `wind_avg` and `wind_max` entirely — the note at
+`app/api/live-wind/[stationId]/route.js:58` records exactly this. Rejecting on
+absent wind would therefore discard every genuinely calm reading, which for a
+"should I go out" app is the reading that matters most. It is also unnecessary:
+the dead station is already excluded by the `unixtime` rule above. So absent
+wind means 0 knots, as it always has, and `unixtime` carries the whole
+liveness decision on its own.
 
 The 24-hour bound applies to the live cron only. The backfill writes historic
 timestamps by definition and uses the same guards minus this one.
