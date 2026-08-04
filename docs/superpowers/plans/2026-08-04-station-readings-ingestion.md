@@ -282,6 +282,7 @@ with an unknown station cannot silently start moving verdicts. Station
   - `fetchCurrentStationPayload(stationId: string) => Promise<object>`
   - `parseCurrentReading(payload: object, opts?: {nowMs?: number}) => {time, speed, gust?, direction?, tempC?}|null`
   - `fetchStationReading(stationId: string, opts?: {nowMs?: number}) => Promise<Reading|null>`
+  - `assessQuality({windSpeedKnots, windGustKnots, temperatureC, observedAt}) => "ok"|"stale"|"suspect"` — single definition, imported by the fx client
   - `fetchWindguruCurrentStation(stationId)` — moved here unchanged, re-exported by the fx client.
 
 - [ ] **Step 1: Write the failing test**
@@ -465,6 +466,15 @@ export async function fetchStationReading(stationId, { nowMs = Date.now() } = {}
  * The forecast-experiment shape, moved here so there is one iAPI client.
  * Re-exported by lib/forecast-experiment/windguruClient.js unchanged.
  */
+export function assessQuality({ windSpeedKnots, windGustKnots, temperatureC, observedAt }) {
+  const ageMs = Date.now() - observedAt;
+  if (ageMs > 60 * 60 * 1000) return "stale";
+  if (windSpeedKnots === 0 && windGustKnots === 0 && Number.isFinite(temperatureC)) {
+    return "suspect";
+  }
+  return "ok";
+}
+
 export async function fetchWindguruCurrentStation(stationId) {
   const data = await fetchCurrentStationPayload(stationId);
 
@@ -472,13 +482,7 @@ export async function fetchWindguruCurrentStation(stationId) {
   const windSpeedKnots = sanitizeWind(data.wind_avg ?? 0);
   const windGustKnots = sanitizeWind(data.wind_max ?? 0);
   const temperatureC = numeric(data.temperature);
-
-  const ageMs = Date.now() - observedAt;
-  let quality = "ok";
-  if (ageMs > 60 * 60 * 1000) quality = "stale";
-  else if (windSpeedKnots === 0 && windGustKnots === 0 && Number.isFinite(temperatureC)) {
-    quality = "suspect";
-  }
+  const quality = assessQuality({ windSpeedKnots, windGustKnots, temperatureC, observedAt });
 
   return {
     observedAt,
@@ -499,6 +503,7 @@ In `lib/forecast-experiment/windguruClient.js`, delete the local `IAPI_BASE`, `w
 ```js
 import {
   WINDGURU_IAPI_BASE,
+  assessQuality,
   fetchWindguruCurrentStation,
   windguruHeaders,
 } from "../windguru.js";
@@ -510,7 +515,10 @@ Replace uses of `IAPI_BASE` with `WINDGURU_IAPI_BASE` in `fetchWindguruStationDa
 export { fetchWindguruCurrentStation };
 ```
 
-`assessQuality` is still used by `parseWindguruStationData`, so keep a local copy of it there — only the current-station path moves. `fetchWindguruStationData` and `parseWindguruStationData` stay in the fx client unchanged.
+Delete the local `assessQuality` definition — `parseWindguruStationData` now calls
+the imported one. Do **not** keep a second copy: the same quality rules living in
+two files is exactly how they drift apart. `fetchWindguruStationData` and
+`parseWindguruStationData` otherwise stay in the fx client unchanged.
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
