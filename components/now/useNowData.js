@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
 import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
 import {
+  SLOT_HOURS,
   detectWindows,
   isChartedSlot,
   soonestWindow,
@@ -17,6 +18,14 @@ import { buildStationCard } from "../../lib/station";
 import { useFlag } from "../flags/FlagProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+
+/**
+ * How much better a later window has to be before Now points at it.
+ *
+ * Small enough that a real upgrade surfaces, large enough that a 72 does not
+ * talk a rider out of a 70 they could ride this afternoon.
+ */
+const BETTER_LATER_MARGIN = 10;
 
 /** The slot covering `now`, or the next one today if we are between slots. */
 function currentSlot(slots, nowMs) {
@@ -156,13 +165,64 @@ export function useNowData(sport, favoriteIds = []) {
           windows: detectWindows(c.slots.filter((s) => isChartedSlot(s.timestamp))),
         }));
         const next = soonestWindow(bySpot, now);
-        const nextWindows = upcomingWindows(bySpot, now, 3);
+        // The verdict card above is already describing the chosen spot's
+        // running window; listing it again here showed the same session twice.
+        const nextWindows = upcomingWindows(bySpot, now, 3, {
+          excludeActiveAt: chosen.spot._id,
+        });
+
+        // The window the verdict describes, then the next two. Now otherwise
+        // speaks for a three-hour block as if it were an instant: at 14:50 the
+        // rider is being told about 12:00-15:00, which is largely over. Shape
+        // is what says "and it holds" or "and it dies".
+        //
+        // Contiguous only. The charted slots skip the night, so at 20:00 the
+        // "next two" are tomorrow 07:00 and 10:00 — drawing those beside NOW
+        // claims a continuation that does not exist. A run that stops stops:
+        // with nothing to continue into, the card shows no strip at all, which
+        // is the honest answer to "what happens next" at the end of a day.
+        const SLOT_MS = SLOT_HOURS * 60 * 60 * 1000;
+        const charted = chosen.slots.filter((s) => isChartedSlot(s.timestamp));
+        const fromIndex = charted.findIndex((s) => s.timestamp === chosen.slot.timestamp);
+        const trajectory = [];
+        if (fromIndex !== -1) {
+          for (const slot of charted.slice(fromIndex, fromIndex + 3)) {
+            const previous = trajectory[trajectory.length - 1];
+            if (previous && slot.timestamp - previous.timestamp > SLOT_MS) break;
+            trajectory.push(slot);
+          }
+        }
+
+        // "Nothing at your spots" and "nothing on the coast" are completely
+        // different decisions, and the screen could not tell them apart. Only
+        // meaningful when the rider actually has favourites to be scoped to.
+        const scopedToFavorites = mine.length > 0;
+        const dayEnd = now + 24 * 60 * 60 * 1000;
+        const elsewhereToday = scopedToFavorites
+          ? all
+              .filter(({ spot }) => !favoriteIds.includes(spot._id))
+              .flatMap(({ slots }) =>
+                detectWindows(slots.filter((s) => isChartedSlot(s.timestamp)))
+              )
+              .filter((w) => w.end > now && w.start < dayEnd).length
+          : 0;
+
+        // A materially better window later changes the decision more than
+        // anything else on the screen, and it was rendering as an equal-weight
+        // card below a large cam.
+        const better =
+          nextWindows.find(
+            (n) => (n.window.score ?? 0) >= (chosen.score ?? 0) + BETTER_LATER_MARGIN
+          ) ?? null;
 
         setState({
           loading: false,
           error: null,
           data: {
             verdict,
+            trajectory,
+            elsewhereToday,
+            better,
             spot: chosen.spot,
             slot: chosen.slot,
             agreement,

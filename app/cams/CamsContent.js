@@ -392,6 +392,7 @@ export default function CamsContent({ initialData = null }) {
       {focusedWebcam && (
         <WebcamFullscreen
           spot={focusedWebcam}
+          score={forecastBySpot[focusedWebcam._id]?.forecastData?.score ?? null}
           onClose={handleCloseFullscreen}
           allWebcams={webcams}
           onNavigate={handleNavigateWebcam}

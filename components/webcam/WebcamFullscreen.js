@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Hls from "hls.js";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { WindGroup } from "../forecast/WindGroup";
+import { ScoreDial } from "../ui/ScoreDial";
 import { WaveGroup } from "../forecast/WaveGroup";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 import { formatTideTime } from "../../lib/utils";
@@ -17,11 +18,15 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
  * Fullscreen webcam modal component with video and metadata.
  * 
  * @param {Object} spot - Webcam spot object
+ * @param {number|null} score - Condition score for this spot right now. Passed
+ *   in rather than fetched: scores live in condition_scores (not the forecast
+ *   slots this component loads), and every caller already has the number the
+ *   rider is here to confirm.
  * @param {Function} onClose - Callback to close the modal
  * @param {Array} allWebcams - Array of all available webcams for navigation
  * @param {Function} onNavigate - Callback to navigate to a different webcam
  */
-export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate }) {
+export function WebcamFullscreen({ spot, score = null, onClose, allWebcams = [], onNavigate }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [currentConditions, setCurrentConditions] = useState(null);
@@ -238,6 +243,15 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
     fetchConditions();
   }, [spot._id, spot.webcamOnly, spot.latitude, spot.longitude]);
 
+  const index = allWebcams.findIndex((w) => w._id === spot._id);
+
+  /** Move `delta` cams, wrapping. No-op when there is nowhere to go. */
+  const step = (delta) => {
+    if (!onNavigate || allWebcams.length < 2 || index === -1) return;
+    const next = (index + delta + allWebcams.length) % allWebcams.length;
+    onNavigate(allWebcams[next]);
+  };
+
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -260,20 +274,14 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
         return;
       }
       
-      // Arrow keys to navigate between cams
-      if (allWebcams.length > 1 && onNavigate) {
-        const currentIndex = allWebcams.findIndex(w => w._id === spot._id);
-        if (currentIndex === -1) return;
-        
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          const prevIndex = currentIndex === 0 ? allWebcams.length - 1 : currentIndex - 1;
-          onNavigate(allWebcams[prevIndex]);
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          const nextIndex = (currentIndex + 1) % allWebcams.length;
-          onNavigate(allWebcams[nextIndex]);
-        }
+      // Arrow keys to navigate between cams. Shares `step` with the on-screen
+      // buttons so the two can never disagree about wrap-around.
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        step(-1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        step(1);
       }
     };
     
@@ -284,7 +292,7 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
-  }, [onClose, allWebcams, onNavigate, spot._id]);
+  }, [onClose, allWebcams, onNavigate, spot._id, index]);
 
   if (!spot) return null;
 
@@ -312,8 +320,35 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           paddingLeft: 'env(safe-area-inset-left, 0px)',
         }}
       >
+        {/* Paging affordance. Arrow keys already worked; nothing on screen
+            said so, and with the conditions bar hidden there was no way to tell
+            which beach you had paged to. */}
+        {allWebcams.length > 1 && onNavigate && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); step(-1); }}
+              aria-label="Previous cam"
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); step(1); }}
+              aria-label="Next cam"
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </>
+        )}
+
         {/* Top controls: record button + close */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {allWebcams.length > 1 && (
+            <span className="font-data text-[11px] text-white/60 tabular-nums px-2">
+              {index + 1} / {allWebcams.length}
+            </span>
+          )}
           <RecordButton spotId={spot._id} />
           <button
             onClick={onClose}
@@ -336,22 +371,29 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           />
         </div>
 
-        {/* Metadata overlay at bottom - responsive layout */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 landscape:hidden"
+        {/* Conditions bar.
+            NOT `landscape:hidden`. That is an ORIENTATION query, so it matched
+            every desktop window and the `hidden md:flex` row below it — spot
+            name, wind, waves, tide — was unreachable code on any desktop. The
+            cam is where a rider checks whether the verdict is true, and it was
+            confirming nothing.
+            Short viewports get tighter padding instead of losing the data. */}
+        <div
+          className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-2.5 md:px-6 md:py-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="max-w-6xl mx-auto">
             {/* Large screens: single row with spot name and metadata side by side */}
             <div className="hidden md:flex items-center w-full gap-8">
               {/* Spot name */}
-              <div className="flex-shrink-0 min-w-[200px]">
-                <h2 className="font-headline text-xl font-bold text-white mb-1">
-                  {spot.name}
-                </h2>
-                {spot.town && (
-                  <p className="text-white/60 text-sm">{spot.town}</p>
-                )}
+              <div className="flex-shrink-0 min-w-[200px] flex items-center gap-3">
+                {score != null && <ScoreDial score={score} size="sm" showAll />}
+                <div>
+                  <h2 className="font-headline text-xl font-bold text-white mb-1">
+                    {spot.name}
+                  </h2>
+                  {spot.town && <p className="text-white/60 text-sm">{spot.town}</p>}
+                </div>
               </div>
 
               {/* Metadata in a row - evenly spaced */}
@@ -415,13 +457,16 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
             {/* Mobile portrait: stacked layout */}
             <div className="md:hidden">
               {/* Spot name */}
-              <div className="mb-4">
+              <div className="mb-4 flex items-center gap-3">
+                {score != null && <ScoreDial score={score} size="sm" showAll />}
+                <div>
                 <h2 className="font-headline text-lg font-bold text-white mb-1">
                   {spot.name}
                 </h2>
                 {spot.town && (
                   <p className="text-white/60 text-sm">{spot.town}</p>
                 )}
+                </div>
               </div>
 
               {/* Metadata stacked in three rows */}

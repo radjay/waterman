@@ -13,6 +13,7 @@ import { WeekStrip } from "../../components/next/WeekStrip";
 import { ALL_SPOTS, FAVORITES, SpotPicker } from "../../components/next/SpotPicker";
 import { useUser } from "../../components/auth/AuthProvider";
 import {
+  dayStartOf,
   detectWindows,
   isChartedSlot,
   soonestWindow,
@@ -33,18 +34,6 @@ const NEXT_SPOT_STORAGE_KEY = "waterman_next_spot";
 
 const fmt = (ms, options) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
-
-/** Local midnight for the day containing `ms`, in the spot's timezone. */
-function dayStartOf(ms) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(ms));
-  const get = (t) => parts.find((p) => p.type === t).value;
-  return new Date(`${get("year")}-${get("month")}-${get("day")}T00:00:00`).getTime();
-}
 
 export function NextContent() {
   const router = useRouter();
@@ -127,7 +116,7 @@ export function NextContent() {
     // Three, not one. A single window answers "when" but not "or else what".
     // Scoped to one spot the question is "when here", so the same beach may
     // legitimately fill all three rows.
-    const upcoming = upcomingWindows(scoped, now, 3, !known);
+    const upcoming = upcomingWindows(scoped, now, 3, { uniqueSpots: !known });
 
     const today = dayStartOf(now);
     const days = Array.from({ length: 6 }, (_, i) => {
