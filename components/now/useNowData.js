@@ -12,6 +12,8 @@ import {
   upcomingWindows,
 } from "../../lib/windows";
 import { spotsWithSlots } from "../../lib/reportData";
+import { classifyProximity, stationIdFromUrl } from "../../lib/stations";
+import { buildStationCard } from "../../lib/station";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -111,10 +113,32 @@ export function useNowData(sport, favoriteIds = []) {
         }
         if (cancelled) return;
 
+        // The live station, when the chosen spot has one. As with agreement,
+        // a failure here must read as "no station", never as a reading.
+        let station = null;
+        const stationId = stationIdFromUrl(chosen.spot.liveReportUrl);
+        if (stationId) {
+          try {
+            const readings = await client.query(api.stations.getStationReadings, {
+              stationId,
+              sinceAt: now - 90 * 60 * 1000,
+            });
+            station = buildStationCard({
+              readings,
+              forecastSlot: chosen.slot,
+              proximity: classifyProximity(stationId, chosen.spot),
+              nowMs: now,
+            });
+          } catch {
+            station = null;
+          }
+        }
+        if (cancelled) return;
+
         const verdict = deriveVerdict({
           score: chosen.score,
           agreement,
-          stationDelta: null,
+          stationDelta: station?.delta ?? null,
         });
 
         // Where the rider should look instead, when the answer is no.
@@ -135,6 +159,7 @@ export function useNowData(sport, favoriteIds = []) {
             spot: chosen.spot,
             slot: chosen.slot,
             agreement,
+            station,
             score: chosen.score,
             reasoning: chosen.slot.reasoning,
             nextWindow: next,
@@ -143,7 +168,7 @@ export function useNowData(sport, favoriteIds = []) {
               verdict,
               holdsUntil: holdsUntil(chosen.slots, now),
               agreement,
-              stationDelta: null,
+              stationDelta: station?.delta ?? null,
               nextWindowStart: next?.window?.start ?? null,
             }),
           },
