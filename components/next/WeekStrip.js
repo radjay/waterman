@@ -15,9 +15,13 @@ const FALLBACK_AXIS = { startHour: 6, endHour: 24, marks: [6, 9, 12, 15, 18, 21]
 
 /**
  * The strip is a daylight view. Forecast slots run right through the night, and
- * showing 01:00 and 04:00 would spend a third of the track on hours nobody is
- * deciding about — so marks outside these bounds are dropped rather than the
- * axis being stretched to fit them.
+ * stretching the axis to fit them spends a third of the track on 01:00 and
+ * 04:00 — hours nobody is deciding about.
+ *
+ * A slot is included only when its WHOLE three-hour block fits the window. The
+ * 22:00 slot runs to 01:00, so admitting it on the grounds that 22:00 is inside
+ * the window dragged the track three hours into the night and left dead space
+ * on the right. On a 3-hourly grid this makes 19:00 the last mark.
  */
 const FIRST_VISIBLE_HOUR = 6;
 const LAST_VISIBLE_HOUR = 22;
@@ -38,7 +42,7 @@ function deriveAxis(days) {
   for (const day of days) {
     for (const slot of day.slots ?? []) {
       const h = Math.round((slot.timestamp - day.dayStart) / HOUR_MS);
-      if (h >= FIRST_VISIBLE_HOUR && h <= LAST_VISIBLE_HOUR) hours.add(h);
+      if (h >= FIRST_VISIBLE_HOUR && h + SLOT_HOURS <= LAST_VISIBLE_HOUR) hours.add(h);
     }
   }
   if (hours.size === 0) return FALLBACK_AXIS;
@@ -110,6 +114,11 @@ export function WeekStrip({ days, sport, title = "The week", onSelectWindow }) {
               {hourLabel(h)}
             </span>
           ))}
+          {/* Closes the range, so the last block reads as ending somewhere
+              rather than the axis just stopping. */}
+          <span className="absolute top-1.5 right-0 -mr-[14px]">
+            {hourLabel(axis.endHour)}
+          </span>
         </div>
       </div>
 
@@ -259,8 +268,10 @@ function DayRow({ day, sport, hovered, onHover, onSelectWindow, now, axis }) {
               className="absolute inset-y-0 w-[2px] bg-now -translate-x-1/2"
               style={{ left: `${nowPct}%` }}
             />
+            {/* Pill sits directly on top of the rule with no gap, so the two
+                read as one marker rather than a label floating near a line. */}
             <span
-              className="absolute -top-[13px] -translate-x-1/2 font-data text-[8px] tracking-[0.14em] text-now"
+              className="absolute -top-[11px] -translate-x-1/2 rounded-pill bg-now px-[5px] py-[1px] font-data text-[7.5px] font-bold tracking-[0.14em] text-white leading-[1.4]"
               style={{ left: `${nowPct}%` }}
             >
               NOW

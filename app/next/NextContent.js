@@ -109,7 +109,13 @@ export function NextContent() {
         }
       }
 
-      const daySlots = [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp);
+      // Unscored slots are dropped rather than drawn empty. The scorer skips
+      // hours outside daylight, so the 22:00 block (which runs to 01:00) has no
+      // score and nothing to say — it was stretching the axis three hours past
+      // the last real reading and leaving dead track on the right.
+      const daySlots = [...byTimestamp.values()]
+        .filter((slot) => slot.score !== null && slot.score !== undefined)
+        .sort((a, b) => a.timestamp - b.timestamp);
 
       // Bands are derived from the day's own resolved slots rather than from
       // each spot's windows. In best-spot mode those overlap — several spots
