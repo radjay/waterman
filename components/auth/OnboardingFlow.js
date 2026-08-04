@@ -18,7 +18,7 @@ export default function OnboardingFlow({ onComplete }) {
   const [name, setName] = useState("");
   
   // Available sports
-  const sports = ["wingfoil", "surfing"];
+  const sports = ["wingfoil", "kitesurfing", "surfing"];
   
   // Spots data (will be fetched from API in real implementation)
   const [spots, setSpots] = useState([]);
