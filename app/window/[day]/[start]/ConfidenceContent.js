@@ -191,7 +191,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
     : { label: "", reason: "" };
 
   return (
-    <MainLayout wide>
+    <MainLayout>
       <header className="flex items-center gap-[11px] pt-[22px] pb-2.5">
         <button
           onClick={() => router.back()}

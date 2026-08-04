@@ -33,6 +33,10 @@ const VERDICT_WORD = {
  * GO paints in the accent, MAYBE in the accent-2 hue, NO GO in dim. On a flat
  * day — the common case, not an edge case — the card withholds the accent
  * entirely so the only cyan on screen belongs to the next windows below.
+ *
+ * The card as a whole leads to this spot's week. A div rather than a button:
+ * the sport chip and the cam are their own controls inside it, and a button
+ * inside a button is invalid HTML that React fails hydration on.
  */
 export function VerdictCard({
   verdict = VERDICT.NO,
@@ -44,7 +48,8 @@ export function VerdictCard({
   reason,
   riderCount,
   camSlot,
-  onWatchCam,
+  onOpenCam,
+  onOpenSpot,
 }) {
   const tone = VERDICT_TONE[verdict] || "dim";
   const isGo = verdict === VERDICT.GO;
@@ -66,38 +71,60 @@ export function VerdictCard({
       ? "border-caution/40 text-caution"
       : "border-card text-faded-ink";
 
+  // Controls inside the card have to claim their own clicks, or every one of
+  // them would also navigate away to the week.
+  const own = (handler) => (event) => {
+    event.stopPropagation();
+    handler?.();
+  };
+
   return (
-    <div className={`rounded-card-xl px-4 py-[15px] border ${cardTone}`}>
+    <div
+      role={onOpenSpot ? "button" : undefined}
+      tabIndex={onOpenSpot ? 0 : undefined}
+      aria-label={onOpenSpot && spotName ? `See the week at ${spotName}` : undefined}
+      onClick={onOpenSpot}
+      onKeyDown={(e) => {
+        if (!onOpenSpot) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenSpot();
+        }
+      }}
+      className={`rounded-card-xl px-4 py-[15px] border ${cardTone} ${
+        onOpenSpot ? "cursor-pointer focus-ring" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div
-            className={`font-headline font-extrabold text-[46px] leading-[0.86] tracking-display-tighter ${TONE_TEXT[tone]}`}
+        {/* Verdict and spot share a baseline. Stacked, the spot read as a
+            caption for the word above it rather than as its other half. */}
+        <div className="flex items-baseline gap-2.5 min-w-0">
+          <span
+            className={`font-headline font-extrabold text-[46px] leading-[0.86] tracking-display-tighter whitespace-nowrap ${TONE_TEXT[tone]}`}
           >
             {VERDICT_WORD[verdict] ?? verdict}
-          </div>
+          </span>
           {spotName && (
-            <div className="font-headline font-bold text-[17px] tracking-display text-ink mt-1.5 truncate">
+            <span className="font-headline font-bold text-[17px] tracking-display text-ink truncate">
               <span className="font-data font-normal text-faded-ink text-[15px]">@ </span>
               {spotName}
-            </div>
+            </span>
           )}
         </div>
         {/* The same control as Next, rather than a label that looked
-            interactive and was not. The score sits under it: the verdict is the
-            headline, the number is the supporting detail — but it is the same
-            number the next-window cards are ranked by, so it has to be here for
-            those to be comparable against right now. */}
-        <div className="flex-none flex flex-col items-end gap-2.5">
+            interactive and was not. Wrapped rather than given an onClick prop
+            so the dropdown it opens — which renders inside it — is covered too;
+            otherwise choosing a sport would also navigate away. */}
+        <span className="flex-none" onClick={own()} onKeyDown={(e) => e.stopPropagation()}>
           <SportFilterChip />
-          <ScoreDial score={score} size="md" showAll label="NOW" on={isGo || isMarginal ? "card" : "page"} />
-        </div>
+        </span>
       </div>
 
-      {metric && (
+      {(metric || (score !== null && score !== undefined)) && (
         <div className="flex items-end gap-[11px] mt-[13px]">
           {/* Direction leads the reading — it is the thing you check first, and
               sitting left of the number keeps it clear of the unit. */}
-          {metric.directionDegrees !== null && metric.directionDegrees !== undefined && (
+          {metric?.directionDegrees !== null && metric?.directionDegrees !== undefined && (
             <div
               className={`flex-none w-[34px] h-[34px] mb-1 rounded-full border flex items-center justify-center ${ringTone}`}
               // Matches components/ui/Arrow: rotate by the raw stored bearing.
@@ -108,39 +135,45 @@ export function VerdictCard({
               <ArrowUp size={16} />
             </div>
           )}
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-data font-bold text-[44px] leading-[0.86] text-ink tabular-nums">
-              {metric.value}
-            </span>
-            <span className="font-data font-bold text-[20px] text-ink">{metric.unit}</span>
-            {metric.directionLabel && (
-              <span className="font-data text-[15px] text-ink">{metric.directionLabel}</span>
-            )}
-          </div>
-          {metric.secondary && (
+          {metric && (
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-data font-bold text-[44px] leading-[0.86] text-ink tabular-nums">
+                {metric.value}
+              </span>
+              <span className="font-data font-bold text-[20px] text-ink">{metric.unit}</span>
+              {metric.directionLabel && (
+                <span className="font-data text-[15px] text-ink">{metric.directionLabel}</span>
+              )}
+            </div>
+          )}
+          {metric?.secondary && (
             <span className="font-data text-[12px] text-faded-ink pb-1.5">
               {metric.secondary}
             </span>
           )}
+          {/* On the reading's own row, where it reads as one more number about
+              right now rather than a badge floating in the corner. */}
+          <ScoreDial
+            score={score}
+            size="md"
+            showAll
+            label="NOW"
+            on={isGo || isMarginal ? "card" : "page"}
+            className="ml-auto"
+          />
         </div>
       )}
 
-      {(metric?.tertiary || liveReportUrl) && (
-        <div className="flex items-center gap-2.5 mt-2">
-          {metric?.tertiary && (
-            <span className="font-data text-[11px] text-faded-ink">{metric.tertiary}</span>
-          )}
-          {/* The station turns the forecast into a fact. It renders nothing at
-              all when the reading is missing or stale, so it can sit here
-              unconditionally without leaving a gap. */}
-          <LiveWindIndicator stationId={extractWindguruStationId(liveReportUrl)} label="LIVE" />
-        </div>
+      {/* The live reading is on the cam overlay; a second copy of it directly
+          above the same picture said the same thing twice. */}
+      {metric?.tertiary && (
+        <div className="font-data text-[11px] text-faded-ink mt-2">{metric.tertiary}</div>
       )}
 
       {camSlot && (
         <button
-          onClick={onWatchCam}
-          aria-label="Watch the live cam"
+          onClick={own(onOpenCam)}
+          aria-label="Open the live cam"
           className={`relative block w-full aspect-video rounded-card-sm overflow-hidden mt-[15px] border focus-ring ${
             isGo ? "border-accent-border" : "border-card"
           }`}

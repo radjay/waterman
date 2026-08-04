@@ -11,18 +11,18 @@ import { TopNav } from "./TopNav";
  * No side borders: the handoff's screens are flat surfaces separated by border
  * and fill, not a bordered column.
  *
- * `wide` exists for the data-heavy screens whose whole value is horizontal
- * resolution (the week strip, the model grid), where capping at 900px would
- * spend the desktop work and keep the mobile compression.
+ * One width for every page, and it is the header's: max-w-[1200px] with px-8,
+ * exactly what TopNav uses. A body narrower than the bar above it reads as a
+ * misalignment rather than as a deliberate measure, and it was different on
+ * different screens — Next and the confidence view opted into 1200 while Now
+ * and Cams sat at 900 under the same 1200-wide header.
  */
-export function MainLayout({ children, wide = false, nav = true, className = "" }) {
+export function MainLayout({ children, nav = true, className = "" }) {
   return (
     <>
       {nav && <TopNav />}
       <main
-        className={`${
-          wide ? "max-w-[1200px]" : "max-w-[900px]"
-        } mx-auto px-[18px] pt-4 pb-24 md:px-8 md:pb-16 min-h-screen bg-page overflow-visible ${className}`}
+        className={`max-w-[1200px] mx-auto px-[18px] pt-4 pb-24 md:px-8 md:pb-16 min-h-screen bg-page overflow-visible ${className}`}
       >
         {children}
       </main>

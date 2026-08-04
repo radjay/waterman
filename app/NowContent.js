@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, MapPin, Share } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
@@ -10,6 +11,7 @@ import { VerdictCard } from "../components/now/VerdictCard";
 import { EvidenceStack, InTheWaterCard } from "../components/now/EvidenceStack";
 import { LabsSection } from "../components/ui/LabsSection";
 import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
+import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
 import { useNowData } from "../components/now/useNowData";
 import { WindowCard } from "../components/next/WindowCard";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
@@ -25,6 +27,9 @@ export function NowContent() {
   const user = useUser();
   const favoriteIds = user?.favoriteSpots ?? [];
   const { loading, error, data } = useNowData(sport, favoriteIds);
+  // The cam opens where it already is. Sending the rider to /cams to watch the
+  // picture they were already looking at loses the verdict it belongs to.
+  const [camOpen, setCamOpen] = useState(false);
   const { share } = useShare({
     url: typeof window !== "undefined" ? window.location.href : "",
     title: "Waterman",
@@ -117,8 +122,17 @@ export function NowContent() {
             camSlot={data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null}
             // The cam itself is the affordance — a separate WATCH CAM button
             // underneath was a second control for the same thing.
-            onWatchCam={() => router.push("/cams")}
+            onOpenCam={() => setCamOpen(true)}
+            // The verdict is about one spot; the card is the way into that
+            // spot's week rather than into the coast-wide list.
+            onOpenSpot={
+              data.spot ? () => router.push(`/next?spot=${data.spot._id}`) : undefined
+            }
           />
+
+          {camOpen && data.spot && (
+            <WebcamFullscreen spot={data.spot} onClose={() => setCamOpen(false)} />
+          )}
 
           {/* Three, not one. A single next window answers "when" but not "or
               else what", and on a flat day the second and third options are the

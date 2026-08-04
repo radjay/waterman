@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePersistedState } from "../../lib/hooks/usePersistedState";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
@@ -60,6 +60,19 @@ export function NextContent() {
     FAVORITES,
     (v) => typeof v === "string"
   );
+  // Now hands off with ?spot=, so the card there lands on that spot's week
+  // rather than on whatever was last selected here. Writing it through setScope
+  // also persists it, which is the same thing picking it by hand would do.
+  const search = useSearchParams();
+  const spotParam = search.get("spot");
+  useEffect(() => {
+    if (!spotParam) return;
+    setScope(spotParam);
+    // Consumed, so BACK TO ALL WINDOWS is not undone by a refresh putting the
+    // spot straight back.
+    router.replace("/next", { scroll: false });
+  }, [spotParam]);
+
   const user = useUser();
   const favoriteIds = user?.favoriteSpots ?? [];
   const [state, setState] = useState({ loading: true, error: null, bySpot: null });
@@ -183,7 +196,7 @@ export function NextContent() {
   const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
 
   return (
-    <MainLayout wide>
+    <MainLayout>
       <header className="flex items-start justify-between gap-3 pt-[22px] pb-3">
         <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-tight">
           Next windows
