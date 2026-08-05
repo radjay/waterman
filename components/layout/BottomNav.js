@@ -3,18 +3,13 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, List, Video, BookOpen, MoreHorizontal } from "lucide-react";
-import { MobileMenu } from "./MobileMenu";
+import { Zap, CalendarClock, Video, Ellipsis } from "lucide-react";
+import { NAV_TABS, activeTabFor } from "./navTabs";
 
 const PILL_TRANSITION = "left 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1)";
 
-const tabs = [
-  { id: "home", label: "Home", icon: Home, path: "/dashboard" },
-  { id: "report", label: "Report", icon: List, path: "/report" },
-  { id: "cams", label: "Cams", icon: Video, path: "/cams" },
-  { id: "journal", label: "Journal", icon: BookOpen, path: "/journal" },
-  { id: "more", label: "More", icon: MoreHorizontal, path: null },
-];
+const ICONS = { now: Zap, next: CalendarClock, cams: Video, more: Ellipsis };
+const tabs = NAV_TABS.map((tab) => ({ ...tab, icon: ICONS[tab.id] }));
 
 /**
  * BottomNav — floating pill-shaped bottom tab bar for mobile.
@@ -24,30 +19,17 @@ const tabs = [
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [optimisticTab, setOptimisticTab] = useState(null);
   const tabRefs = useRef({});
   const barRef = useRef(null);
   const pillRef = useRef(null);
   const hasMounted = useRef(false);
 
-  const getActiveTab = (p) => {
-    if (p === "/" || p === "/dashboard") return "home";
-    if (p === "/report" || p?.startsWith("/report/") || p?.match(/^\/(wing|kite|surf)/))
-      return "report";
-    if (p?.startsWith("/cams")) return "cams";
-    if (p?.startsWith("/journal")) return "journal";
-    if (p?.startsWith("/calendar")) return "more";
-    if (p?.startsWith("/settings")) return "more";
-    if (p?.startsWith("/profile")) return "more";
-    return "home";
-  };
-
   useEffect(() => {
     setOptimisticTab(null);
   }, [pathname]);
 
-  const activeTab = optimisticTab || getActiveTab(pathname);
+  const activeTab = optimisticTab || activeTabFor(pathname);
 
   const positionPill = useCallback(() => {
     const el = tabRefs.current[activeTab];
@@ -81,10 +63,7 @@ export function BottomNav() {
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
 
   return (
-    <>
-      <MobileMenu isOpen={menuOpen} onOpenChange={setMenuOpen} />
-
-      <nav
+    <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-[14px]"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)" }}
       >
@@ -128,8 +107,7 @@ export function BottomNav() {
             const sharedClass =
               "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors duration-fast ease-smooth";
 
-            if (tab.path) {
-              return (
+            return (
                 <Link
                   key={tab.id}
                   ref={(el) => { tabRefs.current[tab.id] = el; }}
@@ -139,26 +117,12 @@ export function BottomNav() {
                   aria-label={tab.label}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  {inner}
-                </Link>
-              );
-            }
-
-            return (
-              <button
-                key={tab.id}
-                ref={(el) => { tabRefs.current[tab.id] = el; }}
-                onClick={() => setMenuOpen(true)}
-                className={sharedClass}
-                aria-label={tab.label}
-                aria-current={isActive ? "page" : undefined}
-              >
                 {inner}
-              </button>
+              </Link>
             );
+
           })}
         </div>
-      </nav>
-    </>
+    </nav>
   );
 }

@@ -8,11 +8,16 @@ import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
+import { useFlag } from "../../components/flags/FlagProvider";
+import { SportFilterChip } from "../../components/sport/SportFilterChip";
+import { Badge } from "../../components/ui/Badge";
+import { SpotPicker, FAVORITES } from "../../components/next/SpotPicker";
+import { riderCount as fixtureRiderCount } from "../../lib/fixtures/riderCounts";
 import { WebcamCard } from "../../components/webcam/WebcamCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { useAuth, useUser } from "../../components/auth/AuthProvider";
-import { Tv, MapPin, SlidersHorizontal, X } from "lucide-react";
+import { Tv, MapPin, SlidersHorizontal, Users, X } from "lucide-react";
 import { FilterGroup } from "../../components/ui/FilterGroup";
 import { SportFilter, ALL_SPORT_IDS } from "../../components/ui/SportFilter";
 import { usePersistedState } from "../../lib/hooks/usePersistedState";
@@ -22,6 +27,7 @@ import { ScoreModal } from "../../components/common/ScoreModal";
 import Link from "next/link";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
+const CAMS_SCOPE_STORAGE_KEY = "waterman_cams_scope";
 
 // ---------------------------------------------------------------------------
 // Helpers for initializing state from server-prefetched data
@@ -60,6 +66,16 @@ export default function CamsContent({ initialData = null }) {
   const router = useRouter();
   const { sessionToken } = useAuth();
   const user = useUser();
+
+  const showRiderCounts = useFlag("riderCounts");
+
+  // Same scope model as Next, and persisted, so the two screens agree about
+  // what "mine" means and the choice survives a refresh.
+  const [scope, setScope] = usePersistedState(
+    CAMS_SCOPE_STORAGE_KEY,
+    FAVORITES,
+    (v) => typeof v === "string"
+  );
 
   const [webcams, setWebcams] = useState(() => buildInitialWebcams(initialData));
   const [enrichedSlots, setEnrichedSlots] = useState(() => buildInitialSlots(initialData));
@@ -249,89 +265,80 @@ export default function CamsContent({ initialData = null }) {
   }, [enrichedSlots, spotsMap]);
 
   const handleWebcamClick = (webcam) => setFocusedWebcam(webcam);
+
+  /**
+   * Sorted by who is actually out, not alphabetically — a cam with nobody on it
+   * is information too, it just belongs further down.
+   *
+   * The whole organising principle of this screen is flag-dependent, so both
+   * orderings have to look deliberate. With riderCounts off we keep the
+   * existing order rather than inventing a different one.
+   */
+  const countsUpdatedAt = showRiderCounts
+    ? new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Lisbon",
+      }).format(new Date())
+    : null;
+
+  const favoriteIds = user?.favoriteSpots ?? [];
+  const hasFavorites = favoriteIds.length > 0;
+
+  // Scope first, then order. Falls back to everything when the rider has no
+  // favourites, or when none of them have a cam — an empty grid would look
+  // broken where the full list merely looks unfiltered.
+  const scopedWebcams =
+    scope === FAVORITES && hasFavorites
+      ? (() => {
+          const mine = webcams.filter((w) => favoriteIds.includes(w._id));
+          return mine.length ? mine : webcams;
+        })()
+      : webcams;
+
+  const orderedWebcams = showRiderCounts
+    ? [...scopedWebcams].sort((a, b) => {
+        const countOf = (cam) => fixtureRiderCount(cam._id)?.count ?? -1;
+        return countOf(b) - countOf(a);
+      })
+    : scopedWebcams;
   const handleCloseFullscreen = () => setFocusedWebcam(null);
   const handleNavigateWebcam = (webcam) => setFocusedWebcam(webcam);
 
   return (
     <MainLayout>
-      <Header />
+      {/* "Who's out" — the screen is about who is on the water, not about
+          listing cameras. The disclaimer sits directly under the title because
+          the counts are estimates and must never read as measurements. */}
+      <header className="flex items-center justify-between pt-[22px] pb-3">
+        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
+          {showRiderCounts ? "Who's out" : "Cams"}
+        </h1>
+        <div className="flex items-center gap-2">
+          <SpotPicker
+            spots={[]}
+            value={scope}
+            onChange={setScope}
+            hasFavorites={hasFavorites}
+          />
+          <button
+            onClick={() => setTvMode(true)}
+            className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
+            aria-label="TV Mode"
+          >
+            <Tv size={12} />
+            TV
+          </button>
+          <SportFilterChip />
+        </div>
+      </header>
 
-      {/* Filter bar — always in normal document flow, never overlaying cams */}
-      {!loading && <div className="pb-4 pt-2">
-        {filtersExpanded ? (
-          /* Expanded: full filter bar, TV Mode hidden */
-          <div className="rounded-xl bg-ink/[0.04] px-4 md:-mx-2 py-3">
-            <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-
-              {/* Filters label */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setFiltersExpanded(false)}
-                  className="flex items-center gap-1.5 text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-                  aria-expanded={true}
-                >
-                  <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
-                </button>
-                <div className="flex-1 md:hidden" />
-                <button
-                  onClick={() => setFiltersExpanded(false)}
-                  className="md:hidden p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
-                  aria-label="Close filters"
-                >
-                  <X size={14} strokeWidth={2} />
-                </button>
-              </div>
-
-              {/* Vertical divider (desktop) */}
-              <div className="hidden md:block w-px h-4 bg-ink/20 shrink-0" />
-
-              {/* Sport filter */}
-              <div className="flex flex-col md:flex-row md:items-center gap-3 mt-3 pt-3 border-t border-ink/[0.06] md:mt-0 md:pt-0 md:border-0 flex-1">
-                <FilterGroup label="Sport">
-                  <SportFilter
-                    selectedSports={selectedSports}
-                    onToggle={handleSportToggle}
-                  />
-                </FilterGroup>
-              </div>
-
-              {/* X (desktop) */}
-              <button
-                onClick={() => setFiltersExpanded(false)}
-                className="hidden md:flex p-1 rounded-full text-faded-ink/50 hover:text-ink hover:bg-ink/[0.06] transition-colors"
-                aria-label="Close filters"
-              >
-                <X size={14} strokeWidth={2} />
-              </button>
-
-            </div>
-          </div>
-        ) : (
-          /* Collapsed: [TV Mode] [Filter pill] right-aligned */
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => setTvMode(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-              aria-label="TV Mode"
-            >
-              <Tv size={14} strokeWidth={2} />
-              <span className="text-xs font-semibold uppercase tracking-wider leading-none">TV Mode</span>
-            </button>
-
-            <button
-              onClick={() => setFiltersExpanded(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/[0.05] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth"
-              aria-expanded={false}
-            >
-              <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-wider leading-none">
-                {activeFilterLabel}
-              </span>
-            </button>
-          </div>
-        )}
-      </div>}
+      {showRiderCounts && (
+        <p className="font-data text-[9px] text-dim pb-3">
+          RIDER COUNTS ESTIMATED FROM CAM FOOTAGE
+          {countsUpdatedAt ? ` · UPDATED ${countsUpdatedAt}` : ""}
+        </p>
+      )}
 
       {/* Webcam grid */}
       <div className="pb-12">
@@ -341,11 +348,15 @@ export default function CamsContent({ initialData = null }) {
           <EmptyState message="No webcams available" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {webcams.map((webcam) => (
+            {orderedWebcams.map((webcam) => (
               <div
                 key={webcam._id}
                 onClick={() => handleWebcamClick(webcam)}
-                className="cursor-pointer group"
+                className={`relative h-full cursor-pointer group rounded-card overflow-hidden ${
+                  showRiderCounts && (fixtureRiderCount(webcam._id)?.count ?? 0) > 0
+                    ? "ring-1 ring-inset ring-accent-border"
+                    : ""
+                }`}
               >
                 <WebcamCard
                   spot={webcam}
@@ -354,6 +365,11 @@ export default function CamsContent({ initialData = null }) {
                   onToggleFavorite={(e) => handleToggleFavorite(webcam._id, e)}
                   forecastData={forecastBySpot[webcam._id]?.forecastData || null}
                   onScoreClick={forecastBySpot[webcam._id]?.slot?.score ? () => setScoreModalSlot(forecastBySpot[webcam._id].slot) : undefined}
+                  overlayBadge={
+                    showRiderCounts ? (
+                      <RiderBadge reading={fixtureRiderCount(webcam._id)} />
+                    ) : null
+                  }
                 />
               </div>
             ))}
@@ -402,5 +418,32 @@ export default function CamsContent({ initialData = null }) {
       )}
 
     </MainLayout>
+  );
+}
+
+/**
+ * The four states from the handoff, in one badge.
+ *
+ *   active   — solid accent, count leading
+ *   quieter  — neutral fill, count leading
+ *   nobody   — "NOBODY OUT" in muted text. A real answer, not an empty state.
+ *   no data  — nothing rendered, which is different again from nobody out
+ */
+function RiderBadge({ reading }) {
+  if (!reading) return null;
+
+  // Icon and number only. The noun was doing no work — the users glyph already
+  // says these are people, and it had to degrade to a vague "OUT" whenever the
+  // sport filter held more than one sport.
+  //
+  // Zero still gets words: "0" beside a person icon reads as a missing value,
+  // where "NOBODY OUT" is the answer.
+  const empty = reading.count === 0;
+
+  return (
+    <Badge variant={reading.count >= 5 ? "live" : "overlay"}>
+      <Users size={11} />
+      {empty ? "NOBODY OUT" : reading.count}
+    </Badge>
   );
 }

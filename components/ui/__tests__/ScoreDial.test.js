@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ScoreDial, scoreBand } from "../ScoreDial";
 
 describe("scoreBand", () => {
@@ -76,11 +77,30 @@ describe("ScoreDial rendering", () => {
     expect(styleAttr(disc)).not.toContain("dial-inner-card");
   });
 
-  it("renders as a button only when clickable", () => {
+  it("never renders a real <button>, because it sits inside one", () => {
+    // Regression: ScoreCard is a <button> when clickable, so a nested <button>
+    // here is invalid HTML — React fails hydration and regenerates the tree.
     const { container: plain } = render(<ScoreDial score={92} />);
     const { container: clickable } = render(<ScoreDial score={92} onClick={() => {}} />);
-    expect(plain.firstChild.tagName).toBe("DIV");
-    expect(clickable.firstChild.tagName).toBe("BUTTON");
+    expect(plain.querySelector("button")).toBeNull();
+    expect(clickable.querySelector("button")).toBeNull();
+  });
+
+  it("is still keyboard reachable and labelled when clickable", () => {
+    const onClick = vi.fn();
+    const { container } = render(<ScoreDial score={92} onClick={onClick} />);
+    const el = container.firstChild;
+    expect(el.getAttribute("role")).toBe("button");
+    expect(el.getAttribute("tabindex")).toBe("0");
+    expect(el.getAttribute("aria-label")).toBe("Score 92");
+    fireEvent.keyDown(el, { key: "Enter" });
+    expect(onClick).toHaveBeenCalled();
+  });
+
+  it("exposes no button semantics when not clickable", () => {
+    const { container } = render(<ScoreDial score={92} />);
+    expect(container.firstChild.getAttribute("role")).toBeNull();
+    expect(container.firstChild.getAttribute("tabindex")).toBeNull();
   });
 
   it("rounds fractional scores for display", () => {

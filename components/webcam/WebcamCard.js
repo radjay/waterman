@@ -20,7 +20,7 @@ const CAM_TIMEOUT_MS = 12000;
  * @param {boolean} isFavorite - Whether this spot is favorited by the user
  * @param {Function} onToggleFavorite - Callback when favorite button is clicked
  */
-export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick }) {
+export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, isFavorite = false, onToggleFavorite, forecastData, onScoreClick, overlayBadge = null }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [streamStatus, setStreamStatus] = useState("loading"); // "loading" | "playing" | "error" | "offline"
@@ -209,7 +209,11 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
 
   return (
     <div
-      className={`relative bg-ink/5 rounded-lg overflow-hidden border border-ink/10 transition-[border-color] duration-200 ease-out ${
+      // h-full + column so the card fills its grid cell and the meta block
+      // sits at the bottom. Grid already stretches the CELL; without this the
+      // card inside it stayed its content height, so cams with less data below
+      // the image came up short and left a gap.
+      className={`relative h-full flex flex-col bg-ink/5 rounded-lg overflow-hidden border border-ink/10 transition-[border-color] duration-200 ease-out ${
         isFocused ? "ring-2 ring-ink/20" : ""
       } ${showHoverButtons ? "group-hover:border-ink/30" : ""}`}
     >
@@ -252,15 +256,19 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
           </div>
         )}
 
-        {/* Live wind indicator overlay - top left corner */}
-        {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
-          <div className="absolute top-2 left-2">
+        {/* Top-left overlays share one row. They used to be two independent
+            absolutes in the same corner, so the rider count sat on top of the
+            live wind reading. `overlayBadge` is a slot rather than a second
+            absolute so either can be absent without leaving a gap. */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
+          {overlayBadge}
+          {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
             <LiveWindIndicator
               stationId={extractWindguruStationId(spot.liveReportUrl)}
               compact={true}
             />
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Hover buttons overlay - top right corner */}
         {/* RAD-21: Hidden on mobile (one tap = fullscreen). Desktop: appear on hover. */}
@@ -309,8 +317,10 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
         )}
       </div>
 
-      {/* Spot info */}
-      <div className="px-4 py-2">
+      {/* Spot info. flex-1 so it absorbs the leftover height in the column —
+          a cam with no forecast line still fills its cell instead of stopping
+          short and leaving a gap under it. */}
+      <div className="px-4 py-2 flex-1 flex flex-col justify-center">
         {forecastData ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">

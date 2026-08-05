@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Wind } from "lucide-react";
 import { Arrow } from "../ui/Arrow";
+import { Badge } from "../ui/Badge";
 
 /**
  * LiveWindIndicator component displays real-time wind data from Windguru stations.
@@ -11,8 +12,18 @@ import { Arrow } from "../ui/Arrow";
  * @param {string} stationId - Windguru station ID (extracted from liveReportUrl)
  * @param {string} className - Additional CSS classes
  * @param {boolean} compact - If true, show compact version (for overlays)
+ * @param {ReactNode} fallback - Rendered instead of nothing when there is no
+ *   usable reading. Only for slots that must not collapse — the cam overlay
+ *   wants the real numbers when they exist and a plain LIVE chip when they do
+ *   not, and the caller cannot know which until the fetch resolves.
  */
-export function LiveWindIndicator({ stationId, className = "", compact = false }) {
+export function LiveWindIndicator({
+  stationId,
+  className = "",
+  compact = false,
+  label = null,
+  fallback = null,
+}) {
   const [liveWind, setLiveWind] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,7 +71,7 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
   }, [stationId]);
 
   if (loading || error || !liveWind || !Number.isFinite(liveWind.windSpeedKnots)) {
-    return null;
+    return fallback;
   }
 
   // Calculate how old the data is
@@ -68,79 +79,40 @@ export function LiveWindIndicator({ stationId, className = "", compact = false }
   const isStale = ageMinutes > 60; // Consider stale if older than 60 minutes (stations report every 10-30 min)
 
   // Don't show stale data — hiding is less confusing than showing old readings
-  if (isStale) return null;
+  if (isStale) return fallback;
 
-  if (compact) {
-    // Compact version for overlays on webcams - ultra minimal
-    return (
-      <div
-        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded backdrop-blur-sm bg-black/70 text-page text-xs ${
-          isStale ? "opacity-50" : ""
-        } ${className}`}
-        title={`Live wind: ${Math.round(liveWind.windSpeedKnots)} kn${liveWind.windGustKnots ? ` (${Math.round(liveWind.windGustKnots)} gusts)` : ""} • Updated ${ageMinutes}m ago`}
-      >
-        <Wind size={10} className="text-accent" />
-        <span className="font-bold tabular-nums">
-          {Math.round(liveWind.windSpeedKnots)}
-        </span>
-        {Number.isFinite(liveWind.windGustKnots) && (
-          <span className="opacity-70 tabular-nums">
-            ({Math.round(liveWind.windGustKnots)})
-          </span>
-        )}
-        {Number.isFinite(liveWind.windDirection) && (
-          <Arrow direction={(liveWind.windDirection + 180) % 360} size={8} />
-        )}
-      </div>
-    );
-  }
+  const speed = Math.round(liveWind.windSpeedKnots);
+  const gust = Number.isFinite(liveWind.windGustKnots)
+    ? Math.round(liveWind.windGustKnots)
+    : null;
+  const arrow = Number.isFinite(liveWind.windDirection) ? (
+    <Arrow direction={(liveWind.windDirection + 180) % 360} size={compact ? 8 : 10} />
+  ) : null;
 
-  // Full version for spot headers - now more compact to avoid wrapping
+  // Uses the shared Badge rather than a lookalike, so these read as the same
+  // object as every other pill in the app — same radius, padding, mono face and
+  // tracking — and pick up palette changes for free.
   return (
-    <div
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs border ${
-        isStale
-          ? "border-ink/20 bg-ink/5"
-          : "border-accent-border bg-accent-tint-card"
-      } ${className}`}
-      title={`Live wind from Windguru station ${stationId} • Updated ${ageMinutes}m ago`}
+    <Badge
+      variant={compact ? "overlay" : isStale ? "default" : "accent"}
+      className={`${isStale ? "opacity-70" : ""} ${className}`}
+      title={
+        compact
+          ? `Live wind: ${speed} kn${gust ? ` (${gust} gusts)` : ""} • Updated ${ageMinutes}m ago`
+          : `Live wind from Windguru station ${stationId} • Updated ${ageMinutes}m ago`
+      }
     >
-      <Wind
-        size={12}
-        className={isStale ? "text-ink/40" : "text-accent"}
-      />
-      <span
-        className={`font-bold tabular-nums ${
-          isStale ? "text-ink/60" : "text-accent"
-        }`}
-      >
-        {Math.round(liveWind.windSpeedKnots)}
-      </span>
-      {Number.isFinite(liveWind.windGustKnots) && (
-        <span
-          className={`opacity-70 tabular-nums ${
-            isStale ? "text-ink/50" : "text-accent"
-          }`}
-        >
-          ({Math.round(liveWind.windGustKnots)})
-        </span>
-      )}
-      {Number.isFinite(liveWind.windDirection) && (
-        <Arrow
-          direction={(liveWind.windDirection + 180) % 360}
-          size={10}
-          className={isStale ? "text-ink/40" : "text-accent"}
-        />
-      )}
-    </div>
+      {/* Beside a forecast figure, an unlabelled second number is just
+          confusing — the label is what makes it read as "and right now it is". */}
+      {label && !compact && <span className="opacity-70">{label}</span>}
+      <Wind size={compact ? 10 : 11} className={compact ? "" : "text-accent"} />
+      <span className="font-bold tabular-nums">{speed}</span>
+      {gust !== null && <span className="opacity-70 tabular-nums">({gust})</span>}
+      {arrow}
+    </Badge>
   );
 }
 
-/**
- * Extract Windguru station ID from liveReportUrl
- * @param {string} url - URL like "https://www.windguru.cz/station/2329"
- * @returns {string|null} Station ID or null
- */
 export function extractWindguruStationId(url) {
   if (!url) return null;
   const match = url.match(/station\/(\d+)/);

@@ -6,6 +6,17 @@ import {
   getSlotsOverlappingTimeWindow,
 } from "./queryHelpers/forecastSlots";
 
+/**
+ * Sports a journal entry may record.
+ *
+ * Kitesurfing was excluded here while the rest of the product supported it —
+ * the report, dashboard, cams and conditions API all accept it. The new sport
+ * selector switches the whole app's context between WING / KITE / SURF, so a
+ * sport that half the app rejects is no longer tenable.
+ */
+const JOURNAL_SPORTS = ["wingfoil", "kitesurfing", "surfing"];
+
+
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
@@ -62,7 +73,7 @@ async function findForecastSlotsForSession(
 export const createEntry = mutation({
   args: {
     sessionToken: v.string(),
-    sport: v.string(), // "wingfoil" | "surfing"
+    sport: v.string(), // "wingfoil" | "kitesurfing" | "surfing"
     spotId: v.optional(v.id("spots")),
     customLocation: v.optional(v.string()),
     sessionDate: v.number(), // Epoch ms
@@ -77,8 +88,8 @@ export const createEntry = mutation({
     const userId = await verifySessionAndGetUserId(ctx, args.sessionToken);
     
     // Validate sport
-    if (args.sport !== "wingfoil" && args.sport !== "surfing") {
-      throw new Error("Sport must be 'wingfoil' or 'surfing'");
+    if (!JOURNAL_SPORTS.includes(args.sport)) {
+      throw new Error(`Sport must be one of: ${JOURNAL_SPORTS.join(", ")}`);
     }
     
     // Validate location (must have spotId OR customLocation)
@@ -167,8 +178,8 @@ export const updateEntry = mutation({
     
     // Validate sport if provided
     if (args.sport !== undefined) {
-      if (args.sport !== "wingfoil" && args.sport !== "surfing") {
-        throw new Error("Sport must be 'wingfoil' or 'surfing'");
+      if (!JOURNAL_SPORTS.includes(args.sport)) {
+        throw new Error(`Sport must be one of: ${JOURNAL_SPORTS.join(", ")}`);
       }
     }
     

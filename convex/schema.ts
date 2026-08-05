@@ -150,6 +150,75 @@ export default defineSchema({
     }).index("by_spot", ["spotId"])
       .index("by_spot_and_scrape_timestamp", ["spotId", "scrapeTimestamp"]),
     /**
+     * Per-model wind series, one row per model per slot per scrape.
+     *
+     * The blended `forecast_slots` series remains the scored one; these are
+     * additive evidence used for agreement and the confidence grid. Only wind
+     * is stored because Windy.app serves wave data from separate models and it
+     * is byte-identical across all five wind models — there is no swell spread
+     * to record.
+     *
+     * NOTE: production and development share one Convex deployment, so this
+     * table goes live for everyone the moment it is pushed. All fields are
+     * additive and optional-safe for that reason.
+     *
+     * Retention: pruned to the latest 3 scrapes per spot. Three rather than
+     * two because _getForecastSlotsForSpot deliberately carries today's
+     * timestamps forward from older scrapes, so a displayed slot can be older
+     * than the newest scrape.
+     */
+    forecast_model_slots: defineTable({
+        spotId: v.id("spots"),
+        model: v.string(), // "ecmwf" | "gfs27_long" | "iconeuro" | "iconglobal" | "lew"
+        timestamp: v.number(), // Epoch ms
+        scrapeTimestamp: v.number(),
+        speed: v.number(), // knots
+        gust: v.number(), // knots
+        direction: v.number(), // degrees
+    })
+        .index("by_spot_and_scrape", ["spotId", "scrapeTimestamp"])
+        .index("by_spot_model_timestamp", ["spotId", "model", "timestamp"])
+        .index("by_spot_timestamp", ["spotId", "timestamp"]),
+    /**
+     * Live station readings, retained so the delta is queryable historically.
+     *
+     * The app already proxies Windguru per view, but nothing was kept — which
+     * makes the 90-minute sparkline, the "+2 vs forecast" pill and the per-spot
+     * bias ("runs 2-3 kn over") impossible to compute rather than assert.
+     */
+    station_readings: defineTable({
+        spotId: v.id("spots"),
+        stationId: v.string(),
+        time: v.number(), // Epoch ms of the reading
+        speed: v.number(), // knots
+        gust: v.optional(v.number()),
+        direction: v.optional(v.number()),
+        tempC: v.optional(v.number()),
+    })
+        .index("by_spot_time", ["spotId", "time"])
+        .index("by_station_time", ["stationId", "time"]),
+    /**
+     * Rider counts detected from cam footage.
+     *
+     * DEFINED BUT NEVER WRITTEN in this phase. There is no computer-vision
+     * pipeline; the UI runs on fixtures generated in the Next layer and gated
+     * behind the `riderCounts` flag. Nothing seeds this table — production and
+     * development share a deployment, so seeded fixtures would be shown to real
+     * users as if they were measurements.
+     *
+     * It exists now so the shape is settled while the UI is built, and so the
+     * fixture module can match the real query's return shape exactly.
+     */
+    cam_rider_counts: defineTable({
+        spotId: v.id("spots"),
+        at: v.number(), // Epoch ms of the observation
+        count: v.number(),
+        sport: v.optional(v.string()),
+        source: v.string(), // e.g. "cv-v1" — never "fixture"
+        confidence: v.optional(v.number()), // 0-1, for the range-not-integer question
+    })
+        .index("by_spot_time", ["spotId", "at"]),
+    /**
      * Tide events - high and low tides for each spot.
      * Stored separately from forecast slots since tides rarely occur at exact slot times.
      * Each tide event has its own timestamp.

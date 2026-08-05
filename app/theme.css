@@ -55,6 +55,20 @@
   --wm-sport-pill-bg: rgba(110, 231, 240, 0.14);
   --wm-sport-pill-text: #6ee7f0;
 
+  /* "You are here". Deliberately outside the accent/marginal pair, because it
+     is a position marker rather than a judgement — reusing either would collide
+     with the score semantics the strip already encodes. */
+  --wm-now: #ff9d42;
+  /* Channel triple, not a hex: the verdict card uses bg-caution/10 and
+     border-caution/30, and Tailwind opacity modifiers only work against
+     `rgb(var(--x) / <alpha-value>)`. As a composite var those classes emitted
+     invalid CSS and the border fell back to currentColor — which is what put a
+     white outline around MAYBE and the direction ring. */
+  --wm-caution: 255 157 66;
+  /* Near-black, not white: white on this orange is 2.07:1 and fails AA
+     outright, where near-black clears 10:1. */
+  --wm-now-text: #0a1420;
+
   /* The score dial's inner disc must be OPAQUE or the conic-gradient ring shows
      straight through it. On a tinted card that means page composited with
      accent-tint-card, precomputed — a translucent surface token does not work
@@ -102,6 +116,14 @@
 
   --wm-sport-pill-bg: #0e7a85;
   --wm-sport-pill-text: #ffffff;
+
+  /* Darker for contrast on a light page; same hue. */
+  /* Lifted from #c4610b so the pill's own label clears AA (4.97:1) while the
+     rule still holds 3.37:1 against the light page. Both thresholds matter:
+     one is text, the other a graphic. */
+  --wm-now: #cc6a10;
+  --wm-caution: 204 106 16;
+  --wm-now-text: #0a1420;
 
   /* See the Nightglass note — page composited with accent-tint-card. */
   --wm-dial-inner-card: #dde9ea;

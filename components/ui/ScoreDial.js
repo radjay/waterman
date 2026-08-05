@@ -69,14 +69,32 @@ export function ScoreDial({
   const inner = Math.round(s.outer * 0.78);
   const clamped = Math.max(0, Math.min(100, score));
 
-  const Tag = onClick ? "button" : "div";
+  // NOT a <button>. ScoreDial is rendered inside ScoreCard, which is itself a
+  // button when clickable, and a nested button is invalid HTML — React fails
+  // hydration on it and regenerates the whole tree on the client. ScorePill
+  // used role="button" on a span for exactly this reason; keeping that.
+  const interactive = Boolean(onClick);
 
   return (
-    <Tag
+    <span
       onClick={onClick}
-      aria-label={onClick ? `Score ${score}` : undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+      aria-label={interactive ? `Score ${score}` : undefined}
       className={`flex-none rounded-full flex items-center justify-center ${
-        onClick ? "focus-ring active:scale-[0.97] transition-transform duration-fast ease-smooth" : ""
+        interactive
+          ? "cursor-pointer focus-ring active:scale-[0.97] transition-transform duration-fast ease-smooth"
+          : ""
       } ${className}`}
       style={{
         width: s.outer,
@@ -112,6 +130,6 @@ export function ScoreDial({
           </span>
         )}
       </span>
-    </Tag>
+    </span>
   );
 }

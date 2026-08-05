@@ -3,12 +3,8 @@
 import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogIn } from "lucide-react";
 import { formatFullDate } from "../../lib/utils";
-import { ViewToggle } from "./ViewToggle";
-import { useAuth } from "../auth/AuthProvider";
-import UserMenu from "../auth/UserMenu";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 // ShareButton removed — share is now in the UserMenu/MobileMenu
 
 // Share functionality moved to UserMenu (desktop) and MobileMenu (mobile).
@@ -28,8 +24,6 @@ export function Header({ className = "" }) {
   const todayStr = formatFullDate(new Date());
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
   const isHome = pathname === "/dashboard";
 
@@ -43,14 +37,6 @@ export function Header({ className = "" }) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const authContent = (
-    <AuthButton
-      isAuthenticated={isAuthenticated}
-      authLoading={authLoading}
-      router={router}
-    />
-  );
 
   return (
     <header
@@ -101,62 +87,11 @@ export function Header({ className = "" }) {
         <div className="md:hidden border-b border-ink/10" />
       </motion.div>
 
-      {/* ── Nav bar (desktop only) — full-width pill bar with Sign In ── */}
-      {/* Mobile nav is handled by BottomNav */}
-      <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2">
-        {/* Scrolled-only: compact brand */}
-        <AnimatePresence initial={false}>
-          {isScrolled && (
-            <motion.div
-              key="brand-group"
-              initial={{ opacity: 0, x: -12, width: 0 }}
-              animate={{ opacity: 1, x: 0, width: "auto" }}
-              exit={{ opacity: 0, x: -12, width: 0 }}
-              transition={{
-                duration: hasMounted ? 0.25 : 0,
-                ease: [0.32, 0.72, 0, 1],
-              }}
-              className="shrink-0 overflow-hidden"
-            >
-              <Link
-                href="/"
-                className="font-headline font-extrabold uppercase text-sm tracking-display-tight text-ink hover:opacity-70 transition-opacity leading-none whitespace-nowrap"
-              >
-                Waterman
-              </Link>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Full-width nav bar with auth inside */}
-        <ViewToggle
-          compact={isScrolled}
-          rightContent={authContent}
-          className="flex-1"
-        />
-      </div>
+      {/* Desktop navigation lives in TopNav now. This used to render a
+          ViewToggle listing the PREVIOUS five destinations (Home / Report /
+          Cams / Journal / Calendar), which meant the whole IA change was
+          invisible at width. One nav, one source of truth (navTabs.js). */}
 
     </header>
-  );
-}
-
-/**
- * AuthButton — Sign In or UserMenu, rendered inside the nav bar.
- */
-function AuthButton({ isAuthenticated, authLoading, router }) {
-  if (authLoading) return <div className="w-20 h-8" />;
-
-  if (isAuthenticated) {
-    return <UserMenu />;
-  }
-
-  return (
-    <button
-      onClick={() => router.push("/auth/login")}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface ring-1 ring-inset ring-ink/15 text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-surface active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
-    >
-      <LogIn className="w-[15px] h-[15px]" />
-      <span>Sign In</span>
-    </button>
   );
 }
