@@ -22,6 +22,7 @@ import type * as calendar from "../calendar.js";
 import type * as crons from "../crons.js";
 import type * as forecastExperiment from "../forecastExperiment.js";
 import type * as journal from "../journal.js";
+import type * as models from "../models.js";
 import type * as personalization from "../personalization.js";
 import type * as prompts from "../prompts.js";
 import type * as queryHelpers_conditionScores from "../queryHelpers/conditionScores.js";
@@ -30,6 +31,7 @@ import type * as recordings from "../recordings.js";
 import type * as seed from "../seed.js";
 import type * as seedScoringPrompts from "../seedScoringPrompts.js";
 import type * as spots from "../spots.js";
+import type * as stations from "../stations.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   forecastExperiment: typeof forecastExperiment;
   journal: typeof journal;
+  models: typeof models;
   personalization: typeof personalization;
   prompts: typeof prompts;
   "queryHelpers/conditionScores": typeof queryHelpers_conditionScores;
@@ -60,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedScoringPrompts: typeof seedScoringPrompts;
   spots: typeof spots;
+  stations: typeof stations;
 }>;
 
 /**

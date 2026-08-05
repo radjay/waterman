@@ -12,6 +12,9 @@ import {
   upcomingWindows,
 } from "../../lib/windows";
 import { spotsWithSlots } from "../../lib/reportData";
+import { classifyProximity, stationIdFromUrl } from "../../lib/stations";
+import { buildStationCard } from "../../lib/station";
+import { useFlag } from "../flags/FlagProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -43,6 +46,12 @@ function holdsUntil(slots, fromMs) {
  */
 export function useNowData(sport, favoriteIds = []) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  // Gated here, not just at the EvidenceStack card: the card and the verdict
+  // are two different surfaces reading the same reading, and the flag being
+  // off must mean the delta cannot move the verdict either — otherwise the
+  // moment the cron starts running, a station can flip NO to MARGINAL while
+  // the card that would explain why stays hidden (RAD station-evidence).
+  const showStation = useFlag("stationEvidence");
 
   useEffect(() => {
     let cancelled = false;
@@ -111,10 +120,32 @@ export function useNowData(sport, favoriteIds = []) {
         }
         if (cancelled) return;
 
+        // The live station, when the chosen spot has one. As with agreement,
+        // a failure here must read as "no station", never as a reading.
+        let station = null;
+        const stationId = stationIdFromUrl(chosen.spot.liveReportUrl);
+        if (stationId) {
+          try {
+            const readings = await client.query(api.stations.getStationReadings, {
+              stationId,
+              sinceAt: now - 90 * 60 * 1000,
+            });
+            station = buildStationCard({
+              readings,
+              forecastSlot: chosen.slot,
+              proximity: classifyProximity(stationId, chosen.spot),
+              nowMs: now,
+            });
+          } catch {
+            station = null;
+          }
+        }
+        if (cancelled) return;
+
         const verdict = deriveVerdict({
           score: chosen.score,
           agreement,
-          stationDelta: null,
+          stationDelta: showStation ? (station?.delta ?? null) : null,
         });
 
         // Where the rider should look instead, when the answer is no.
@@ -135,6 +166,7 @@ export function useNowData(sport, favoriteIds = []) {
             spot: chosen.spot,
             slot: chosen.slot,
             agreement,
+            station,
             score: chosen.score,
             reasoning: chosen.slot.reasoning,
             nextWindow: next,
@@ -143,7 +175,7 @@ export function useNowData(sport, favoriteIds = []) {
               verdict,
               holdsUntil: holdsUntil(chosen.slots, now),
               agreement,
-              stationDelta: null,
+              stationDelta: showStation ? (station?.delta ?? null) : null,
               nextWindowStart: next?.window?.start ?? null,
             }),
           },
@@ -160,7 +192,7 @@ export function useNowData(sport, favoriteIds = []) {
     return () => {
       cancelled = true;
     };
-  }, [sport, favoriteIds.join(",")]);
+  }, [sport, favoriteIds.join(","), showStation]);
 
   return state;
 }
