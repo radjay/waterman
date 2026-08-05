@@ -1857,7 +1857,12 @@ async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
 /**
  * Get condition scores for a single spot and sport.
  * Optimized to limit document reads by filtering on timestamp range.
- * Reads scores within a configurable window (default 2 days, 11 days future).
+ * Reads scores within a configurable window (default 2 days back, 7 forward).
+ *
+ * These defaults must stay in step with getConditionScoresForSpotSport's own.
+ * This wrapper passes both values EXPLICITLY, so its defaults win outright and
+ * lowering the helper's alone changes nothing — which is exactly what happened
+ * on the first attempt at this.
  */
 async function _getConditionScoresForSpot(
     ctx: any,
@@ -1865,7 +1870,7 @@ async function _getConditionScoresForSpot(
     sport: string,
     userId?: string,
     cutoffDays: number = 2,
-    futureDays: number = 11,
+    futureDays: number = 7,
 ) {
     return getConditionScoresForSpotSport(ctx, spotId, sport, {
         userId,
@@ -2124,14 +2129,34 @@ export const getReportData = query({
 export const pruneDuplicateConditionScores = mutation({
     args: {
         spotId: v.id("spots"),
+        sport: v.string(),
+        fromTimestamp: v.number(),
+        toTimestamp: v.number(),
         apply: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const apply = args.apply ?? false;
 
+        // Bounded in the INDEX, per (spot, sport, time slice).
+        //
+        // An unbounded `.eq("spotId")` collect reads every score ever written
+        // for the spot. At ~27 duplicates per hour since launch that is well
+        // past the 32,000-document read limit for one spot — the prune would
+        // throw the exact error it exists to prevent.
+        //
+        // `.filter()` would not have helped: Convex applies it after the index
+        // scan, so it narrows the result and not the read. by_spot_sport_timestamp
+        // is [spotId, sport, timestamp] and index fields bind in order, so
+        // range-bounding the timestamp means pinning the sport too. Callers walk
+        // the history one sport and one slice at a time.
         const scores = await ctx.db
             .query("condition_scores")
-            .withIndex("by_spot_sport_timestamp", (q: any) => q.eq("spotId", args.spotId))
+            .withIndex("by_spot_sport_timestamp", (q: any) =>
+                q.eq("spotId", args.spotId)
+                 .eq("sport", args.sport)
+                 .gte("timestamp", args.fromTimestamp)
+                 .lt("timestamp", args.toTimestamp)
+            )
             .collect();
 
         // Group by the key the write path now dedupes on.
