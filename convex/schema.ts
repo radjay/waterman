@@ -188,7 +188,6 @@ export default defineSchema({
      * by_station_time is the index that matters.
      */
     station_readings: defineTable({
-        spotId: v.optional(v.id("spots")),
         stationId: v.string(),
         time: v.number(), // Epoch ms of the reading
         speed: v.number(), // knots
@@ -196,7 +195,6 @@ export default defineSchema({
         direction: v.optional(v.number()),
         tempC: v.optional(v.number()),
     })
-        .index("by_spot_time", ["spotId", "time"])
         .index("by_station_time", ["stationId", "time"]),
     /**
      * Rider counts detected from cam footage.

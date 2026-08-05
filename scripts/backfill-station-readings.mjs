@@ -30,10 +30,10 @@ const stationFilter = process.env.BACKFILL_STATION_ID;
  * whose unguarded path turns a DEAD station into speed 0, gust 0, and no
  * temperature. `quality` cannot be trusted to catch this: assessQuality's
  * "suspect" rule only fires when temperatureC is finite, so a dead reading
- * with an absent temperature is scored "ok" and sails through the
- * `quality !== "suspect"` filter above. A genuine calm reading carries a
- * temperature almost every time, so gating on its absence — rather than on
- * speed/gust alone — keeps real calm readings out of this net.
+ * with an absent temperature is scored "ok".
+ *
+ * This is the whole liveness test for the archive. `quality` is deliberately
+ * NOT consulted — see the filter chain below for why.
  */
 function isFabricatedDeadStationRow(row) {
   return row.windSpeedKnots === 0 && row.windGustKnots === 0 && !Number.isFinite(row.temperatureC);
@@ -77,9 +77,17 @@ for (const target of TARGETS) {
     scanned += rows.length;
 
     const readings = rows
-      // Matches fx-backfill-windguru-history.mjs: suspect rows are the
-      // 0/0-with-temperature pattern, which is not a real calm reading.
-      .filter((row) => row.quality !== "suspect")
+      // `quality` is not filtered on, and that is deliberate.
+      //
+      // assessQuality scores 0/0-with-a-temperature as "suspect", but that is
+      // exactly what a live station reporting CALM looks like: it omits
+      // wind_avg and wind_max entirely (route.js:58) while its thermometer
+      // keeps reporting. Excluding "suspect" therefore threw away real calm
+      // readings — and for an archive meant to answer "was there any wind?",
+      // a missing calm reads as a data gap rather than as flat water.
+      //
+      // The dead-station case that filter was reaching for is caught properly
+      // below, by the absence of a temperature rather than by a quality label.
       .filter((row) => !isFabricatedDeadStationRow(row))
       .filter((row) => Number.isFinite(row.windSpeedKnots))
       .map((row) => ({
