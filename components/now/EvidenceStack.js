@@ -2,6 +2,8 @@
 
 import { CircleGauge, Layers, TrendingUp, TrendingDown, Users, Wind } from "lucide-react";
 import { BANDS, agreementSentence } from "../../lib/agreement";
+import { StationWindChart } from "./StationWindChart";
+import { WindReading } from "./WindReading";
 
 /**
  * "Why we think so" — the evidence under the verdict, ordered by how much a
@@ -95,53 +97,75 @@ export function InTheWaterCard({ reading, sportNoun, bare = false }) {
   );
 }
 
-function StationCard({ station }) {
-  const max = Math.max(...(station.history || []).map((p) => p.speed), 1);
+/**
+ * @param {boolean} bare - Drop card chrome so the block can sit flush under
+ *   "WHY WE THINK SO" inside the verdict card (same inset as the prose).
+ */
+export function StationCard({ station, bare = false }) {
+  // "1 MIN AGO @ THE SPOT" — age and proximity share one meta line.
+  const meta = [station.agoLabel, station.caption].filter(Boolean).join(" @ ");
 
   return (
-    <div className={CARD}>
+    <div className={bare ? "" : CARD}>
       <div className="flex items-center gap-[9px]">
         <Wind size={15} className="text-accent" />
         <span className="font-data text-[10px] tracking-label text-accent">STATION</span>
-        {station.agoLabel && (
-          <span className="ml-auto font-data text-[9px] text-dim">{station.agoLabel}</span>
+        {meta && (
+          <span className="ml-auto font-data text-[9px] text-dim truncate max-w-[70%] text-right">
+            {meta}
+          </span>
         )}
       </div>
 
-      <div className="flex items-end gap-2.5 mt-[11px]">
-        <span className="font-data font-bold text-[38px] leading-none text-ink tabular-nums">
-          {Math.round(station.speed)}
-        </span>
-        <span className="pb-1 font-data text-[12px] text-faded-ink">
-          kn <span className="text-ink">{station.directionLabel}</span>
-          {station.gust ? ` (${Math.round(station.gust)}*)` : ""}
-        </span>
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5 mt-[11px]">
+        <WindReading
+          size="lg"
+          metric={{
+            value: Math.round(station.speed),
+            unit: "kn",
+            // Same "(14*)" treatment as timeslot cards.
+            secondary:
+              station.gust != null ? `(${Math.round(station.gust)}*)` : null,
+            directionLabel: station.directionLabel,
+          }}
+        />
         {station.delta !== null && station.delta !== undefined && (
-          <span className="ml-auto mb-1 bg-accent-tint rounded-pill px-[9px] py-[5px] font-data text-[10px] text-accent">
+          <span className="sm:ml-auto mb-1 bg-accent-tint rounded-pill px-[9px] py-[5px] font-data text-[10px] text-accent">
             {station.delta >= 0 ? "+" : ""}
             {Math.round(station.delta)} vs forecast
           </span>
         )}
       </div>
 
-      {station.history?.length > 0 && (
-        <div className="flex items-end gap-[3px] h-[26px] mt-[11px]" aria-hidden="true">
-          {station.history.map((point, i) => {
-            const ratio = point.speed / max;
-            const shade =
-              ratio > 0.8 ? "bg-accent" : ratio > 0.5 ? "bg-accent-mid" : "bg-accent-low";
-            return (
+      {station.history?.length > 1 && <StationWindChart history={station.history} />}
+
+      {station.history?.length > 1 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 font-data text-[9px] text-dim">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-[2px] rounded-full bg-accent" />
+            base
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block w-3 h-0 border-t border-dashed"
+              style={{ borderColor: "rgb(var(--wm-accent) / 0.55)" }}
+            />
+            gust
+          </span>
+          {station.history.some((p) => Number.isFinite(p.forecast)) && (
+            <span className="inline-flex items-center gap-1.5">
               <span
-                key={i}
-                className={`flex-1 ${shade}`}
-                style={{ height: `${Math.max(ratio * 100, 6)}%` }}
+                className="inline-block w-3 h-0 border-t"
+                style={{
+                  borderColor: "var(--wm-dim)",
+                  borderStyle: "dashed",
+                  borderWidth: "1.5px 0 0",
+                }}
               />
-            );
-          })}
+              forecast
+            </span>
+          )}
         </div>
-      )}
-      {station.caption && (
-        <p className="font-data text-[9px] text-dim mt-[7px]">{station.caption}</p>
       )}
     </div>
   );

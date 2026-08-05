@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ChevronRight, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { Badge } from "../ui/Badge";
 import { ScoreDial } from "../ui/ScoreDial";
@@ -9,6 +9,9 @@ import {
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../wind/LiveWindIndicator";
+import { StationCard } from "./EvidenceStack";
+import { WindReading } from "./WindReading";
+import { primaryMetric } from "../../lib/conditions";
 import { dtf } from "../../lib/datetime";
 
 const TONE_TEXT = {
@@ -31,9 +34,12 @@ const VERDICT_WORD = {
 /**
  * The answer to "can I go", before anything else.
  *
- * GO paints in the accent, MAYBE in the accent-2 hue, NO GO in dim. On a flat
- * day — the common case, not an edge case — the card withholds the accent
- * entirely so the only cyan on screen belongs to the next windows below.
+ * The verdict word carries the colour (accent / caution / dim). The card shell
+ * stays neutral — tinting the whole box for MAYBE/GO made the accent fight the
+ * score dial and the wind reading for attention.
+ *
+ * Wind and score live in the timeslot strip, not a separate hero row: one place
+ * to compare now vs later. No direction arrow — compass text is enough.
  *
  * The card as a whole leads to this spot's week. A div rather than a button:
  * the sport chip and the cam are their own controls inside it, and a button
@@ -43,11 +49,13 @@ export function VerdictCard({
   verdict = VERDICT.NO,
   sport = "wingfoil",
   spotName,
-  score,
-  metric,
+  // score/metric kept for callers; wind+score render per-slot in Trajectory.
+  score: _score,
+  metric: _metric,
   liveReportUrl,
   reason,
   reasoning,
+  station = null,
   trajectory = [],
   elsewhereToday = 0,
   riderCount,
@@ -60,22 +68,6 @@ export function VerdictCard({
   const tone = VERDICT_TONE[verdict] || "dim";
   const isGo = verdict === VERDICT.GO;
   const isMarginal = verdict === VERDICT.MARGINAL;
-
-  // The handoff tints the verdict card; the bad-day stress test says accent is
-  // withheld from everything except the one thing worth acting on. Both hold if
-  // the tint follows the verdict: accent for GO, the accent-2 hue for MAYBE,
-  // and a neutral card for NO GO — where the accent belongs to the next windows
-  // further down instead.
-  const cardTone = isGo
-    ? "bg-accent-tint-card border-accent-border"
-    : isMarginal
-      ? "bg-caution/10 border-caution/30"
-      : "bg-surface border-card";
-  const ringTone = isGo
-    ? "border-accent-border text-accent"
-    : isMarginal
-      ? "border-caution/40 text-caution"
-      : "border-card text-faded-ink";
 
   // Controls inside the card have to claim their own clicks, or every one of
   // them would also navigate away to the week.
@@ -97,135 +89,73 @@ export function VerdictCard({
           onOpenSpot();
         }
       }}
-      className={`rounded-card-xl px-4 py-[15px] border ${cardTone} ${
+      className={`rounded-card-xl px-4 py-[15px] border bg-surface border-card ${
         onOpenSpot ? "cursor-pointer focus-ring" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        {/* Verdict and spot share a baseline. Stacked, the spot read as a
-            caption for the word above it rather than as its other half. */}
-        <div className="flex items-baseline gap-2.5 min-w-0">
+        {/* Mobile: spot under the verdict so "@ Marina de Cascais" is not
+            truncated to "Mar…". Desktop: same baseline as before. */}
+        <div className="flex flex-col gap-1 min-w-0 md:flex-row md:items-baseline md:gap-2.5">
           <span
             className={`font-headline font-extrabold text-[46px] leading-[0.86] tracking-display-tighter whitespace-nowrap ${TONE_TEXT[tone]}`}
           >
             {VERDICT_WORD[verdict] ?? verdict}
           </span>
-          {/* min-w-0 as well as truncate: a flex item's min-width is auto, so
-              without it the span refuses to shrink below the full spot name and
-              the card's min-content width blows past a narrow phone. */}
           {spotName && (
-            <span className="font-headline font-bold text-[17px] tracking-display text-ink truncate min-w-0">
-              <span className="font-data font-normal text-faded-ink text-[15px]">@ </span>
+            <span className="font-headline font-bold text-[15px] md:text-[17px] tracking-display text-ink truncate min-w-0">
+              <span className="font-data font-normal text-faded-ink text-[14px] md:text-[15px]">@ </span>
               {spotName}
             </span>
           )}
         </div>
-        {/* The same control as Next, rather than a label that looked
-            interactive and was not. Wrapped rather than given an onClick prop
-            so the dropdown it opens — which renders inside it — is covered too;
-            otherwise choosing a sport would also navigate away. */}
-        <span className="flex-none flex items-center gap-1.5">
-          <span onClick={own()} onKeyDown={(e) => e.stopPropagation()}>
-            <SportFilterChip />
-          </span>
-          {/* The whole card navigates to this spot's week. Without a mark
-              nothing said so and nobody found it. */}
-          {onOpenSpot && <ChevronRight size={16} className="text-dim" aria-hidden="true" />}
+        {/* Own click stop so choosing a sport does not also open the week. */}
+        <span
+          className="flex-none"
+          onClick={own()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <SportFilterChip />
         </span>
       </div>
 
-      {(metric || (score !== null && score !== undefined)) && (
-        <div className="flex items-end gap-[11px] mt-[13px]">
-          {/* Direction leads the reading — it is the thing you check first, and
-              sitting left of the number keeps it clear of the unit. */}
-          {metric?.directionDegrees !== null && metric?.directionDegrees !== undefined && (
-            <div
-              className={`flex-none w-[34px] h-[34px] mb-1 rounded-full border flex items-center justify-center ${ringTone}`}
-              // Matches components/ui/Arrow: rotate by the raw stored bearing.
-              // The from/to conversion lives in the LABEL, not the glyph.
-              style={{ transform: `rotate(${metric.directionDegrees}deg)` }}
-              aria-hidden="true"
-            >
-              <ArrowUp size={16} />
-            </div>
-          )}
-          {metric && (
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-data font-bold text-[44px] leading-[0.86] text-ink tabular-nums">
-                {metric.value}
-              </span>
-              <span className="font-data font-bold text-[20px] text-ink">{metric.unit}</span>
-              {metric.directionLabel && (
-                <span className="font-data text-[15px] text-ink">{metric.directionLabel}</span>
-              )}
-            </div>
-          )}
-          {metric?.secondary && (
-            <span className="font-data text-[12px] text-faded-ink pb-1.5">
-              {metric.secondary}
-            </span>
-          )}
-          {/* On the reading's own row, where it reads as one more number about
-              right now rather than a badge floating in the corner. */}
-          <ScoreDial
-            score={score}
-            size="md"
-            showAll
-            label="SCORE"
-            on={isGo || isMarginal ? "card" : "page"}
-            className="ml-auto"
-          />
-        </div>
+      {/* GO NOW: answer → when today → why → live numbers → glance at cam. */}
+      {trajectory.length > 0 && (
+        <Trajectory slots={trajectory} sport={sport} />
       )}
 
-      {/* The live reading is on the cam overlay; a second copy of it directly
-          above the same picture said the same thing twice. */}
-      {metric?.tertiary && (
-        <div className="font-data text-[11px] text-faded-ink mt-2">{metric.tertiary}</div>
-      )}
-
-      {trajectory.length > 1 && <Trajectory slots={trajectory} tone={tone} />}
-
-      {/* ONE line of prose, not a stack.
-          The scorer's own sentence is the best thing on the screen, so it gets
-          the slot. `reason` is the fallback for when there is no sentence — on
-          its own it mostly restated the verdict ("Nothing on right now" under
-          NO GO) or said nothing at all ("Worth a look"), and on a GO the
-          trajectory strip now carries "holds until" better than words did. */}
       {(reasoning || reason) && (
-        <p className="text-[14px] leading-[1.5] text-faded-ink mt-3">{reasoning || reason}</p>
+        <p
+          className="mt-3 text-[13px] leading-[1.45] text-faded-ink line-clamp-3"
+          onClick={own()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {reasoning || reason}
+        </p>
       )}
 
-      {/* "Nothing at my three beaches" and "nothing on the coast" are different
-          decisions. Saying which turns the app's most common state from a dead
-          end into a next step.
-          Note there is deliberately no "better tomorrow" line: it duplicated
-          the first NEXT WINDOWS card below — same spot, same score, same day,
-          by construction — and that card is already the highlighted one. */}
-      {!isGo && !isMarginal && elsewhereToday > 0 && onSeeElsewhere && (
-        <button
-          onClick={own(onSeeElsewhere)}
-          className="mt-2.5 text-[13px] text-accent focus-ring hover:underline"
+      {station && (
+        <div
+          className="mt-3"
+          onClick={own()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
-          {elsewhereToday} window{elsewhereToday === 1 ? "" : "s"} elsewhere today &rarr;
-        </button>
+          <StationCard station={station} />
+        </div>
       )}
 
       {camSlot && (
         <button
           onClick={own(onOpenCam)}
           aria-label="Open the live cam"
-          // Aspect ratio, not a fixed height: a 21:9 strip still crops the
-          // frame sensibly, and the cam stays one tap from full screen.
-          className={`relative block w-full rounded-card-sm overflow-hidden mt-[15px] border focus-ring ${
+          // Capped height: confirm the scene without scrolling through a
+          // full-bleed beach before "if not now". Fullscreen is one tap away.
+          className={`relative block w-full max-h-[min(36vh,280px)] rounded-card-sm overflow-hidden mt-3 border focus-ring border-card ${
             compactCam ? "aspect-[21/6]" : "aspect-video"
-          } ${isGo ? "border-accent-border" : "border-card"}`}
+          }`}
         >
           {camSlot}
           <span className="absolute top-[9px] left-[9px] flex items-center gap-[7px] pointer-events-none">
-            {/* What the spot reads right now beats a chip that only says the
-                video is live — the video being live is already obvious. Falls
-                back to that chip when the station has nothing usable. */}
             <LiveWindIndicator
               stationId={extractWindguruStationId(liveReportUrl)}
               compact
@@ -245,6 +175,15 @@ export function VerdictCard({
           </span>
         </button>
       )}
+
+      {!isGo && !isMarginal && elsewhereToday > 0 && onSeeElsewhere && (
+        <button
+          onClick={own(onSeeElsewhere)}
+          className="mt-3 text-[13px] text-accent focus-ring hover:underline"
+        >
+          {elsewhereToday} window{elsewhereToday === 1 ? "" : "s"} elsewhere today &rarr;
+        </button>
+      )}
     </div>
   );
 }
@@ -254,38 +193,103 @@ const hour = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
 
 /**
- * This slot and the next two.
- *
- * Now speaks for a three-hour block as if it were an instant — at 14:50 the
- * rider is being told about 12:00–15:00, which is largely over. Whether the
- * window is building or dying changes the decision as much as the verdict word
- * does, and until now it existed only inside a prose sentence.
- *
- * Deliberately not a chart. Three labelled numbers read faster than a sparkline
- * at this size, and they degrade honestly when the scorer has nothing for a
- * slot: "—" says "not scored", where a flat line would say "zero".
+ * Best scored slot among those shown. Ties go to the earliest slot so "BEST
+ * TIME" points at when conditions first peak, not the last tied hour.
  */
-function Trajectory({ slots, tone }) {
+function bestSlotIndex(slots) {
+  let best = -1;
+  let bestScore = -Infinity;
+  slots.forEach((slot, i) => {
+    if (slot.score === null || slot.score === undefined) return;
+    if (slot.score > bestScore) {
+      bestScore = slot.score;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/**
+ * Remaining slots today from NOW (max 4).
+ *
+ * Mobile: 2×2 grid so BEST is never off-screen in a carousel.
+ * Desktop (md+): one row of equal columns filling the verdict card.
+ */
+function Trajectory({ slots, sport }) {
+  const bestIdx = bestSlotIndex(slots);
+  const cols = Math.min(Math.max(slots.length, 1), 4);
+  const mdCols =
+    cols === 1
+      ? "md:grid-cols-1"
+      : cols === 2
+        ? "md:grid-cols-2"
+        : cols === 3
+          ? "md:grid-cols-3"
+          : "md:grid-cols-4";
+
   return (
-    <div className="flex items-stretch gap-1.5 mt-3.5" aria-label="How the next hours look">
+    <div
+      className={`mt-3.5 grid grid-cols-2 gap-1.5 ${mdCols}`}
+      aria-label="How the next hours look"
+    >
       {slots.map((slot, i) => {
         const scored = slot.score !== null && slot.score !== undefined;
+        const isBest = i === bestIdx && scored;
+        const metric = primaryMetric(slot, sport);
         return (
           <div
             key={slot.timestamp}
-            className={`flex-1 rounded-card-sm border px-2.5 py-2 ${
-              i === 0 ? "border-card bg-ink-hover" : "border-card"
+            className={`flex flex-col rounded-card-sm border px-2.5 py-2.5 min-w-0 md:px-[18px] md:py-3 ${
+              isBest
+                ? "border-accent-border bg-accent-tint-card"
+                : "border-card bg-surface"
             }`}
           >
-            <div className="font-data text-[9px] tracking-label text-dim">
-              {i === 0 ? "NOW" : hour(slot.timestamp)}
+            <div className="flex items-start justify-between gap-1 min-h-[16px]">
+              <span
+                className={`font-data text-[11px] md:text-[13px] font-bold tracking-label tabular-nums leading-none ${
+                  i === 0 ? "text-accent" : "text-faded-ink"
+                }`}
+              >
+                {i === 0 ? "NOW" : hour(slot.timestamp)}
+              </span>
+              {isBest && (
+                <Badge
+                  variant="live"
+                  className="!px-1.5 !py-0 !text-[8px] md:!px-2 md:!py-0.5 md:!text-[9px] !leading-none flex-none"
+                >
+                  BEST
+                </Badge>
+              )}
             </div>
-            <div
-              className={`font-data font-bold text-[17px] tabular-nums leading-none mt-1 ${
-                scored ? (i === 0 ? TONE_TEXT[tone] : "text-ink") : "text-dim"
-              }`}
-            >
-              {scored ? Math.round(slot.score) : "—"}
+            {/* items-center: dial sits on the vertical middle of the wind stack. */}
+            <div className="mt-2 flex items-center justify-between gap-1.5 min-w-0 md:mt-2.5 md:gap-2">
+              <WindReading metric={metric} size="md" />
+              {scored ? (
+                <>
+                  {/* xs on phones; sm once the row gives each card real width. */}
+                  <span className="flex-none md:hidden">
+                    <ScoreDial
+                      score={slot.score}
+                      size="xs"
+                      showAll
+                      on={isBest ? "card" : "page"}
+                    />
+                  </span>
+                  <span className="hidden md:flex flex-none">
+                    <ScoreDial
+                      score={slot.score}
+                      size="sm"
+                      showAll
+                      on={isBest ? "card" : "page"}
+                    />
+                  </span>
+                </>
+              ) : (
+                <span className="font-data font-bold text-[16px] text-dim tabular-nums flex-none">
+                  —
+                </span>
+              )}
             </div>
           </div>
         );

@@ -249,7 +249,7 @@ export function CalendarView({
 
         // RAD-31: Flat chronological list — collect all entries across all sports,
         // sort by bestTime, then by score. Sport section headers are removed;
-        // the sport icon on the ScoreDial is the sole sport indicator.
+        // ConditionLine carries the sport context (score dials are number-only).
         const flatEntries = [];
         for (const spot of dayInfo.spots) {
           for (const sportData of spot.sportData || []) {
@@ -298,7 +298,7 @@ export function CalendarView({
                           {sportData.bestTime ? `${sportData.bestTime} · ${spot.spotName}` : spot.spotName}
                         </span>
                         {/* RAD-31: Slightly larger score badges (md instead of sm) */}
-                        <ScoreDial score={sportData.score} sport={sportData.sport} size="xs" />
+                        <ScoreDial score={sportData.score} size="xs" />
                       </div>
                       {cd && (
                         <ConditionLine

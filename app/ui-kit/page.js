@@ -456,7 +456,7 @@ export default function UIKitPage() {
           </Row>
           <Row label='ScoreDial on a tinted card — on="card" matches the inner disc' full>
             <div className="bg-accent-tint-card border border-accent-border rounded-card-lg p-4 flex items-center gap-4 max-w-[420px]">
-              <ScoreDial score={84} size="md" on="card" label="NOW" />
+              <ScoreDial score={84} size="md" on="card" />
               <div>
                 <div className="font-headline font-bold text-[15px] text-ink tracking-display">
                   Praia do Guincho

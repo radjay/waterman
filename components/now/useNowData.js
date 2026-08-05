@@ -129,11 +129,15 @@ export function useNowData(sport, favoriteIds = []) {
           try {
             const readings = await client.query(api.stations.getStationReadings, {
               stationId,
-              sinceAt: now - 90 * 60 * 1000,
+              // Match lib/station HISTORY_MS (6h sparkline window).
+              sinceAt: now - 6 * 60 * 60 * 1000,
             });
             station = buildStationCard({
               readings,
               forecastSlot: chosen.slot,
+              // Full trail so the sparkline can paint the model over 6h, not
+              // just the single slot used for the "+N vs forecast" delta.
+              forecastSlots: chosen.slots,
               proximity: classifyProximity(stationId, chosen.spot),
               nowMs: now,
             });
@@ -163,22 +167,20 @@ export function useNowData(sport, favoriteIds = []) {
           excludeActiveAt: chosen.spot._id,
         });
 
-        // The window the verdict describes, then the next two. Now otherwise
-        // speaks for a three-hour block as if it were an instant: at 14:50 the
-        // rider is being told about 12:00-15:00, which is largely over. Shape
-        // is what says "and it holds" or "and it dies".
+        // Remaining charted slots today from NOW, capped at 4. Shape is what
+        // says "and it holds" or "and it dies" once the hero wind row went away
+        // and each cell carries its own reading.
         //
         // Contiguous only. The charted slots skip the night, so at 20:00 the
-        // "next two" are tomorrow 07:00 and 10:00 — drawing those beside NOW
-        // claims a continuation that does not exist. A run that stops stops:
-        // with nothing to continue into, the card shows no strip at all, which
-        // is the honest answer to "what happens next" at the end of a day.
+        // "next" ones are tomorrow 07:00 — drawing those beside NOW claims a
+        // continuation that does not exist. A run that stops stops.
         const SLOT_MS = SLOT_HOURS * 60 * 60 * 1000;
+        const TRAJECTORY_MAX = 4;
         const charted = chosen.slots.filter((s) => isChartedSlot(s.timestamp));
         const fromIndex = charted.findIndex((s) => s.timestamp === chosen.slot.timestamp);
         const trajectory = [];
         if (fromIndex !== -1) {
-          for (const slot of charted.slice(fromIndex, fromIndex + 3)) {
+          for (const slot of charted.slice(fromIndex, fromIndex + TRAJECTORY_MAX)) {
             const previous = trajectory[trajectory.length - 1];
             if (previous && slot.timestamp - previous.timestamp > SLOT_MS) break;
             trajectory.push(slot);

@@ -338,7 +338,7 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
                 />
               </div>
             </div>
-            <ScoreDial score={forecastData.score} sport={forecastData.sport} size="sm" onClick={onScoreClick ? (e) => { e.stopPropagation(); onScoreClick(); } : undefined} />
+            <ScoreDial score={forecastData.score} size="sm" onClick={onScoreClick ? (e) => { e.stopPropagation(); onScoreClick(); } : undefined} />
           </div>
         ) : (
           <div>

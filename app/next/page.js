@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NextContent } from "./NextContent";
 
 export const metadata = {
@@ -6,12 +7,16 @@ export const metadata = {
 };
 
 /**
- * Screen 02 — Next.
+ * Screen 02 — Next (coast / favorites scope).
  *
- * Report and Calendar collapse into this. Both survive under More: the detailed
- * table carries more than the week strip does, and the shareable single-sport
- * routes still work.
+ * A named spot lives at `/next/[spot]` so the week can be shared as a path.
+ * Both entry points render the same client tree; Suspense covers useSearchParams
+ * for legacy `?spot=` upgrades.
  */
 export default function NextPage() {
-  return <NextContent />;
+  return (
+    <Suspense fallback={null}>
+      <NextContent />
+    </Suspense>
+  );
 }

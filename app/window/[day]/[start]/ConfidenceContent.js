@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { MainLayout } from "../../../../components/layout/MainLayout";
+import { PageHeader } from "../../../../components/layout/PageHeader";
 import { ScoreDial } from "../../../../components/ui/ScoreDial";
 import { ModelGrid, CriteriaPanel } from "../../../../components/confidence/ModelGrid";
 import { LabsSection } from "../../../../components/ui/LabsSection";
@@ -13,6 +13,7 @@ import { ScoreFactors } from "../../../../components/confidence/ScoreFactors";
 import { HourByHour } from "../../../../components/confidence/HourByHour";
 import { useSport, isWindSport } from "../../../../components/sport/SportProvider";
 import { useFlag } from "../../../../components/flags/FlagProvider";
+import { LiveEvidencePanel } from "../../../../components/confidence/LiveEvidencePanel";
 import {
   agreementFor,
   agreementSentence,
@@ -24,6 +25,8 @@ import { spotsWithSlots } from "../../../../lib/reportData";
 import { detectWindows, isChartedSlot } from "../../../../lib/windows";
 import { scoreTier } from "../../../../lib/scoreShade";
 import { conditionSummary } from "../../../../lib/conditions";
+import { classifyProximity, stationIdFromUrl } from "../../../../lib/stations";
+import { buildStationCard } from "../../../../lib/station";
 import { dtf } from "../../../../lib/datetime";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -34,11 +37,11 @@ const fmt = (ms, options) =>
   dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
 export function ConfidenceContent({ dayStart, windowStart }) {
-  const router = useRouter();
   const search = useSearchParams();
   const spotParam = search.get("spot");
   const { sport } = useSport();
   const showModels = useFlag("modelConfidence");
+  const showStation = useFlag("stationEvidence");
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
   useEffect(() => {
@@ -122,6 +125,31 @@ export function ConfidenceContent({ dayStart, windowStart }) {
         }
         if (cancelled) return;
 
+        // Same live trail as Now — optional, never fails the page.
+        let station = null;
+        if (showStation) {
+          const stationId = stationIdFromUrl(chosen.spot.liveReportUrl);
+          if (stationId) {
+            try {
+              const now = Date.now();
+              const readings = await client.query(api.stations.getStationReadings, {
+                stationId,
+                sinceAt: now - 6 * 60 * 60 * 1000,
+              });
+              station = buildStationCard({
+                readings,
+                forecastSlot: peak,
+                forecastSlots: chosen.slots,
+                proximity: classifyProximity(stationId, chosen.spot),
+                nowMs: now,
+              });
+            } catch {
+              station = null;
+            }
+          }
+        }
+        if (cancelled) return;
+
         setState({
           loading: false,
           error: null,
@@ -136,6 +164,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
             modelRows,
             sourceModel,
             spotSlots: chosen.slots,
+            station,
           },
         });
       } catch (error) {
@@ -146,7 +175,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
     return () => {
       cancelled = true;
     };
-  }, [sport, windowStart, spotParam]);
+  }, [sport, windowStart, spotParam, showStation]);
 
   const { loading, error, data } = state;
   const windSport = isWindSport(sport);
@@ -193,20 +222,22 @@ export function ConfidenceContent({ dayStart, windowStart }) {
 
   return (
     <MainLayout>
-      <header className="flex items-center gap-[11px] pt-[22px] pb-2.5">
-        <button
-          onClick={() => router.back()}
-          aria-label="Back"
-          className="text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
-        >
-          <ArrowLeft size={17} />
-        </button>
-        <span className="font-data text-[10px] tracking-label text-faded-ink uppercase truncate">
-          {data?.spot?.name ?? "Window"} · {fmt(windowStart, { weekday: "short" })}{" "}
-          {fmt(data?.start ?? windowStart, { hour: "2-digit", minute: "2-digit" })}–
-          {fmt(data?.end ?? windowStart + THREE_HOURS, { hour: "2-digit", minute: "2-digit" })}
-        </span>
-      </header>
+      <PageHeader
+        title={data?.spot?.name ?? (loading ? "…" : "Window")}
+        backHref="/next"
+        subtitle={
+          data ? (
+            <span className="font-data text-ink tabular-nums">
+              <span className="font-bold text-ink">{fmt(windowStart, { weekday: "long" })}</span>
+              <span className="text-faded-ink mx-1.5">·</span>
+              <span className="text-ink">
+                {fmt(data.start, { hour: "2-digit", minute: "2-digit" })}–
+                {fmt(data.end, { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </span>
+          ) : null
+        }
+      />
 
       {loading && (
         <div className="animate-pulse" aria-hidden="true">
@@ -229,35 +260,50 @@ export function ConfidenceContent({ dayStart, windowStart }) {
               ? "Cannot reach the forecast. This is a connection problem, not an empty window."
               : "That window is no longer in the forecast. Scrapes roll forward every few hours, so it may simply have passed."}
           </p>
-          <button
-            onClick={() => router.push("/next")}
-            className="mt-3 font-data text-[11px] tracking-label text-accent focus-ring"
-          >
-            BACK TO NEXT WINDOWS
-          </button>
+          {/* Header already has back — this is recovery copy, not a second back. */}
+          <p className="mt-3 text-[13px] text-faded-ink">
+            Use the back arrow to return to next windows.
+          </p>
         </div>
       )}
 
       {!loading && !error && data && (
-        <>
-          <div className="flex items-center gap-3.5 pt-2">
-            {/* The only place the numeric score appears at any size. */}
-            <ScoreDial score={data.peak.score} size="lg" showAll label="PEAK" />
+        <div className="flex flex-col gap-6 pb-6">
+          {/* 1. Verdict — is this window good? */}
+          <div className="flex items-center gap-3.5">
+            <ScoreDial score={data.peak.score} size="lg" showAll />
             <div className="min-w-0">
               <div className="font-headline font-extrabold text-[25px] tracking-display-tight leading-[1.05] text-ink">
                 {confidence.label}
               </div>
-              <p className="text-[13px] text-faded-ink mt-1.5 leading-[1.4]">{confidence.reason}</p>
-              <p className="font-data text-[11px] text-accent mt-1.5 uppercase truncate">
+              <p className="text-[13px] text-faded-ink mt-1 leading-[1.4] line-clamp-2">
+                {confidence.reason}
+              </p>
+              <p className="font-data text-[12px] font-bold text-ink mt-1.5 tabular-nums">
                 {conditionSummary(data.peak, sport, { gust: true }) ?? ""}
               </p>
             </div>
           </div>
 
+          {/* 2. Shape of the session */}
+          <HourByHour
+            slots={data.slots}
+            sport={sport}
+            tides={data.tides}
+            peakTimestamp={data.peak.timestamp}
+          />
+
+          {/* 3. Live check — station first, cam as a short preview */}
+          <LiveEvidencePanel
+            spot={data.spot}
+            station={data.station}
+            score={data.peak.score}
+          />
+
+          {/* 4. Why the score */}
           <ScoreFactors factors={data.peak.factors} reasoning={data.peak.reasoning} />
 
-          <HourByHour slots={data.slots} sport={sport} tides={data.tides} />
-
+          {/* 5. Labs */}
           {windSport && showModels && model?.models.length > 0 && (
             <LabsSection
               title="Model comparison"
@@ -277,11 +323,7 @@ export function ConfidenceContent({ dayStart, windowStart }) {
           {!windSport && criteria.length > 0 && (
             <CriteriaPanel criteria={criteria} windAgreement={model?.windowAgreement} />
           )}
-
-          {/* Nothing at all when the comparison is unavailable. It is a Labs
-              curiosity now, so its absence does not need explaining on a screen
-              whose answer never depended on it. */}
-        </>
+        </div>
       )}
     </MainLayout>
   );

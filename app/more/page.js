@@ -16,6 +16,7 @@ import {
   User,
 } from "lucide-react";
 import { MainLayout } from "../../components/layout/MainLayout";
+import { PageHeader } from "../../components/layout/PageHeader";
 import { useAuth } from "../../components/auth/AuthProvider";
 import { useFlagAdmin } from "../../components/flags/FlagProvider";
 import { FLAGS } from "../../lib/flags";
@@ -64,11 +65,10 @@ export default function MorePage() {
 
   return (
     <MainLayout>
-      <header className="pt-[22px] pb-3">
-        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
-          More
-        </h1>
-      </header>
+      <PageHeader
+        title="More"
+        subtitle="Settings, journal, and the rest."
+      />
 
       {!isAuthenticated && (
         <Link

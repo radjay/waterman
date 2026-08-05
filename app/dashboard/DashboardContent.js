@@ -414,7 +414,7 @@ export default function DashboardContent({ initialData = null }) {
                                   />
                                 </div>
                               </div>
-                              <ScoreDial score={slot.score?.value} sport={slot.sport} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
+                              <ScoreDial score={slot.score?.value} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
                             </div>
                           </ScoreCard>
                         );
@@ -469,7 +469,7 @@ export default function DashboardContent({ initialData = null }) {
                                     />
                                   </div>
                                 </div>
-                                <ScoreDial score={slot.score?.value} sport={slot.sport} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
+                                <ScoreDial score={slot.score?.value} size="md" onClick={(e) => { e.stopPropagation(); setScoreModalSlot(slot); }} />
                               </div>
                             </ScoreCard>
                           );
