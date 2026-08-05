@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePersistedState } from "../../lib/hooks/usePersistedState";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
+import { PageHeader } from "../../components/layout/PageHeader";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { useSport } from "../../components/sport/SportProvider";
 import { WeekStrip } from "../../components/next/WeekStrip";
@@ -27,6 +28,7 @@ import {
 import { spotsWithSlots } from "../../lib/reportData";
 import { WindowCard } from "../../components/next/WindowCard";
 import { dtf } from "../../lib/datetime";
+import { spotFromSlug, toSpotSlug } from "../../lib/spotSlug";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -36,32 +38,32 @@ const NEXT_SPOT_STORAGE_KEY = "waterman_next_spot";
 const fmt = (ms, options) =>
   dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
-export function NextContent() {
+/** Path for a Next scope — shareable for a named spot. */
+export function nextPathForScope(scope, spots = []) {
+  if (!scope || scope === FAVORITES || scope === ALL_SPOTS) return "/next";
+  const spot = spots.find((s) => s._id === scope);
+  if (!spot?.name) return "/next";
+  return `/next/${toSpotSlug(spot.name)}`;
+}
+
+/**
+ * @param {string|null} spotSlug - From `/next/[spot]`; null on bare `/next`.
+ */
+export function NextContent({ spotSlug = null }) {
   const router = useRouter();
   const { sport, meta } = useSport();
-  // Persisted: a rider who only drives to one beach should not have to pick it
-  // again on every visit. Validated against null-or-string so a stale key from
-  // an older build cannot put the screen into an unrenderable state.
-  // Defaults to the rider's own spots. Somebody who has told us where they go
-  // should not have to say it again on every visit, and a coast-wide view is a
-  // worse first answer for them than their own three beaches.
+  // Persisted for favorites/all and as a fallback when landing on bare /next.
+  // A path slug always wins — that is the shareable address of a spot week.
   const [scope, setScope] = usePersistedState(
     NEXT_SPOT_STORAGE_KEY,
     FAVORITES,
     (v) => typeof v === "string"
   );
-  // Now hands off with ?spot=, so the card there lands on that spot's week
-  // rather than on whatever was last selected here. Writing it through setScope
-  // also persists it, which is the same thing picking it by hand would do.
+
   const search = useSearchParams();
-  const spotParam = search.get("spot");
-  useEffect(() => {
-    if (!spotParam) return;
-    setScope(spotParam);
-    // Consumed, so BACK TO ALL WINDOWS is not undone by a refresh putting the
-    // spot straight back.
-    router.replace("/next", { scroll: false });
-  }, [spotParam]);
+  // Legacy `?spot=<convexId>` links (Now handoff before path routes). Upgrade
+  // them to `/next/<slug>` once spots are loaded so the URL stays shareable.
+  const legacySpotId = search.get("spot");
 
   const user = useUser();
   const favoriteIds = user?.favoriteSpots ?? [];
@@ -185,36 +187,80 @@ export function NextContent() {
 
   const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
 
+  // Path slug → scope. Unknown slug falls back to the coast-wide list.
+  useEffect(() => {
+    if (!spotSlug || !bySpot) return;
+    const match = spotFromSlug(spots, spotSlug);
+    if (match) {
+      if (scope !== match._id) setScope(match._id);
+    } else {
+      router.replace("/next", { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to path + data
+  }, [spotSlug, bySpot, spots]);
+
+  // Legacy ?spot=<id> → /next/<slug>
+  useEffect(() => {
+    if (!legacySpotId || !bySpot) return;
+    const spot = spots.find((s) => s._id === legacySpotId);
+    if (spot) {
+      router.replace(nextPathForScope(spot._id, spots), { scroll: false });
+    } else {
+      router.replace("/next", { scroll: false });
+    }
+  }, [legacySpotId, bySpot, spots, router]);
+
+  // Bare /next with a remembered spot: put the slug in the bar so copy-paste works.
+  useEffect(() => {
+    if (spotSlug || legacySpotId || !bySpot) return;
+    if (!scope || scope === FAVORITES || scope === ALL_SPOTS) return;
+    const path = nextPathForScope(scope, spots);
+    if (path !== "/next") router.replace(path, { scroll: false });
+  }, [spotSlug, legacySpotId, bySpot, scope, spots, router]);
+
+  // Persist + keep the address bar honest so a friend can open the same week.
+  const selectScope = useCallback(
+    (id) => {
+      setScope(id);
+      const path = nextPathForScope(id, spots);
+      const current =
+        typeof window !== "undefined" ? window.location.pathname : "";
+      if (current !== path) {
+        router.push(path, { scroll: false });
+      }
+    },
+    [setScope, spots, router]
+  );
+
   return (
     <MainLayout>
-      <header className="flex items-start justify-between gap-3 pt-[22px] pb-3">
-        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-tight">
-          Next windows
-          {/* Lighter and set off with its own space on each side, so the phrase
-              breaks into "what" and "where" rather than reading as one long run
-              of bold. A plain word space was not enough separation at 25px. */}
-          <span className="text-faded-ink font-normal mx-[0.28em]">at</span>
-          <SpotPicker
-            spots={spots}
-            value={scope}
-            onChange={setScope}
-            hasFavorites={favoriteIds.length > 0}
-          />
-        </h1>
-        <div className="flex items-center gap-2 flex-none mt-1">
-          {/* Only when the screen names one spot. Across favourites there is no
-              single station the reading could honestly belong to. */}
-          {view?.known && (
-            <LiveWindIndicator
-              stationId={extractWindguruStationId(
-                spots.find((s) => s._id === view.known)?.liveReportUrl
-              )}
-              label="LIVE"
-            />
-          )}
-          <SportFilterChip />
-        </div>
-      </header>
+      <PageHeader
+        subtitle="Upcoming windows, then the week at a glance."
+        tools={
+          <>
+            {/* Only when the screen names one spot. Across favourites there is no
+                single station the reading could honestly belong to. */}
+            {view?.known && (
+              <LiveWindIndicator
+                stationId={extractWindguruStationId(
+                  spots.find((s) => s._id === view.known)?.liveReportUrl
+                )}
+                label="LIVE"
+              />
+            )}
+            <SportFilterChip />
+          </>
+        }
+      >
+        When&rsquo;s next
+        <span className="text-faded-ink font-normal mx-[0.28em]">at</span>
+        <SpotPicker
+          spots={spots}
+          value={scope}
+          onChange={selectScope}
+          hasFavorites={favoriteIds.length > 0}
+        />
+      </PageHeader>
 
       {loading && (
         <div className="animate-pulse" aria-hidden="true">
@@ -271,7 +317,7 @@ export function NextContent() {
           <WeekStrip
             days={view.days}
             sport={sport}
-            title="The week"
+            title="This week"
             onSelectWindow={(day, window) => {
               // In best-spot mode a band can be built from several spots, so
               // the peak slot's own spot is the honest owner of the window.
@@ -291,7 +337,7 @@ export function NextContent() {
                 {view.others.map(({ spot, windowCount, soonest }) => (
                   <button
                     key={spot._id}
-                    onClick={() => setScope(spot._id)}
+                    onClick={() => selectScope(spot._id)}
                     aria-label={`Show the week for ${spot.name}`}
                     className={`w-full text-left flex items-center gap-[11px] rounded-card-sm border px-[13px] py-[11px] focus-ring transition-colors duration-fast ease-smooth ${
                       windowCount === 0
@@ -323,14 +369,7 @@ export function NextContent() {
             </section>
           )}
 
-          {view.known && (
-            <button
-              onClick={() => setScope(FAVORITES)}
-              className="mt-4 font-data text-[10px] tracking-label text-faded-ink hover:text-ink focus-ring"
-            >
-              ← BACK TO ALL WINDOWS
-            </button>
-          )}
+          {/* Scope changes live in the title SpotPicker — no second back link. */}
         </>
       )}
     </MainLayout>

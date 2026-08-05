@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, MapPin, Share } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
+import { PageHeader } from "../components/layout/PageHeader";
 import { useSport } from "../components/sport/SportProvider";
 import { useUser } from "../components/auth/AuthProvider";
 import { useFlag } from "../components/flags/FlagProvider";
@@ -18,6 +19,7 @@ import { WindowCard } from "../components/next/WindowCard";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
 import { primaryMetric } from "../lib/conditions";
 import { dayStartOf } from "../lib/windows";
+import { toSpotSlug } from "../lib/spotSlug";
 import { useShare } from "../hooks/useShare";
 
 export function NowContent() {
@@ -43,13 +45,10 @@ export function NowContent() {
 
   return (
     <MainLayout>
-      <header className="flex items-center justify-between gap-3 pt-[22px] pb-3.5">
-        {/* The wordmark is in TopNav at md+, so repeating it here stacks a
-            second logo under the first. Mobile has no TopNav, so it stays. */}
-        <h1 className="md:hidden font-headline font-extrabold text-[22px] tracking-display-tight text-ink leading-none">
-          Waterman
-        </h1>
-        <div className="flex items-center gap-2 ml-auto">
+      <PageHeader
+        title="Go now"
+        subtitle="Best of your spots, right now."
+        actions={
           <button
             onClick={share}
             aria-label="Share"
@@ -57,8 +56,8 @@ export function NowContent() {
           >
             <Share size={14} />
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {loading && <NowSkeleton />}
 
@@ -122,6 +121,7 @@ export function NowContent() {
             reason={data.reason}
             riderCount={riderCount}
             reasoning={data.reasoning}
+            station={showStation ? data.station : null}
             trajectory={data.trajectory}
             elsewhereToday={data.elsewhereToday}
             onSeeElsewhere={() => router.push("/next")}
@@ -136,7 +136,9 @@ export function NowContent() {
             // The verdict is about one spot; the card is the way into that
             // spot's week rather than into the coast-wide list.
             onOpenSpot={
-              data.spot ? () => router.push(`/next?spot=${data.spot._id}`) : undefined
+              data.spot
+                ? () => router.push(`/next/${toSpotSlug(data.spot.name)}`)
+                : undefined
             }
           />
 
@@ -151,11 +153,21 @@ export function NowContent() {
           {/* Three, not one. A single next window answers "when" but not "or
               else what", and on a flat day the second and third options are the
               ones that actually get someone on the water. */}
+          {/* Escape hatch to "when's next" — only after the go-now answer. */}
           {data.nextWindows?.length > 0 && (
-            <section className="pt-5">
-              <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-[11px]">
-                NEXT WINDOWS
-              </h2>
+            <section className="pt-4">
+              <div className="flex items-baseline justify-between gap-3 mb-2.5">
+                <h2 className="font-data text-[9px] tracking-label-wide text-dim">
+                  IF NOT NOW
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => router.push("/next")}
+                  className="font-data text-[10px] tracking-label text-accent focus-ring hover:underline"
+                >
+                  SEE THE WEEK →
+                </button>
+              </div>
               <div className="grid gap-2 md:grid-cols-3">
                 {data.nextWindows.map(({ spot, window }, i) => (
                   <WindowCard
@@ -165,10 +177,6 @@ export function NowContent() {
                     sport={sport}
                     highlight={i === 0}
                     onClick={() =>
-                      // dayStartOf, not window.start — Next generates the day
-                      // segment that way, and two callers disagreeing about
-                      // what the first path segment means is a URL nobody can
-                      // rely on.
                       router.push(
                         `/window/${dayStartOf(window.start)}/${window.start}?spot=${spot._id}`
                       )
@@ -179,13 +187,7 @@ export function NowContent() {
             </section>
           )}
 
-          {/* `reasoning` is deliberately not passed: it now sits under the
-              verdict where it belongs, and the stack would render it a second
-              time as its backstop card. */}
-          <EvidenceStack
-            station={showStation ? data.station : null}
-            agreement={showModels ? data.agreement : null}
-          />
+          <EvidenceStack agreement={showModels ? data.agreement : null} />
 
           {riderCount && (
             <LabsSection title="IN THE WATER" caption="Estimated from webcam footage">

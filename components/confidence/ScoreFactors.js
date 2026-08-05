@@ -29,7 +29,7 @@ export function ScoreFactors({ factors, reasoning }) {
   if (rows.length === 0 && !reasoning) return null;
 
   return (
-    <section className="pt-[22px]">
+    <section>
       <h2 className="font-data text-[9px] tracking-label-wide text-dim mb-2.5">
         WHAT THE SCORER WEIGHED
       </h2>

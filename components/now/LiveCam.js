@@ -29,7 +29,11 @@ export function streamUrlFor(spot) {
   return spot.webcamUrl || null;
 }
 
-export function LiveCam({ spot }) {
+/**
+ * @param {"cover"|"contain"} fit - cover fills the box (crops; Now card).
+ *   contain shows the whole frame with letterboxing (confidence / live panel).
+ */
+export function LiveCam({ spot, fit = "cover" }) {
   const videoRef = useRef(null);
   const [failed, setFailed] = useState(false);
   const streamUrl = streamUrlFor(spot);
@@ -77,7 +81,9 @@ export function LiveCam({ spot }) {
       playsInline
       autoPlay
       loop
-      className="absolute inset-0 w-full h-full object-cover"
+      className={`absolute inset-0 w-full h-full ${
+        fit === "contain" ? "object-contain bg-black" : "object-cover"
+      }`}
     />
   );
 }

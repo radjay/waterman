@@ -1,5 +1,3 @@
-import { SportBadge } from "./SportBadge";
-
 /**
  * Score bands. The mid-tier colour changed meaning in the new themes: what was
  * a yellow "warning" tint is now the accent-2 hue, reading as "marginal, look
@@ -29,23 +27,24 @@ const TEXT_CLASS = {
 const SIZES = {
   // xs is not in the handoff's list; it exists for the calendar grid, where a
   // 44px dial does not fit a day cell.
-  xs: { outer: 36, value: 12, label: 5.5 },
-  sm: { outer: 44, value: 13, label: 6 },
-  md: { outer: 52, value: 15, label: 6.5 },
-  lg: { outer: 74, value: 22, label: 6.5 },
-  xl: { outer: 104, value: 30, label: 8 },
+  xs: { outer: 36, value: 12 },
+  sm: { outer: 44, value: 13 },
+  md: { outer: 52, value: 15 },
+  lg: { outer: 74, value: 22 },
+  xl: { outer: 104, value: 30 },
 };
 
 /**
  * ScoreDial — conic-gradient ring with the number inside. Replaces ScorePill.
+ *
+ * Number only. Labels ("SCORE") and sport glyphs were anti-patterns: the dial
+ * is a single comparable figure, and extra chrome made scores harder to scan.
  *
  * @param {number} score - Condition score (0-100)
  * @param {"sm"|"md"|"lg"|"xl"} size - 44px lists, 52px rows, 74/104px hero
  * @param {boolean} showAll - If false (default) scores under 60 are hidden
  * @param {"page"|"card"} on - What the dial sits on. A tinted card needs the
  *   inner disc to match the card, not the page, or it punches a hole.
- * @param {string} label - Optional caption inside the dial (SCORE / BEST / PEAK)
- * @param {"wingfoil"|"kitesurfing"|"surfing"} sport - Optional sport glyph
  * @param {Function} onClick - Optional click handler (renders as button)
  */
 export function ScoreDial({
@@ -53,8 +52,6 @@ export function ScoreDial({
   size = "md",
   showAll = false,
   on = "page",
-  label,
-  sport,
   onClick,
   className = "",
 }) {
@@ -104,7 +101,7 @@ export function ScoreDial({
     >
       <span
         data-dial-disc=""
-        className="rounded-full flex flex-col items-center justify-center"
+        className="rounded-full flex items-center justify-center"
         style={{
           width: inner,
           height: inner,
@@ -114,21 +111,12 @@ export function ScoreDial({
             on === "card" ? "var(--wm-dial-inner-card)" : "rgb(var(--wm-page))",
         }}
       >
-        {sport && <SportBadge sport={sport} size={Math.round(s.value * 0.7)} className="text-ink" />}
         <span
           className={`font-data font-bold tabular-nums leading-none ${TEXT_CLASS[band]}`}
           style={{ fontSize: s.value }}
         >
           {Math.round(score)}
         </span>
-        {label && (
-          <span
-            className="font-data uppercase text-dim leading-none mt-[2px]"
-            style={{ fontSize: s.label, letterSpacing: "0.18em" }}
-          >
-            {label}
-          </span>
-        )}
       </span>
     </span>
   );

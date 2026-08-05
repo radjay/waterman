@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { MainLayout } from "../../components/layout/MainLayout";
-import { Header } from "../../components/layout/Header";
+import { PageHeader } from "../../components/layout/PageHeader";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { useFlag } from "../../components/flags/FlagProvider";
@@ -307,38 +307,35 @@ export default function CamsContent({ initialData = null }) {
 
   return (
     <MainLayout>
-      {/* "Who's out" — the screen is about who is on the water, not about
-          listing cameras. The disclaimer sits directly under the title because
-          the counts are estimates and must never read as measurements. */}
-      <header className="flex items-center justify-between pt-[22px] pb-3">
-        <h1 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
-          {showRiderCounts ? "Who's out" : "Cams"}
-        </h1>
-        <div className="flex items-center gap-2">
-          <SpotPicker
-            spots={[]}
-            value={scope}
-            onChange={setScope}
-            hasFavorites={hasFavorites}
-          />
-          <button
-            onClick={() => setTvMode(true)}
-            className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
-            aria-label="TV Mode"
-          >
-            <Tv size={12} />
-            TV
-          </button>
-          <SportFilterChip />
-        </div>
-      </header>
-
-      {showRiderCounts && (
-        <p className="font-data text-[9px] text-dim pb-3">
-          RIDER COUNTS ESTIMATED FROM CAM FOOTAGE
-          {countsUpdatedAt ? ` · UPDATED ${countsUpdatedAt}` : ""}
-        </p>
-      )}
+      <PageHeader
+        title={showRiderCounts ? "Who's out" : "What's live"}
+        subtitle={
+          showRiderCounts
+            ? `Rider counts estimated from cam footage${
+                countsUpdatedAt ? ` · updated ${countsUpdatedAt}` : ""
+              }`
+            : "Cams and conditions right now."
+        }
+        tools={
+          <>
+            <SpotPicker
+              spots={[]}
+              value={scope}
+              onChange={setScope}
+              hasFavorites={hasFavorites}
+            />
+            <button
+              onClick={() => setTvMode(true)}
+              className="flex items-center gap-1.5 border border-nav-border rounded-pill px-[11px] py-1.5 font-data text-[10px] text-faded-ink hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
+              aria-label="TV Mode"
+            >
+              <Tv size={12} />
+              TV
+            </button>
+            <SportFilterChip />
+          </>
+        }
+      />
 
       {/* Webcam grid */}
       <div className="pb-12">
