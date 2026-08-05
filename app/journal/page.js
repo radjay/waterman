@@ -90,7 +90,7 @@ export default function JournalPage() {
       {/* Content area */}
       <div className="pb-12">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}

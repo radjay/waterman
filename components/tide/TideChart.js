@@ -115,8 +115,8 @@ export function TideChart({ tides, className = "" }) {
         {/* Background area under curve */}
         <defs>
           <linearGradient id="tideGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
+            <stop offset="0%" stopColor="rgb(var(--wm-accent))" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="rgb(var(--wm-accent))" stopOpacity="0.1" />
           </linearGradient>
         </defs>
         
@@ -133,7 +133,7 @@ export function TideChart({ tides, className = "" }) {
           <path
             d={splinePath}
             fill="none"
-            stroke="#3b82f6"
+            stroke="rgb(var(--wm-accent))"
             strokeWidth="2.5"
           />
         )}
@@ -144,7 +144,7 @@ export function TideChart({ tides, className = "" }) {
           y1={chartHeight - paddingBottom}
           x2={width - padding}
           y2={chartHeight - paddingBottom}
-          stroke="#9ca3af"
+          stroke="var(--wm-dim)"
           strokeWidth="1"
           strokeDasharray="2,2"
         />
@@ -161,7 +161,7 @@ export function TideChart({ tides, className = "" }) {
                 cx={x}
                 cy={y}
                 r="3"
-                fill="#3b82f6"
+                fill="rgb(var(--wm-accent))"
               />
               
               {/* Tide height above the point */}

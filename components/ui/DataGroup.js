@@ -20,7 +20,7 @@ export function DataGroup({ icon, children, direction, showDirection = true, gap
         <DirectionIndicator direction={direction} />
       )}
       {showDirection && (direction === undefined || direction === null) && (
-        <div className="text-gray-300">-</div>
+        <div className="text-dim">-</div>
       )}
     </div>
   );

@@ -11,6 +11,8 @@ import { SportBadge } from "../../components/ui/SportBadge";
 import { PillToggle } from "../../components/ui/PillToggle";
 import { Input } from "../../components/ui/Input";
 import { Card } from "../../components/ui/Card";
+import { ScoreDial } from "../../components/ui/ScoreDial";
+import { useTheme } from "../../components/theme/ThemeProvider";
 import { ScoreCard } from "../../components/ui/ScoreCard";
 import { ConditionLine } from "../../components/ui/ConditionLine";
 import { Tooltip } from "../../components/ui/Tooltip";
@@ -31,6 +33,43 @@ import {
   Settings,
   Video,
 } from "lucide-react";
+
+function Swatch({ className, name }) {
+  return (
+    <div>
+      <div className={`h-16 rounded-card mb-2 ${className}`} />
+      <Text variant="caption">{name}</Text>
+    </div>
+  );
+}
+
+/**
+ * Night/Day switch. This is a review control, not a product feature — the app
+ * follows local sunrise/sunset with an Auto/Night/Day preference in Settings.
+ * Having it here is what makes both themes checkable in one pass.
+ */
+function ThemeSwitch() {
+  const { theme, preference, setPreference } = useTheme();
+  return (
+    <div className="flex items-center gap-3 mb-8">
+      <span className="font-data text-[10px] tracking-label-wide text-dim uppercase">Theme</span>
+      <div className="flex rounded-pill overflow-hidden border border-nav-border">
+        {["auto", "night", "day"].map((p) => (
+          <button
+            key={p}
+            onClick={() => setPreference(p)}
+            className={`px-4 py-2 font-data text-[10px] tracking-[0.12em] uppercase transition-colors duration-fast ease-smooth ${
+              preference === p ? "bg-accent text-page" : "text-faded-ink hover:bg-ink-hover"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+      <span className="font-data text-[10px] text-dim">resolved: {theme}</span>
+    </div>
+  );
+}
 
 function KitSection({ title, children }) {
   return (
@@ -68,11 +107,14 @@ export default function UIKitPage() {
   return (
     <div className="max-w-[900px] mx-auto px-6 py-12 bg-newsprint min-h-screen">
       <div className="mb-12">
-        <h1 className="font-headline text-4xl font-black text-ink mb-2">UI Kit</h1>
-        <Text variant="muted">
+        <h1 className="font-headline text-4xl font-extrabold text-ink mb-2 tracking-display-tight">
+          UI Kit
+        </h1>
+        <Text variant="muted" className="mb-6">
           All shared components used across The Waterman Report. Pages should only import from
           this kit.
         </Text>
+        <ThemeSwitch />
       </div>
 
       {/* ============ TYPOGRAPHY ============ */}
@@ -93,7 +135,7 @@ export default function UIKitPage() {
         <Divider weight="light" className="my-6" />
 
         <ComponentRow label='Text variant="body"' importPath="components/ui/Text">
-          <Text>Standard body text in Inter. Clean and modern.</Text>
+          <Text>Standard body text in Space Grotesk. Clean and modern.</Text>
         </ComponentRow>
         <ComponentRow label='Text variant="muted"'>
           <Text variant="muted">Muted secondary text for descriptions.</Text>
@@ -107,14 +149,14 @@ export default function UIKitPage() {
 
         <Divider weight="light" className="my-6" />
 
-        <ComponentRow label="font-data (Courier Prime for numerical data)" importPath="tailwind: font-data">
+        <ComponentRow label="font-data (JetBrains Mono for numerical data)" importPath="tailwind: font-data">
           <span className="font-data text-ink">14 kn (19*) SSW | 1.6m 8s</span>
         </ComponentRow>
 
         <ComponentRow label="Dual font system">
           <div className="space-y-2">
-            <Text variant="caption">Body text (Inter) for prose and UI labels</Text>
-            <span className="font-data text-xs text-faded-ink">Data readout (Courier Prime) for wind, waves, scores</span>
+            <Text variant="caption">Body text (Space Grotesk) for prose and UI labels</Text>
+            <span className="font-data text-xs text-faded-ink">Data readout (JetBrains Mono) for wind, waves, scores</span>
           </div>
         </ComponentRow>
       </KitSection>
@@ -507,8 +549,8 @@ export default function UIKitPage() {
 
         <ComponentRow label="Styling">
           <div className="space-y-1">
-            <Text variant="caption">Backdrop: bg-black/60 backdrop-blur-sm</Text>
-            <Text variant="caption">Panel: bg-newsprint rounded-2xl shadow-elevated border-ink/10</Text>
+            <Text variant="caption">Backdrop: bg-ink/40 backdrop-blur-sm</Text>
+            <Text variant="caption">Panel: bg-surface rounded-card-lg border-card</Text>
             <Text variant="caption">Sizes: sm (420px) · md (560px) · lg (672px)</Text>
           </div>
         </ComponentRow>
@@ -528,96 +570,178 @@ export default function UIKitPage() {
         </Modal>
       </KitSection>
 
-      {/* ============ COLOR PALETTE ============ */}
-      <KitSection title="Color Palette">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <div className="h-16 rounded-card bg-newsprint border border-ink/10 shadow-card mb-2" />
-            <Text variant="caption">newsprint #f4f1ea</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-ink mb-2" />
-            <Text variant="caption">ink #1a1a1a</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-ink-hover mb-2" />
-            <Text variant="caption">ink-hover #2a2a2a</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-faded-ink mb-2" />
-            <Text variant="caption">faded-ink #4a4a4a</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-warm-highlight border border-ink/10 mb-2" />
-            <Text variant="caption">warm-highlight #f0ece3</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-red-accent mb-2" />
-            <Text variant="caption">red-accent #8b0000</Text>
-          </div>
-          <div>
-            <div className="h-16 rounded-card bg-muted-yellow border border-ink/10 mb-2" />
-            <Text variant="caption">muted-yellow #fef3c7</Text>
-          </div>
-        </div>
+      {/* ============ THEME TOKENS ============ */}
+      <KitSection title="Theme Tokens">
+        <Text variant="muted" className="mb-6 text-sm">
+          Every colour resolves through a CSS custom property, so this whole page
+          re-paints when the theme flips. Use the Night/Day switch above to check
+          both — the accent deliberately shifts a long way between them
+          (#6EE7F0 to #0E7A85) because cyan on white is about 1.3:1.
+        </Text>
 
-        <div className="mt-6">
-          <Text variant="label" className="mb-3">Score Colors</Text>
-          <div className="grid grid-cols-3 gap-4">
+        <ComponentRow label="Surfaces" importPath="app/theme.css">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Swatch className="bg-page border border-card" name="page" />
+            <Swatch className="bg-surface border border-card" name="surface" />
+            <Swatch className="bg-ink-hover border border-card" name="ink-hover" />
+            <Swatch className="bg-offline-bg border border-card" name="offline-bg" />
+          </div>
+        </ComponentRow>
+
+        <ComponentRow label="Text">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Swatch className="bg-ink" name="ink (primary)" />
+            <Swatch className="bg-faded-ink" name="faded-ink (muted)" />
+            <Swatch className="bg-dim" name="dim" />
             <div>
-              <div className="h-16 rounded-card bg-green-600 mb-2" />
-              <Text variant="caption">Good (60-74)</Text>
-            </div>
-            <div>
-              <div className="h-16 rounded-card bg-green-700 mb-2" />
-              <Text variant="caption">Excellent (75-89)</Text>
-            </div>
-            <div>
-              <div className="h-16 rounded-card bg-green-800 mb-2" />
-              <Text variant="caption">Epic (90+)</Text>
+              <div className="h-16 rounded-card border border-card flex flex-col justify-center px-3 gap-1 mb-2">
+                <span className="text-ink text-xs">primary</span>
+                <span className="text-faded-ink text-xs">muted</span>
+                <span className="text-dim text-xs">dim</span>
+              </div>
+              <Text variant="caption">in context</Text>
             </div>
           </div>
-        </div>
+        </ComponentRow>
+
+        <ComponentRow label="Accent">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Swatch className="bg-accent" name="accent" />
+            <Swatch className="bg-accent-mid" name="accent-mid" />
+            <Swatch className="bg-accent-low" name="accent-low" />
+            <Swatch className="bg-accent-faint" name="accent-faint" />
+            <Swatch className="bg-accent-tint border border-accent-border" name="accent-tint (nav)" />
+            <Swatch className="bg-accent-tint-card border border-accent-border" name="accent-tint-card" />
+            <Swatch className="bg-track" name="track" />
+            <Swatch className="bg-marginal" name="marginal" />
+          </div>
+        </ComponentRow>
+
+        <ComponentRow label="Sport pill (needs its own token pair)">
+          <div className="flex items-center gap-3">
+            <span className="bg-sport-pill text-sport-pill-text font-data text-[10px] tracking-[0.08em] px-3 py-1.5 rounded-pill">
+              WING
+            </span>
+            <span className="text-dim font-data text-[10px] tracking-[0.08em] px-3 py-1.5">KITE</span>
+            <span className="text-dim font-data text-[10px] tracking-[0.08em] px-3 py-1.5">SURF</span>
+            <Text variant="caption" className="ml-2">
+              tinted at night, solid in day
+            </Text>
+          </div>
+        </ComponentRow>
+      </KitSection>
+
+      {/* ============ SCORE DIAL ============ */}
+      <KitSection title="Score Dial">
+        <Text variant="muted" className="mb-6 text-sm">
+          Replaces ScorePill. Accent at 60+, marginal 45-59, dim below 45 — so a
+          flat day reads near-empty rather than alarming. Scores under 60 are
+          hidden unless showAll is set.
+        </Text>
+
+        <ComponentRow label="Sizes" importPath="components/ui/ScoreDial">
+          <div className="flex items-end gap-5">
+            <div className="text-center">
+              <ScoreDial score={92} size="xs" className="mx-auto mb-2" />
+              <Text variant="caption">xs 36</Text>
+            </div>
+            <div className="text-center">
+              <ScoreDial score={92} size="sm" className="mx-auto mb-2" />
+              <Text variant="caption">sm 44</Text>
+            </div>
+            <div className="text-center">
+              <ScoreDial score={92} size="md" className="mx-auto mb-2" />
+              <Text variant="caption">md 52</Text>
+            </div>
+            <div className="text-center">
+              <ScoreDial score={92} size="lg" label="SCORE" className="mx-auto mb-2" />
+              <Text variant="caption">lg 74</Text>
+            </div>
+            <div className="text-center">
+              <ScoreDial score={92} size="xl" label="BEST" className="mx-auto mb-2" />
+              <Text variant="caption">xl 104</Text>
+            </div>
+          </div>
+        </ComponentRow>
+
+        <ComponentRow label="Bands">
+          <div className="flex items-end gap-5">
+            {[92, 75, 60, 52, 41, 19].map((s) => (
+              <div key={s} className="text-center">
+                <ScoreDial score={s} size="md" showAll className="mx-auto mb-2" />
+                <Text variant="caption">{s}</Text>
+              </div>
+            ))}
+          </div>
+        </ComponentRow>
+
+        <ComponentRow label="On a tinted card (inner disc must match the card)">
+          <div className="bg-accent-tint-card border border-accent-border rounded-card-lg p-4 flex items-center gap-4">
+            <ScoreDial score={84} size="md" on="card" />
+            <div>
+              <div className="font-data text-[9px] tracking-label-wide text-accent mb-1">NEXT WINDOW</div>
+              <div className="font-headline font-bold text-lg text-ink tracking-display-tight">
+                Thursday - Guincho
+              </div>
+              <div className="font-data text-[11px] text-faded-ink mt-0.5">from 11:00 - 24 kt NNW</div>
+            </div>
+          </div>
+        </ComponentRow>
       </KitSection>
 
       {/* ============ DESIGN TOKENS ============ */}
       <KitSection title="Design Tokens">
         <ComponentRow label="Border Radius" importPath="tailwind.config.js">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 border border-ink/20 bg-warm-highlight rounded-ui mb-2" />
-              <Text variant="caption">rounded-ui (6px)</Text>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 border border-ink/20 bg-warm-highlight rounded-card mb-2" />
-              <Text variant="caption">rounded-card (10px)</Text>
-            </div>
+          <div className="flex items-center gap-6 flex-wrap">
+            {[
+              ["rounded-ui", "8px"],
+              ["rounded-card-sm", "14px"],
+              ["rounded-card", "16px"],
+              ["rounded-card-lg", "18px"],
+              ["rounded-card-xl", "20px"],
+              ["rounded-pill", "999px"],
+            ].map(([cls, px]) => (
+              <div key={cls} className="text-center">
+                <div className={`w-16 h-16 border border-card bg-surface ${cls} mb-2`} />
+                <Text variant="caption">{px}</Text>
+              </div>
+            ))}
           </div>
         </ComponentRow>
 
-        <ComponentRow label="Shadows">
+        <ComponentRow label="Elevation">
           <div className="flex items-center gap-6">
             <div className="text-center">
-              <div className="w-20 h-16 bg-newsprint rounded-card shadow-card border border-ink/10 mb-2" />
-              <Text variant="caption">shadow-card</Text>
+              <div className="w-20 h-16 bg-surface rounded-card border border-card mb-2" />
+              <Text variant="caption">cards: border + fill, no shadow</Text>
             </div>
             <div className="text-center">
-              <div className="w-20 h-16 bg-newsprint rounded-card shadow-card-hover border border-ink/10 mb-2" />
-              <Text variant="caption">shadow-card-hover</Text>
+              <div className="w-20 h-16 bg-nav-bg rounded-pill border border-nav-border shadow-nav mb-2" />
+              <Text variant="caption">nav: shadow in day only</Text>
             </div>
             <div className="text-center">
-              <div className="w-20 h-16 bg-newsprint rounded-card shadow-elevated border border-ink/10 mb-2" />
-              <Text variant="caption">shadow-elevated</Text>
-            </div>
-            <div className="text-center">
-              <div className="w-20 h-16 bg-newsprint rounded-card shadow-focus border border-ink/10 mb-2" />
+              <div className="w-20 h-16 bg-surface rounded-card shadow-focus border border-card mb-2" />
               <Text variant="caption">shadow-focus</Text>
             </div>
           </div>
         </ComponentRow>
 
+        <ComponentRow label="Mono labels (the contrast-critical treatment)">
+          <div className="flex flex-col gap-2">
+            <span className="font-data text-[9px] tracking-label-wide text-dim uppercase">
+              9px / .22em / dim — WHY WE THINK SO
+            </span>
+            <span className="font-data text-[10px] tracking-label text-accent uppercase">
+              10px / .16em / accent — IN THE WATER
+            </span>
+            <span className="font-data text-[11px] tracking-label text-faded-ink uppercase">
+              11px / .16em / muted — GUINCHO - HOLDING UNTIL ABOUT 15:00
+            </span>
+          </div>
+        </ComponentRow>
+
         <ComponentRow label="Transitions">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-wrap">
             <Text variant="caption">duration-fast: 120ms</Text>
             <Text variant="caption">duration-base: 200ms</Text>
             <Text variant="caption">duration-slow: 300ms</Text>
@@ -628,7 +752,8 @@ export default function UIKitPage() {
 
       <Divider weight="heavy" className="mt-12 mb-6" />
       <Text variant="caption" className="text-center pb-8">
-        The Waterman Report UI Kit — Inter for UI, Courier Prime for data, Playfair Display for headlines.
+        Waterman UI Kit — Bricolage Grotesque for display, Space Grotesk for UI,
+        JetBrains Mono for every number.
       </Text>
     </div>
   );

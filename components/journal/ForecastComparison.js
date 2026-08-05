@@ -22,7 +22,7 @@ export function ForecastComparison({ forecastSlots, sport }) {
       {forecastSlots.map((slot, idx) => (
         <div
           key={slot._id}
-          className={`bg-white rounded-md p-4 ${
+          className={`bg-surface rounded-md p-4 ${
             forecastSlots.length > 1 ? "border-2 border-ink/10" : ""
           }`}
         >
@@ -38,23 +38,23 @@ export function ForecastComparison({ forecastSlots, sport }) {
                 <div
                   className={`text-lg font-bold ${
                     slot.score.value >= 90
-                      ? "text-purple-600"
+                      ? "text-accent"
                       : slot.score.value >= 75
-                      ? "text-green-600"
+                      ? "text-accent"
                       : slot.score.value >= 60
-                      ? "text-yellow-600"
+                      ? "text-accent"
                       : "text-ink/50"
                   }`}
                 >
                   {slot.score.value}
                 </div>
                 {slot.score.value >= 90 && (
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                  <span className="px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded">
                     EPIC
                   </span>
                 )}
                 {slot.score.value >= 75 && slot.score.value < 90 && (
-                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">
+                  <span className="px-2 py-0.5 bg-accent-tint-card text-accent text-xs font-medium rounded">
                     IDEAL
                   </span>
                 )}

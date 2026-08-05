@@ -156,7 +156,7 @@ export default function AdminLayout({ children }) {
     <div className="min-h-screen bg-newsprint">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-ink/20 min-h-screen fixed left-0 top-0 bottom-0 overflow-y-auto">
+        <aside className="w-64 bg-surface border-r border-ink/20 min-h-screen fixed left-0 top-0 bottom-0 overflow-y-auto">
           <div className="p-6 border-b border-ink/20">
             <h1 className="text-xl font-bold">Waterman Admin</h1>
           </div>
@@ -178,13 +178,13 @@ export default function AdminLayout({ children }) {
               ))}
             </ul>
           </nav>
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-ink/20 bg-white">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-ink/20 bg-surface">
             <div className="relative account-menu-container">
               <button
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
                 className="w-full flex items-center gap-2 px-4 py-2 text-ink/70 hover:bg-ink/5 rounded-md transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-ink text-white flex items-center justify-center text-xs font-medium">
+                <div className="w-8 h-8 rounded-full bg-ink text-page flex items-center justify-center text-xs font-medium">
                   {getInitials()}
                 </div>
                 <span className="flex-1 text-left text-sm text-ink/70 truncate">
@@ -198,7 +198,7 @@ export default function AdminLayout({ children }) {
               </button>
 
               {accountMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-full bg-white border border-ink/20 rounded-md shadow-lg z-[9999]">
+                <div className="absolute bottom-full left-0 mb-2 w-full bg-surface border border-ink/20 rounded-md shadow-lg z-[9999]">
                   <div className="py-2 px-4 border-b border-ink/10">
                     <p className="text-sm font-medium text-ink truncate">
                       {user?.name || "Account"}

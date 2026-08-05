@@ -56,7 +56,7 @@ export function Header({ className = "" }) {
     <header
       className={`sticky top-0 z-50 -mx-4 md:-mx-8 transition-colors duration-300 ease-smooth ${
         isScrolled
-          ? "bg-newsprint/80 backdrop-blur-xl shadow-card"
+          ? "bg-page/80 backdrop-blur-xl border-b border-card"
           : ""
       } ${className}`}
     >
@@ -84,7 +84,7 @@ export function Header({ className = "" }) {
           <div className="flex items-center justify-center">
             <Link
               href="/"
-              className="font-headline font-black uppercase tracking-[-0.5px] leading-none text-ink text-[1.5rem] sm:text-[1.75rem] md:text-[2rem] hover:opacity-80 transition-opacity text-center"
+              className="font-headline font-extrabold uppercase tracking-display-tight leading-none text-ink text-[1.5rem] sm:text-[1.75rem] md:text-[2rem] hover:opacity-80 transition-opacity text-center"
             >
               The Waterman Report
             </Link>
@@ -92,7 +92,7 @@ export function Header({ className = "" }) {
 
           {/* Date */}
           <div className="flex justify-center mt-2">
-            <span className="font-headline font-bold uppercase text-[0.7rem] md:text-xs text-ink/50 tracking-wide">
+            <span className="font-data uppercase text-[0.65rem] md:text-[0.7rem] text-dim tracking-label">
               {todayStr}
             </span>
           </div>
@@ -120,7 +120,7 @@ export function Header({ className = "" }) {
             >
               <Link
                 href="/"
-                className="font-headline font-black uppercase text-sm tracking-tight text-ink hover:opacity-70 transition-opacity leading-none whitespace-nowrap"
+                className="font-headline font-extrabold uppercase text-sm tracking-display-tight text-ink hover:opacity-70 transition-opacity leading-none whitespace-nowrap"
               >
                 Waterman
               </Link>
@@ -153,7 +153,7 @@ function AuthButton({ isAuthenticated, authLoading, router }) {
   return (
     <button
       onClick={() => router.push("/auth/login")}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-newsprint ring-1 ring-inset ring-ink/15 shadow-sm text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-white active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface ring-1 ring-inset ring-ink/15 text-ink text-xs font-semibold uppercase tracking-wider leading-none hover:bg-surface active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
     >
       <LogIn className="w-[15px] h-[15px]" />
       <span>Sign In</span>

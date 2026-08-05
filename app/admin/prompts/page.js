@@ -82,7 +82,7 @@ function PromptsManagementContent() {
   }
 
   if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
+    return <div className="text-marginal">Error: {error}</div>;
   }
 
   return (
@@ -207,7 +207,7 @@ function SystemPromptsTab({ prompts, onUpdate }) {
 
       <div className="space-y-4">
         {prompts.map((prompt) => (
-          <div key={prompt._id} className="bg-white rounded-lg shadow p-6">
+          <div key={prompt._id} className="bg-surface rounded-lg shadow p-6">
             {editingId === prompt._id ? (
               <div className="space-y-4">
                 <div>
@@ -247,7 +247,7 @@ function SystemPromptsTab({ prompts, onUpdate }) {
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90"
+                    className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90"
                   >
                     Save
                   </button>
@@ -258,7 +258,7 @@ function SystemPromptsTab({ prompts, onUpdate }) {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold capitalize">{prompt.sport}</h3>
-                    <span className={`text-sm ${prompt.isActive ? "text-green-600" : "text-gray-500"}`}>
+                    <span className={`text-sm ${prompt.isActive ? "text-accent" : "text-faded-ink"}`}>
                       {prompt.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -417,14 +417,14 @@ function SpotPromptsTab({ prompts, spots, onUpdate, initialSpotId, initialSport 
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90"
+          className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90"
         >
           Create New Prompt
         </button>
       </div>
 
       {showCreateForm && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold mb-4">Create New Spot-Sport Prompt</h3>
           <PromptForm
             formData={formData}
@@ -438,7 +438,7 @@ function SpotPromptsTab({ prompts, spots, onUpdate, initialSpotId, initialSport 
 
       <div className="space-y-4">
         {prompts.map((prompt) => (
-          <div key={prompt._id} className="bg-white rounded-lg shadow p-6">
+          <div key={prompt._id} className="bg-surface rounded-lg shadow p-6">
             {editingId === prompt._id ? (
               <PromptForm
                 formData={formData}
@@ -454,7 +454,7 @@ function SpotPromptsTab({ prompts, spots, onUpdate, initialSpotId, initialSport 
                     <h3 className="text-lg font-semibold">
                       {getSpotName(prompt.spotId)} - {prompt.sport}
                     </h3>
-                    <span className={`text-sm ${prompt.isActive ? "text-green-600" : "text-gray-500"}`}>
+                    <span className={`text-sm ${prompt.isActive ? "text-accent" : "text-faded-ink"}`}>
                       {prompt.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -467,7 +467,7 @@ function SpotPromptsTab({ prompts, spots, onUpdate, initialSpotId, initialSport 
                     </button>
                     <button
                       onClick={() => handleDelete(prompt._id)}
-                      className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                      className="px-4 py-2 border border-marginal/30 text-marginal rounded-md hover:bg-marginal/10"
                     >
                       Delete
                     </button>
@@ -581,7 +581,7 @@ function PromptForm({ formData, setFormData, spots, onSave, onCancel }) {
         </button>
         <button
           onClick={onSave}
-          className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90"
+          className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90"
         >
           Save
         </button>

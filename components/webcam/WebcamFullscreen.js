@@ -317,7 +317,7 @@ export function WebcamFullscreen({ spot, onClose, allWebcams = [], onNavigate })
           <RecordButton spotId={spot._id} />
           <button
             onClick={onClose}
-            className="text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
+            className="text-white hover:text-white/70 transition-colors bg-black/50 rounded-full p-2"
             aria-label="Close webcam"
           >
             <X size={24} />

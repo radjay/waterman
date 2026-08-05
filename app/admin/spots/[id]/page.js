@@ -181,15 +181,15 @@ export default function SpotEdit() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-marginal/10 border border-marginal/30 text-marginal px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-surface rounded-lg shadow p-6 space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2">
-            Name <span className="text-red-600">*</span>
+            Name <span className="text-marginal">*</span>
           </label>
           <input
             type="text"
@@ -202,7 +202,7 @@ export default function SpotEdit() {
 
         <div>
           <label className="block text-sm font-medium mb-2">
-            Windy.app URL <span className="text-red-600">*</span>
+            Windy.app URL <span className="text-marginal">*</span>
           </label>
           <input
             type="url"
@@ -347,7 +347,7 @@ export default function SpotEdit() {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-ink text-white rounded-md hover:bg-ink/90 disabled:opacity-50"
+            className="px-4 py-2 bg-ink text-page rounded-md hover:bg-ink/90 disabled:opacity-50"
           >
             {saving ? "Saving..." : isNew ? "Create" : "Save"}
           </button>

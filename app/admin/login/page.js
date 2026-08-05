@@ -36,7 +36,7 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-newsprint">
       <div className="w-full max-w-md p-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-surface rounded-lg shadow-lg p-8">
           <h1 className="text-2xl font-bold mb-6 text-center">Admin Login</h1>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,13 +56,13 @@ export default function AdminLogin() {
             </div>
 
             {error && (
-              <div className="text-red-600 text-sm">{error}</div>
+              <div className="text-marginal text-sm">{error}</div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-ink text-white py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-ink text-page py-2 px-4 rounded-md hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>

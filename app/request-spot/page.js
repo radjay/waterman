@@ -70,8 +70,8 @@ export default function RequestSpotPage() {
         <Header />
         <div className="flex items-center justify-center py-24">
           <div className="text-center max-w-md mx-auto">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-10 h-10 text-page" />
             </div>
             <Heading level={2} className="mb-2">Request Submitted!</Heading>
             <Text variant="muted">We'll review your spot request and add it soon.</Text>
@@ -118,7 +118,7 @@ export default function RequestSpotPage() {
             {/* Spot Name */}
             <div>
               <label className="block font-bold text-sm mb-2">
-                Spot Name <span className="text-red-500">*</span>
+                Spot Name <span className="text-marginal">*</span>
               </label>
               <Input
                 type="text"
@@ -131,7 +131,7 @@ export default function RequestSpotPage() {
             {/* Country */}
             <div>
               <label className="block font-bold text-sm mb-2">
-                Country <span className="text-red-500">*</span>
+                Country <span className="text-marginal">*</span>
               </label>
               <Input
                 type="text"
@@ -144,7 +144,7 @@ export default function RequestSpotPage() {
             {/* Sports */}
             <div>
               <label className="block font-bold text-sm mb-2">
-                Sports <span className="text-red-500">*</span>
+                Sports <span className="text-marginal">*</span>
               </label>
               <Text variant="caption" className="mb-3">Select all that apply</Text>
               <div className="flex flex-wrap gap-2">

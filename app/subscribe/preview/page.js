@@ -66,9 +66,9 @@ function CalendarPreviewContent() {
       <MainLayout>
         <Header />
         <div className="py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <Heading level={2} className="text-red-800 mb-2">Error</Heading>
-            <Text className="text-red-600">{error}</Text>
+          <div className="bg-marginal/10 border border-marginal/30 rounded-lg p-6">
+            <Heading level={2} className="text-marginal mb-2">Error</Heading>
+            <Text className="text-marginal">{error}</Text>
           </div>
         </div>
         <Footer />
@@ -111,7 +111,7 @@ function CalendarPreviewContent() {
 
         {/* Events */}
         {events.length === 0 ? (
-          <div className="bg-white border border-ink/20 rounded-lg p-6 text-center">
+          <div className="bg-surface border border-ink/20 rounded-lg p-6 text-center">
             <Calendar className="w-12 h-12 text-ink/30 mx-auto mb-4" />
             <Text variant="muted">
               No events found. Make sure you have forecast data with scores ≥ 75.
@@ -120,7 +120,7 @@ function CalendarPreviewContent() {
         ) : (
           <div className="space-y-6">
             {Object.entries(eventsByDate).map(([dateKey, dayEvents]) => (
-              <div key={dateKey} className="bg-white border border-ink/20 rounded-lg p-6">
+              <div key={dateKey} className="bg-surface border border-ink/20 rounded-lg p-6">
                 <Heading level={2} className="mb-4 border-b border-ink/10 pb-2">
                   {dateKey}
                 </Heading>
@@ -131,7 +131,7 @@ function CalendarPreviewContent() {
                     return (
                       <div
                         key={`${event.spotId}-${event.timestamp}`}
-                        className="border-l-4 border-blue-500 pl-4"
+                        className="border-l-4 border-accent-border pl-4"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -151,7 +151,7 @@ function CalendarPreviewContent() {
                             </Text>
                           </div>
                           <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">
+                            <div className="text-2xl font-bold text-accent">
                               {event.score}
                             </div>
                             <div className="text-xs text-ink/60">/ 100</div>
@@ -177,7 +177,7 @@ function CalendarPreviewContent() {
                         </Text>
                         <Link
                           href={`/${event.sport}/best`}
-                          className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+                          className="text-sm text-accent hover:underline mt-2 inline-block"
                         >
                           View forecast →
                         </Link>

@@ -144,7 +144,7 @@ export function WebcamModal({ isOpen, onClose, webcamUrl, spotName, webcamStream
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
+          className="absolute top-4 right-4 z-10 text-white hover:text-dim transition-colors bg-black/50 rounded-full p-2"
           aria-label="Close webcam"
         >
           <X size={24} />
@@ -155,7 +155,7 @@ export function WebcamModal({ isOpen, onClose, webcamUrl, spotName, webcamStream
           {imageError && !isIframe && !isVideo && !isHlsStream ? (
             <div className="text-white text-center">
               <p className="text-xl mb-2">Unable to load webcam feed</p>
-              <p className="text-sm text-gray-400">{spotName}</p>
+              <p className="text-sm text-dim">{spotName}</p>
             </div>
           ) : isHlsStream ? (
             <video

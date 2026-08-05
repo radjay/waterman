@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { CircleGauge, ChartNoAxesCombined, Heart, RefreshCw, CameraOff } from "lucide-react";
 import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
-import { ScorePill } from "../ui/ScorePill";
+import { ScoreDial } from "../ui/ScoreDial";
 import { ConditionLine } from "../ui/ConditionLine";
 import { formatTime } from "../../lib/utils";
 
@@ -328,7 +328,7 @@ export function WebcamCard({ spot, isFocused = false, showHoverButtons = false, 
                 />
               </div>
             </div>
-            <ScorePill score={forecastData.score} sport={forecastData.sport} size="lg" onClick={onScoreClick ? (e) => { e.stopPropagation(); onScoreClick(); } : undefined} />
+            <ScoreDial score={forecastData.score} sport={forecastData.sport} size="sm" onClick={onScoreClick ? (e) => { e.stopPropagation(); onScoreClick(); } : undefined} />
           </div>
         ) : (
           <div>

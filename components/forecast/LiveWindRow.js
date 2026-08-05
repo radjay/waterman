@@ -73,40 +73,40 @@ export function LiveWindRow({ stationId, href, className = "" }) {
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${
         isStale
           ? "bg-ink/[0.04] text-faded-ink"
-          : "bg-green-50 text-green-800"
+          : "bg-accent-tint-card text-accent"
       } ${href ? "cursor-pointer hover:brightness-95 transition-all" : ""} ${className}`}
     >
         {/* Pulsing dot */}
         {!isStale && (
           <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent"></span>
           </span>
         )}
 
-        <span className={`text-[0.65rem] font-bold uppercase tracking-wider ${isStale ? "text-faded-ink" : "text-green-700"}`}>
+        <span className={`text-[0.65rem] font-bold uppercase tracking-wider ${isStale ? "text-faded-ink" : "text-accent"}`}>
           Live
         </span>
 
-        <Wind size={12} className={isStale ? "text-faded-ink/50" : "text-green-600"} />
+        <Wind size={12} className={isStale ? "text-faded-ink/50" : "text-accent"} />
 
-        <span className={`text-sm font-bold tabular-nums ${isStale ? "text-faded-ink" : "text-green-900"}`}>
+        <span className={`text-sm font-bold tabular-nums ${isStale ? "text-faded-ink" : "text-accent"}`}>
           {Math.round(liveWind.windSpeedKnots)}
         </span>
 
-        <span className={`text-[0.65rem] font-medium ${isStale ? "text-faded-ink/70" : "text-green-700"}`}>
+        <span className={`text-[0.65rem] font-medium ${isStale ? "text-faded-ink/70" : "text-accent"}`}>
           kn
         </span>
 
         {Number.isFinite(liveWind.windGustKnots) && (
-          <span className={`text-[0.65rem] tabular-nums ${isStale ? "text-faded-ink/50" : "text-green-600"}`}>
+          <span className={`text-[0.65rem] tabular-nums ${isStale ? "text-faded-ink/50" : "text-accent"}`}>
             ({Math.round(liveWind.windGustKnots)})
           </span>
         )}
 
         {/* Age indicator */}
         {ageMinutes > 0 && (
-          <span className={`text-[0.6rem] ${isStale ? "text-faded-ink/40" : "text-green-600/70"}`}>
+          <span className={`text-[0.6rem] ${isStale ? "text-faded-ink/40" : "text-accent/70"}`}>
             {ageMinutes}m
           </span>
         )}

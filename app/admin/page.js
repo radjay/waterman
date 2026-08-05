@@ -36,7 +36,7 @@ export default function AdminDashboard() {
   }
 
   if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
+    return <div className="text-marginal">Error: {error}</div>;
   }
 
   if (!kpis) {
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Data Freshness */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Data Freshness</h2>
           <div className="space-y-2">
             <div>
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Scraping Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Scraping (Today)</h2>
           <div className="space-y-2">
             <div>
@@ -85,13 +85,13 @@ export default function AdminDashboard() {
             </div>
             <div>
               <span className="text-ink/70">Successful:</span>{" "}
-              <span className="font-semibold text-green-600">
+              <span className="font-semibold text-accent">
                 {kpis.scraping.successfulToday}
               </span>
             </div>
             <div>
               <span className="text-ink/70">Failed:</span>{" "}
-              <span className="font-semibold text-red-600">
+              <span className="font-semibold text-marginal">
                 {kpis.scraping.failedToday}
               </span>
             </div>
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Scoring Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Scoring (Today)</h2>
           <div className="space-y-2">
             <div>
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Data Volume */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-surface rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Data Volume (Last 7 Days)</h2>
           <div className="space-y-2">
             <div>
