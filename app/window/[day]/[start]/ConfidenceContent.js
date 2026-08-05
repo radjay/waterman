@@ -24,13 +24,14 @@ import { spotsWithSlots } from "../../../../lib/reportData";
 import { detectWindows, isChartedSlot } from "../../../../lib/windows";
 import { scoreTier } from "../../../../lib/scoreShade";
 import { conditionSummary } from "../../../../lib/conditions";
+import { dtf } from "../../../../lib/datetime";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
 const THREE_HOURS = 3 * 60 * 60 * 1000;
 
 const fmt = (ms, options) =>
-  new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
+  dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
 export function ConfidenceContent({ dayStart, windowStart }) {
   const router = useRouter();

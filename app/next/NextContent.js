@@ -26,6 +26,7 @@ import {
 } from "../../components/wind/LiveWindIndicator";
 import { spotsWithSlots } from "../../lib/reportData";
 import { WindowCard } from "../../components/next/WindowCard";
+import { dtf } from "../../lib/datetime";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
@@ -33,7 +34,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const NEXT_SPOT_STORAGE_KEY = "waterman_next_spot";
 
 const fmt = (ms, options) =>
-  new Intl.DateTimeFormat("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
+  dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
 export function NextContent() {
   const router = useRouter();

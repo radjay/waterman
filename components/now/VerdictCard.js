@@ -6,6 +6,7 @@ import { Badge } from "../ui/Badge";
 import { ScoreDial } from "../ui/ScoreDial";
 import { SportFilterChip } from "../sport/SportFilterChip";
 import {
+import { dtf } from "../../lib/datetime";
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../wind/LiveWindIndicator";
@@ -250,9 +251,7 @@ export function VerdictCard({
 
 const TZ = "Europe/Lisbon";
 const hour = (ms) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(
-    new Date(ms)
-  );
+  dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
 
 /**
  * This slot and the next two.

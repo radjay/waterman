@@ -190,11 +190,23 @@ export function useNowData(sport, favoriteIds = []) {
         // meaningful when the rider actually has favourites to be scoped to.
         const scopedToFavorites = mine.length > 0;
         const dayEnd = now + 24 * 60 * 60 * 1000;
+        // Narrow BEFORE the expensive part. detectWindows plus the per-slot
+        // charted-hours check over every spot on the coast is a lot of work for
+        // a single integer, and almost all of those slots are outside the next
+        // 24 hours. Filtering on timestamp first is a plain numeric compare and
+        // throws away the large majority of them.
         const elsewhereToday = scopedToFavorites
           ? all
               .filter(({ spot }) => !favoriteIds.includes(spot._id))
               .flatMap(({ slots }) =>
-                detectWindows(slots.filter((s) => isChartedSlot(s.timestamp)))
+                detectWindows(
+                  slots.filter(
+                    (s) =>
+                      s.timestamp < dayEnd &&
+                      s.timestamp + SLOT_HOURS * 60 * 60 * 1000 > now &&
+                      isChartedSlot(s.timestamp)
+                  )
+                )
               )
               .filter((w) => w.end > now && w.start < dayEnd).length
           : 0;
