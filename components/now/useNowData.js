@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
 import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
 import {
+  SLOT_HOURS,
   detectWindows,
   isChartedSlot,
   soonestWindow,
@@ -156,13 +157,67 @@ export function useNowData(sport, favoriteIds = []) {
           windows: detectWindows(c.slots.filter((s) => isChartedSlot(s.timestamp))),
         }));
         const next = soonestWindow(bySpot, now);
-        const nextWindows = upcomingWindows(bySpot, now, 3);
+        // The verdict card above is already describing the chosen spot's
+        // running window; listing it again here showed the same session twice.
+        const nextWindows = upcomingWindows(bySpot, now, 3, {
+          excludeActiveAt: chosen.spot._id,
+        });
+
+        // The window the verdict describes, then the next two. Now otherwise
+        // speaks for a three-hour block as if it were an instant: at 14:50 the
+        // rider is being told about 12:00-15:00, which is largely over. Shape
+        // is what says "and it holds" or "and it dies".
+        //
+        // Contiguous only. The charted slots skip the night, so at 20:00 the
+        // "next two" are tomorrow 07:00 and 10:00 — drawing those beside NOW
+        // claims a continuation that does not exist. A run that stops stops:
+        // with nothing to continue into, the card shows no strip at all, which
+        // is the honest answer to "what happens next" at the end of a day.
+        const SLOT_MS = SLOT_HOURS * 60 * 60 * 1000;
+        const charted = chosen.slots.filter((s) => isChartedSlot(s.timestamp));
+        const fromIndex = charted.findIndex((s) => s.timestamp === chosen.slot.timestamp);
+        const trajectory = [];
+        if (fromIndex !== -1) {
+          for (const slot of charted.slice(fromIndex, fromIndex + 3)) {
+            const previous = trajectory[trajectory.length - 1];
+            if (previous && slot.timestamp - previous.timestamp > SLOT_MS) break;
+            trajectory.push(slot);
+          }
+        }
+
+        // "Nothing at your spots" and "nothing on the coast" are completely
+        // different decisions, and the screen could not tell them apart. Only
+        // meaningful when the rider actually has favourites to be scoped to.
+        const scopedToFavorites = mine.length > 0;
+        const dayEnd = now + 24 * 60 * 60 * 1000;
+        // Narrow BEFORE the expensive part. detectWindows plus the per-slot
+        // charted-hours check over every spot on the coast is a lot of work for
+        // a single integer, and almost all of those slots are outside the next
+        // 24 hours. Filtering on timestamp first is a plain numeric compare and
+        // throws away the large majority of them.
+        const elsewhereToday = scopedToFavorites
+          ? all
+              .filter(({ spot }) => !favoriteIds.includes(spot._id))
+              .flatMap(({ slots }) =>
+                detectWindows(
+                  slots.filter(
+                    (s) =>
+                      s.timestamp < dayEnd &&
+                      s.timestamp + SLOT_HOURS * 60 * 60 * 1000 > now &&
+                      isChartedSlot(s.timestamp)
+                  )
+                )
+              )
+              .filter((w) => w.end > now && w.start < dayEnd).length
+          : 0;
 
         setState({
           loading: false,
           error: null,
           data: {
             verdict,
+            trajectory,
+            elsewhereToday,
             spot: chosen.spot,
             slot: chosen.slot,
             agreement,

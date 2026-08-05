@@ -2,12 +2,11 @@
 
 import { primaryMetric } from "../../lib/conditions";
 import { scoreColour } from "../../lib/scoreShade";
+import { dtf } from "../../lib/datetime";
 
 const TZ = "Europe/Lisbon";
 const time = (ms) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(
-    new Date(ms)
-  );
+  dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
 
 /**
  * The window, hour by hour.

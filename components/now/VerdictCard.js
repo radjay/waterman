@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Users } from "lucide-react";
+import { ArrowUp, ChevronRight, Users } from "lucide-react";
 import { VERDICT, VERDICT_TONE } from "../../lib/verdict";
 import { Badge } from "../ui/Badge";
 import { ScoreDial } from "../ui/ScoreDial";
@@ -9,6 +9,7 @@ import {
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../wind/LiveWindIndicator";
+import { dtf } from "../../lib/datetime";
 
 const TONE_TEXT = {
   accent: "text-accent",
@@ -46,10 +47,15 @@ export function VerdictCard({
   metric,
   liveReportUrl,
   reason,
+  reasoning,
+  trajectory = [],
+  elsewhereToday = 0,
   riderCount,
   camSlot,
+  compactCam = false,
   onOpenCam,
   onOpenSpot,
+  onSeeElsewhere,
 }) {
   const tone = VERDICT_TONE[verdict] || "dim";
   const isGo = verdict === VERDICT.GO;
@@ -118,8 +124,13 @@ export function VerdictCard({
             interactive and was not. Wrapped rather than given an onClick prop
             so the dropdown it opens — which renders inside it — is covered too;
             otherwise choosing a sport would also navigate away. */}
-        <span className="flex-none" onClick={own()} onKeyDown={(e) => e.stopPropagation()}>
-          <SportFilterChip />
+        <span className="flex-none flex items-center gap-1.5">
+          <span onClick={own()} onKeyDown={(e) => e.stopPropagation()}>
+            <SportFilterChip />
+          </span>
+          {/* The whole card navigates to this spot's week. Without a mark
+              nothing said so and nobody found it. */}
+          {onOpenSpot && <ChevronRight size={16} className="text-dim" aria-hidden="true" />}
         </span>
       </div>
 
@@ -160,7 +171,7 @@ export function VerdictCard({
             score={score}
             size="md"
             showAll
-            label="NOW"
+            label="SCORE"
             on={isGo || isMarginal ? "card" : "page"}
             className="ml-auto"
           />
@@ -173,13 +184,42 @@ export function VerdictCard({
         <div className="font-data text-[11px] text-faded-ink mt-2">{metric.tertiary}</div>
       )}
 
+      {trajectory.length > 1 && <Trajectory slots={trajectory} tone={tone} />}
+
+      {/* ONE line of prose, not a stack.
+          The scorer's own sentence is the best thing on the screen, so it gets
+          the slot. `reason` is the fallback for when there is no sentence — on
+          its own it mostly restated the verdict ("Nothing on right now" under
+          NO GO) or said nothing at all ("Worth a look"), and on a GO the
+          trajectory strip now carries "holds until" better than words did. */}
+      {(reasoning || reason) && (
+        <p className="text-[14px] leading-[1.5] text-faded-ink mt-3">{reasoning || reason}</p>
+      )}
+
+      {/* "Nothing at my three beaches" and "nothing on the coast" are different
+          decisions. Saying which turns the app's most common state from a dead
+          end into a next step.
+          Note there is deliberately no "better tomorrow" line: it duplicated
+          the first NEXT WINDOWS card below — same spot, same score, same day,
+          by construction — and that card is already the highlighted one. */}
+      {!isGo && !isMarginal && elsewhereToday > 0 && onSeeElsewhere && (
+        <button
+          onClick={own(onSeeElsewhere)}
+          className="mt-2.5 text-[13px] text-accent focus-ring hover:underline"
+        >
+          {elsewhereToday} window{elsewhereToday === 1 ? "" : "s"} elsewhere today &rarr;
+        </button>
+      )}
+
       {camSlot && (
         <button
           onClick={own(onOpenCam)}
           aria-label="Open the live cam"
-          className={`relative block w-full aspect-video rounded-card-sm overflow-hidden mt-[15px] border focus-ring ${
-            isGo ? "border-accent-border" : "border-card"
-          }`}
+          // Aspect ratio, not a fixed height: a 21:9 strip still crops the
+          // frame sensibly, and the cam stays one tap from full screen.
+          className={`relative block w-full rounded-card-sm overflow-hidden mt-[15px] border focus-ring ${
+            compactCam ? "aspect-[21/6]" : "aspect-video"
+          } ${isGo ? "border-accent-border" : "border-card"}`}
         >
           {camSlot}
           <span className="absolute top-[9px] left-[9px] flex items-center gap-[7px] pointer-events-none">
@@ -205,10 +245,51 @@ export function VerdictCard({
           </span>
         </button>
       )}
+    </div>
+  );
+}
 
-      {reason && (
-        <div className="font-data text-[11px] text-faded-ink mt-3 uppercase">{reason}</div>
-      )}
+const TZ = "Europe/Lisbon";
+const hour = (ms) =>
+  dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
+
+/**
+ * This slot and the next two.
+ *
+ * Now speaks for a three-hour block as if it were an instant — at 14:50 the
+ * rider is being told about 12:00–15:00, which is largely over. Whether the
+ * window is building or dying changes the decision as much as the verdict word
+ * does, and until now it existed only inside a prose sentence.
+ *
+ * Deliberately not a chart. Three labelled numbers read faster than a sparkline
+ * at this size, and they degrade honestly when the scorer has nothing for a
+ * slot: "—" says "not scored", where a flat line would say "zero".
+ */
+function Trajectory({ slots, tone }) {
+  return (
+    <div className="flex items-stretch gap-1.5 mt-3.5" aria-label="How the next hours look">
+      {slots.map((slot, i) => {
+        const scored = slot.score !== null && slot.score !== undefined;
+        return (
+          <div
+            key={slot.timestamp}
+            className={`flex-1 rounded-card-sm border px-2.5 py-2 ${
+              i === 0 ? "border-card bg-ink-hover" : "border-card"
+            }`}
+          >
+            <div className="font-data text-[9px] tracking-label text-dim">
+              {i === 0 ? "NOW" : hour(slot.timestamp)}
+            </div>
+            <div
+              className={`font-data font-bold text-[17px] tabular-nums leading-none mt-1 ${
+                scored ? (i === 0 ? TONE_TEXT[tone] : "text-ink") : "text-dim"
+              }`}
+            >
+              {scored ? Math.round(slot.score) : "—"}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

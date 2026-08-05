@@ -1,9 +1,0 @@
-{
-  "namespace": "Waterman",
-  "source": "waterman@1.0.0",
-  "shape": "package",
-  "provider": "ConvexProvider",
-  "componentCount": 72,
-  "skippedStoryIds": [],
-  "runtimeFontPrefixes": []
-}

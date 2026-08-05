@@ -300,7 +300,7 @@ export default function UIKitPage() {
                 10px / .16em / accent — IN THE WATER
               </span>
               <span className="font-data text-[11px] tracking-label text-faded-ink uppercase">
-                11px / .16em / muted — HOLDING UNTIL ABOUT 15:00
+                11px / .16em / muted — SPOT META, AXIS LABELS
               </span>
             </div>
           </Row>
@@ -701,7 +701,7 @@ export default function UIKitPage() {
               spotName="Praia do Guincho"
               score={92}
               metric={primaryMetric(slot(0, 15, 92), "wingfoil")}
-              reason="HOLDING UNTIL ABOUT 18:00"
+              reason="Holding until about 18:00."
             />
           </Row>
           <Row label="VerdictCard — MAYBE" full>
@@ -711,7 +711,7 @@ export default function UIKitPage() {
               spotName="Marina de Cascais"
               score={58}
               metric={primaryMetric(slot(0, 15, 58, { speed: 11, gust: 14 }), "wingfoil")}
-              reason="LIGHT, BUT CLEAN"
+              reason="Light, but clean."
             />
           </Row>
           <Row label="VerdictCard — NO GO, and the surf variant (swell leads, wind is context)" full>
@@ -725,7 +725,7 @@ export default function UIKitPage() {
                 spotName="Lagoa da Albufeira"
                 score={22}
                 metric={primaryMetric(slot(0, 15, 22, { speed: 4, gust: 6 }), "wingfoil")}
-                reason="NOTHING ON"
+                reason="Nothing on right now."
               />
               <VerdictCard
                 verdict={VERDICT.GO}
@@ -733,7 +733,7 @@ export default function UIKitPage() {
                 spotName="Carcavelos"
                 score={81}
                 metric={primaryMetric(slot(0, 9, 81, { speed: 6, waveHeight: 1.4 }), "surfing")}
-                reason="OFFSHORE ALL MORNING"
+                reason="Offshore all morning."
               />
             </div>
           </Row>
@@ -855,14 +855,20 @@ export default function UIKitPage() {
               columns={MODEL_COLUMNS}
               sourceModel="gfs27_long"
               agreedByColumn={[4, 4, 3]}
-              outlier="icon_eu"
+              outlier="iconeuro"
               sentence="Four of five models back this window; ICON-EU is alone in calling it light."
+              // The keys MUST come from lib/agreement WIND_MODELS — modelLabel()
+              // falls back to raw uppercase for anything it does not know, so an
+              // invented key like "icon_eu" renders as ICON_EU, underscore and
+              // all, and the kit ends up teaching a model list that does not
+              // exist. "arome" is worse than wrong: the scraper distrusts it by
+              // name because it echoes its own id and returns GFS data.
               models={[
                 { model: "gfs27_long", votes: [true, true, true] },
                 { model: "ecmwf", votes: [true, true, "near"] },
-                { model: "icon_eu", votes: [false, false, false] },
-                { model: "arome", votes: ["near", true, true] },
-                { model: "nam", votes: [true, true, true] },
+                { model: "iconeuro", votes: [false, false, false] },
+                { model: "iconglobal", votes: ["near", true, true] },
+                { model: "lew", votes: [true, true, true] },
               ]}
             />
           </Row>

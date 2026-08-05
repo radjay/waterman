@@ -8,6 +8,7 @@ import { useSport } from "../components/sport/SportProvider";
 import { useUser } from "../components/auth/AuthProvider";
 import { useFlag } from "../components/flags/FlagProvider";
 import { VerdictCard } from "../components/now/VerdictCard";
+import { VERDICT } from "../lib/verdict";
 import { EvidenceStack, InTheWaterCard } from "../components/now/EvidenceStack";
 import { LabsSection } from "../components/ui/LabsSection";
 import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
@@ -16,6 +17,7 @@ import { useNowData } from "../components/now/useNowData";
 import { WindowCard } from "../components/next/WindowCard";
 import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
 import { primaryMetric } from "../lib/conditions";
+import { dayStartOf } from "../lib/windows";
 import { useShare } from "../hooks/useShare";
 
 export function NowContent() {
@@ -119,6 +121,14 @@ export function NowContent() {
             liveReportUrl={data.spot?.liveReportUrl}
             reason={data.reason}
             riderCount={riderCount}
+            reasoning={data.reasoning}
+            trajectory={data.trajectory}
+            elsewhereToday={data.elsewhereToday}
+            onSeeElsewhere={() => router.push("/next")}
+            // On a NO GO the video is the least useful thing on screen and was
+            // taking half the viewport. Collapsed to a strip, still one tap
+            // from the full picture.
+            compactCam={data.verdict === VERDICT.NO}
             camSlot={data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null}
             // The cam itself is the affordance — a separate WATCH CAM button
             // underneath was a second control for the same thing.
@@ -131,7 +141,11 @@ export function NowContent() {
           />
 
           {camOpen && data.spot && (
-            <WebcamFullscreen spot={data.spot} onClose={() => setCamOpen(false)} />
+            <WebcamFullscreen
+              spot={data.spot}
+              score={data.slot?.score}
+              onClose={() => setCamOpen(false)}
+            />
           )}
 
           {/* Three, not one. A single next window answers "when" but not "or
@@ -151,7 +165,13 @@ export function NowContent() {
                     sport={sport}
                     highlight={i === 0}
                     onClick={() =>
-                      router.push(`/window/${window.start}/${window.start}?spot=${spot._id}`)
+                      // dayStartOf, not window.start — Next generates the day
+                      // segment that way, and two callers disagreeing about
+                      // what the first path segment means is a URL nobody can
+                      // rely on.
+                      router.push(
+                        `/window/${dayStartOf(window.start)}/${window.start}?spot=${spot._id}`
+                      )
                     }
                   />
                 ))}
@@ -159,10 +179,12 @@ export function NowContent() {
             </section>
           )}
 
+          {/* `reasoning` is deliberately not passed: it now sits under the
+              verdict where it belongs, and the stack would render it a second
+              time as its backstop card. */}
           <EvidenceStack
             station={showStation ? data.station : null}
             agreement={showModels ? data.agreement : null}
-            reasoning={data.reasoning}
           />
 
           {riderCount && (

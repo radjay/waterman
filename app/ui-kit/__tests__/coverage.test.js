@@ -37,6 +37,16 @@ describe("ui-kit coverage", () => {
     });
   }
 
+  it("only names wind models the app actually requests", async () => {
+    // modelLabel() falls back to raw uppercase for an unknown key, so an
+    // invented one renders as "ICON_EU" — underscore and all — and the kit ends
+    // up teaching a model list that does not exist. This shipped once already.
+    const { WIND_MODELS } = await import("../../../lib/agreement.js");
+    const named = [...KIT.matchAll(/\{\s*model:\s*"([^"]+)"/g)].map((m) => m[1]);
+    expect(named.length).toBeGreaterThan(0);
+    expect(named.filter((m) => !WIND_MODELS.includes(m))).toEqual([]);
+  });
+
   it("splits into exactly two parts, Current and Legacy", () => {
     expect(KIT).toContain('id="current"');
     expect(KIT).toContain('id="legacy"');

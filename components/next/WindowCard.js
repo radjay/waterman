@@ -4,12 +4,11 @@ import { ChevronRight } from "lucide-react";
 import { ScoreDial } from "../ui/ScoreDial";
 import { conditionSummary } from "../../lib/conditions";
 import { relativeDay } from "../../lib/verdict";
+import { dtf } from "../../lib/datetime";
 
 const TZ = "Europe/Lisbon";
 const time = (ms) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(
-    new Date(ms)
-  );
+  dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
 const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
