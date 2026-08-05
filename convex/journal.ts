@@ -467,17 +467,25 @@ export const getEntry = query({
 
       if (uniqueSlots.length === 0) return;
 
-      // Get scores for these slots
+      // Get scores for these slots.
+      //
+      // By (spot, sport, timestamp) rather than slotId: system scores are now
+      // one row per hour rather than one per scrape, so a slotId lookup would
+      // find nothing for any slot but the last one scored. This is also strictly
+      // better for old entries — slots are archived after 48h, so a session's
+      // comparison used to blank out once its slot row left the table.
       for (const slot of uniqueSlots) {
         const scores = await ctx.db
           .query("condition_scores")
-          .withIndex("by_slot_sport", (q) =>
-            q.eq("slotId", slot._id).eq("sport", entry.sport)
+          .withIndex("by_spot_sport_timestamp", (q) =>
+            q.eq("spotId", slot.spotId)
+             .eq("sport", entry.sport)
+             .eq("timestamp", slot.timestamp)
           )
           .collect();
-        
+
         const score = scores.find(s => s.userId === null) || scores[0] || null;
-        
+
         forecastSlots.push({
           _id: slot._id,
           timestamp: slot.timestamp,
@@ -508,14 +516,17 @@ export const getEntry = query({
       // If we found slots by ID, use them
       if (slotsById.length > 0) {
         for (const slot of slotsById) {
-          // Get condition score for this slot+sport
+          // Get condition score for this slot+sport, keyed by the hour rather
+          // than the slot document — see the note on the other lookup above.
           const scores = await ctx.db
             .query("condition_scores")
-            .withIndex("by_slot_sport", (q) =>
-              q.eq("slotId", slot._id).eq("sport", entry.sport)
+            .withIndex("by_spot_sport_timestamp", (q) =>
+              q.eq("spotId", slot.spotId)
+               .eq("sport", entry.sport)
+               .eq("timestamp", slot.timestamp)
             )
             .collect();
-          
+
           // Use system score (userId: null) or first available
           const score = scores.find(s => s.userId === null) || scores[0] || null;
           

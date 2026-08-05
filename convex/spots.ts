@@ -799,16 +799,34 @@ export const saveConditionScore = mutation({
     handler: async (ctx, args) => {
         const scoredAt = Date.now();
 
-        // For system scores (userId: null), check if one already exists and replace it
+        // For system scores (userId: null), check if one already exists and replace it.
+        //
+        // Keyed on (spotId, sport, timestamp) rather than slotId. A scrape writes a
+        // NEW forecast_slots document for a wall-clock hour it has already
+        // forecast — that is why dedupeSlotsByTimestamp exists — so args.slotId is
+        // new every scrape and a slotId-keyed lookup never matched a previous
+        // score. This branch was dead code for the scraper, and every one of the 4
+        // daily scrapes inserted another copy of a score that already existed.
+        // Roughly 27 rows accumulated per (spot, sport, timestamp), and
+        // getReportData read all of them to keep one: 29,747 documents / 15.9MB
+        // per execution against limits of 32,000 / 16MB.
         if (!args.userId) {
-            const existingScore = await ctx.db
+            const sameSlot = await ctx.db
                 .query("condition_scores")
-                .withIndex("by_slot_sport", q => 
-                    q.eq("slotId", args.slotId)
+                .withIndex("by_spot_sport_timestamp", q =>
+                    q.eq("spotId", args.spotId)
                      .eq("sport", args.sport)
+                     .eq("timestamp", args.timestamp)
                 )
                 .filter(q => q.eq(q.field("userId"), null))
-                .first();
+                .collect();
+
+            // Newest wins, matching how the read path resolved duplicates before
+            // this fix — so the collapse cannot change which score is displayed.
+            const existingScore = sameSlot.reduce(
+                (newest, s) => (!newest || s._creationTime > newest._creationTime ? s : newest),
+                null as (typeof sameSlot)[number] | null
+            );
 
             if (existingScore) {
                 // Archive the old score to history BEFORE updating
@@ -837,14 +855,31 @@ export const saveConditionScore = mutation({
                     replacedByScoreId: existingScore._id, // Will point to the same score after update
                 });
 
-                // Update existing system score
+                // Update existing system score.
+                //
+                // slotId and scrapeTimestamp are repointed at the slot we just
+                // scored. The old patch left them on the row's original slot,
+                // which was harmless while rows were slot-keyed and is wrong now
+                // that one row stands for every scrape of this hour.
                 await ctx.db.patch(existingScore._id, {
+                    slotId: args.slotId,
+                    scrapeTimestamp: args.scrapeTimestamp,
                     score: args.score,
                     reasoning: args.reasoning,
                     factors: args.factors,
                     scoredAt,
                     model: args.model,
                 });
+
+                // Drain the backlog this key already accumulated, so the table
+                // heals as the scraper runs instead of needing a big-bang
+                // migration. Only rows we just read under the userId === null
+                // filter, and never the row being kept.
+                for (const duplicate of sameSlot) {
+                    if (duplicate._id !== existingScore._id) {
+                        await ctx.db.delete(duplicate._id);
+                    }
+                }
 
                 return existingScore._id;
             }
@@ -1477,11 +1512,20 @@ export const getConditionScoreBySlot = query({
         userId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const score = await ctx.db
+        // Resolve the slot to its (spot, hour) first. System scores are one row
+        // per hour rather than one per scrape, so the row for this hour usually
+        // points at a different — later — slot document than the one asked about.
+        const slot = await ctx.db.get(args.slotId);
+        if (!slot) {
+            return null;
+        }
+
+        const scores = await ctx.db
             .query("condition_scores")
-            .withIndex("by_slot_sport", q => 
-                q.eq("slotId", args.slotId)
+            .withIndex("by_spot_sport_timestamp", q =>
+                q.eq("spotId", slot.spotId)
                  .eq("sport", args.sport)
+                 .eq("timestamp", slot.timestamp)
             )
             .filter(q => {
                 if (args.userId !== undefined) {
@@ -1491,9 +1535,13 @@ export const getConditionScoreBySlot = query({
                     return q.eq(q.field("userId"), null);
                 }
             })
-            .first();
+            .collect();
 
-        return score;
+        // Newest wins while a backlog of duplicates is still draining.
+        return scores.reduce(
+            (newest, s) => (!newest || s._creationTime > newest._creationTime ? s : newest),
+            null as (typeof scores)[number] | null
+        );
     },
 });
 
@@ -1809,7 +1857,12 @@ async function _getForecastSlotsForSpot(ctx: any, spotId: Id<"spots">) {
 /**
  * Get condition scores for a single spot and sport.
  * Optimized to limit document reads by filtering on timestamp range.
- * Reads scores within a configurable window (default 2 days, 11 days future).
+ * Reads scores within a configurable window (default 2 days back, 7 forward).
+ *
+ * These defaults must stay in step with getConditionScoresForSpotSport's own.
+ * This wrapper passes both values EXPLICITLY, so its defaults win outright and
+ * lowering the helper's alone changes nothing — which is exactly what happened
+ * on the first attempt at this.
  */
 async function _getConditionScoresForSpot(
     ctx: any,
@@ -1817,7 +1870,7 @@ async function _getConditionScoresForSpot(
     sport: string,
     userId?: string,
     cutoffDays: number = 2,
-    futureDays: number = 11,
+    futureDays: number = 7,
 ) {
     return getConditionScoresForSpotSport(ctx, spotId, sport, {
         userId,
@@ -2050,5 +2103,95 @@ export const getReportData = query({
         const mostRecentScrapeTimestamp = mostRecentScrape?.scrapeTimestamp ?? null;
 
         return { spots: filteredSpots, data, mostRecentScrapeTimestamp };
+    },
+});
+
+/**
+ * Collapse duplicate system condition_scores to one row per (spot, sport, hour).
+ *
+ * saveConditionScore used to dedupe on slotId, but a scrape writes a new
+ * forecast_slots document for an hour it has already forecast, so the lookup
+ * never matched and every scrape inserted another copy. That is fixed at the
+ * write path, which now also drains the backlog for any hour it rescores — but
+ * only hours still inside the scoring horizon get rescored. This clears the rest.
+ *
+ * Deliberately conservative, because production and development share one
+ * deployment and this deletes live rows:
+ *
+ * - `apply` defaults to false. The default run reports what it WOULD delete.
+ * - Only `userId === null` rows are touched. Personalized scores are not
+ *   duplicated by the scraper and are never candidates.
+ * - The newest row per key is always kept, matching how the read path resolved
+ *   duplicates, so no displayed score changes.
+ * - One spot per call via `spotId`, so a run is resumable and its blast radius
+ *   is one spot rather than the table.
+ */
+export const pruneDuplicateConditionScores = mutation({
+    args: {
+        spotId: v.id("spots"),
+        sport: v.string(),
+        fromTimestamp: v.number(),
+        toTimestamp: v.number(),
+        apply: v.optional(v.boolean()),
+    },
+    handler: async (ctx, args) => {
+        const apply = args.apply ?? false;
+
+        // Bounded in the INDEX, per (spot, sport, time slice).
+        //
+        // An unbounded `.eq("spotId")` collect reads every score ever written
+        // for the spot. At ~27 duplicates per hour since launch that is well
+        // past the 32,000-document read limit for one spot — the prune would
+        // throw the exact error it exists to prevent.
+        //
+        // `.filter()` would not have helped: Convex applies it after the index
+        // scan, so it narrows the result and not the read. by_spot_sport_timestamp
+        // is [spotId, sport, timestamp] and index fields bind in order, so
+        // range-bounding the timestamp means pinning the sport too. Callers walk
+        // the history one sport and one slice at a time.
+        const scores = await ctx.db
+            .query("condition_scores")
+            .withIndex("by_spot_sport_timestamp", (q: any) =>
+                q.eq("spotId", args.spotId)
+                 .eq("sport", args.sport)
+                 .gte("timestamp", args.fromTimestamp)
+                 .lt("timestamp", args.toTimestamp)
+            )
+            .collect();
+
+        // Group by the key the write path now dedupes on.
+        const byKey = new Map<string, typeof scores>();
+        for (const score of scores) {
+            if (score.userId !== null) continue;
+            const key = `${score.sport}_${score.timestamp}`;
+            const group = byKey.get(key);
+            if (group) group.push(score);
+            else byKey.set(key, [score]);
+        }
+
+        let deletable = 0;
+        let deleted = 0;
+        for (const group of byKey.values()) {
+            if (group.length < 2) continue;
+            const newest = group.reduce((a, b) =>
+                b._creationTime > a._creationTime ? b : a
+            );
+            for (const score of group) {
+                if (score._id === newest._id) continue;
+                deletable++;
+                if (apply) {
+                    await ctx.db.delete(score._id);
+                    deleted++;
+                }
+            }
+        }
+
+        return {
+            apply,
+            systemScoresScanned: scores.filter((s: any) => s.userId === null).length,
+            distinctKeys: byKey.size,
+            deletable,
+            deleted,
+        };
     },
 });

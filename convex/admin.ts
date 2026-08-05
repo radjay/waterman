@@ -1264,15 +1264,19 @@ export const getScoringDebugData = query({
     // Get scores and scoring logs for these slots
     const result = await Promise.all(
       recentSlots.map(async (slot) => {
-        // Get the condition score for this slot-sport-user combination
+        // Get the condition score for this slot-sport-user combination.
+        // Keyed by the hour, not the slot document — system scores are one row
+        // per (spot, sport, timestamp) rather than one per scrape.
         const scores = await ctx.db
           .query("condition_scores")
-          .withIndex("by_slot_sport", q => 
-            q.eq("slotId", slot._id).eq("sport", args.sport)
+          .withIndex("by_spot_sport_timestamp", q =>
+            q.eq("spotId", slot.spotId)
+             .eq("sport", args.sport)
+             .eq("timestamp", slot.timestamp)
           )
           .filter(q => q.eq(q.field("userId"), args.userId))
           .collect();
-        
+
         const score = scores[0] || null;
         
         // Get the scoring log if it exists

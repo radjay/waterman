@@ -51,9 +51,12 @@ export async function getConditionScoresForSpotSport(
   const cutoff =
     options.cutoffTimestamp ??
     now - (options.cutoffDays ?? 2) * 24 * 60 * 60 * 1000;
+  // 7, not 11. The app charts six days; days 7-11 were read on every call and
+  // displayed nowhere. The earlier pass at this query narrowed only the backward
+  // cutoff, which is why the forward window kept the read span at 13 days.
   const upper =
     options.upperTimestamp ??
-    now + (options.futureDays ?? 11) * 24 * 60 * 60 * 1000;
+    now + (options.futureDays ?? 7) * 24 * 60 * 60 * 1000;
 
   const filtered = await ctx.db
     .query("condition_scores")
