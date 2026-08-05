@@ -6,10 +6,10 @@ import { Badge } from "../ui/Badge";
 import { ScoreDial } from "../ui/ScoreDial";
 import { SportFilterChip } from "../sport/SportFilterChip";
 import {
-import { dtf } from "../../lib/datetime";
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../wind/LiveWindIndicator";
+import { dtf } from "../../lib/datetime";
 
 const TONE_TEXT = {
   accent: "text-accent",
