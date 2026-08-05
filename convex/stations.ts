@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalAction, mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internalAction, internalMutation, query } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import { stationTargetsFromSpots } from "../lib/stations";
 import { fetchStationReading } from "../lib/windguru";
 import { dedupeReadingsByTime } from "../lib/convex/stationReadings";
@@ -70,10 +70,18 @@ export const getStationReadings = query({
 /**
  * Insert readings that are not already stored.
  *
- * Public rather than internal because the backfill script drives it over HTTP,
- * matching the existing saveForecastSlots and saveObservations mutations.
+ * Internal. The only writer is pollStations, above.
+ *
+ * This was public while the one-off backfill drove it over HTTP. That is done,
+ * and public was never the right resting state: NEXT_PUBLIC_CONVEX_URL ships in
+ * the client bundle, and this table feeds deriveVerdict — so an unauthenticated
+ * caller could post a plausible reading and change the advice the app gives,
+ * permanently, since nothing prunes this table. The plausibility guards below
+ * bound the absurdity; they cannot tell a believable lie from a measurement.
+ *
+ * To backfill again, make this a `mutation` for the duration of the run.
  */
-export const saveStationReadings = mutation({
+export const saveStationReadings = internalMutation({
   args: {
     stationId: v.string(),
     readings: v.array(v.object(READING_FIELDS)),
@@ -147,7 +155,7 @@ export const pollStations = internalAction({
         const reading = await fetchStationReading(target.stationId);
         if (!reading) continue;
 
-        const result = await ctx.runMutation(api.stations.saveStationReadings, {
+        const result = await ctx.runMutation(internal.stations.saveStationReadings, {
           stationId: target.stationId,
           readings: [reading],
         });

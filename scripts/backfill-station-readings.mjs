@@ -1,3 +1,16 @@
+/**
+ * One-off: copies Windguru history out of fx_observations into
+ * station_readings. Already run — 2020-06 onward for 2329, mid-2022 onward
+ * for 3294. Idempotent via the (stationId, time) dedupe, so re-running only
+ * adds what is missing.
+ *
+ * REQUIRES A TEMPORARY CHANGE TO RUN AGAIN. `saveStationReadings` is an
+ * `internalMutation` and this script calls it over HTTP, so it will fail with
+ * "Could not find public function" until you switch that back to `mutation`
+ * for the duration of the run. That is deliberate: the table feeds the go/no-go
+ * verdict, and leaving an unauthenticated write path open to serve a script
+ * that has already finished is not a trade worth making.
+ */
 import { ConvexHttpClient } from "convex/browser";
 import dotenv from "dotenv";
 import { api } from "../convex/_generated/api.js";
