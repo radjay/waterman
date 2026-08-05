@@ -69,22 +69,47 @@ export async function getForecastSlotsForSpot(
   const now = Date.now();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = todayStart.getTime() + 24 * 60 * 60 * 1000;
   const latestTimestamps = new Set(latestSlots.map((s: any) => s.timestamp));
 
-  const todaySlots = await ctx.db
+  // Only the GAP is worth reading.
+  //
+  // This exists to recover hours that have already passed today but are no
+  // longer in the latest scrape, because a scrape only forecasts forward. That
+  // gap runs from midnight to whichever comes first: now, or the earliest slot
+  // the latest scrape does carry.
+  //
+  // It used to read every slot in the whole of today across EVERY scrape and
+  // then discard the ones at or after `now` in JS. Because each scrape writes
+  // ~10 days of slots, today's timestamps appear in every scrape from the past
+  // ten days — so this was reading hundreds of documents per spot to recover a
+  // handful, and it was ~62% of getReportData's total time.
+  //
+  // The bound below is exactly the JS filter that followed, applied in the
+  // index instead: every slot it now excludes was already being thrown away.
+  const earliestLatest = latestSlots.reduce(
+    (min: number, s: any) => (s.timestamp < min ? s.timestamp : min),
+    Number.POSITIVE_INFINITY
+  );
+  const gapEnd = Math.min(now, earliestLatest);
+
+  // Commonly empty: when the latest scrape still carries this morning's hours
+  // there is no gap at all, and the second query is skipped entirely.
+  if (gapEnd <= todayStart.getTime()) {
+    return latestSlots;
+  }
+
+  const gapSlots = await ctx.db
     .query("forecast_slots")
     .withIndex("by_spot_timestamp", (q: any) =>
       q
         .eq("spotId", spotId)
         .gte("timestamp", todayStart.getTime())
-        .lt("timestamp", todayEnd)
+        .lt("timestamp", gapEnd)
     )
     .collect();
 
-  const pastFromOtherScrapes = todaySlots.filter(
+  const pastFromOtherScrapes = gapSlots.filter(
     (slot: any) =>
-      slot.timestamp < now &&
       !latestTimestamps.has(slot.timestamp) &&
       slot.scrapeTimestamp !== targetScrapeTimestamp
   );
