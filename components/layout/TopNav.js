@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Zap, CalendarClock, Video, Ellipsis, LogIn } from "lucide-react";
 import { NAV_TABS, activeTabFor } from "./navTabs";
 import { useAuth } from "../auth/AuthProvider";
 import UserMenu from "../auth/UserMenu";
-import { ShareButton } from "../ui/ShareButton";
 
 /**
  * Desktop navigation.
@@ -25,6 +23,24 @@ import { ShareButton } from "../ui/ShareButton";
  */
 const ICONS = { now: Zap, next: CalendarClock, cams: Video, more: Ellipsis };
 
+/**
+ * Brand mark — same file as the tab favicon (`public/favicon.png`: black
+ * double-wave on transparent). Nightglass inverts it via `.wm-brand-mark` in
+ * globals.css so the strokes stay visible on the dark page.
+ */
+function WatermanMark({ className = "" }) {
+  return (
+    <img
+      src="/favicon.png"
+      alt=""
+      width={20}
+      height={20}
+      aria-hidden
+      className={`wm-brand-mark shrink-0 w-5 h-5 object-contain ${className}`}
+    />
+  );
+}
+
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -34,21 +50,14 @@ export function TopNav() {
   const hiddenPaths = ["/admin", "/auth", "/ui-kit"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
 
-  // Resolve the share URL only after mount. Reading window during render makes
-  // the server emit "" and the client emit the real URL, which is a hydration
-  // mismatch on every page that renders this bar.
-  const [shareUrl, setShareUrl] = useState("");
-  useEffect(() => {
-    setShareUrl(window.location.href);
-  }, [pathname]);
-
   return (
     <header className="hidden md:block sticky top-0 z-40 bg-page/85 backdrop-blur-xl border-b border-card">
       <div className="max-w-[1200px] mx-auto px-8 h-14 flex items-center gap-6">
         <Link
           href="/"
-          className="font-headline font-extrabold text-[19px] tracking-display-tight text-ink leading-none focus-ring"
+          className="flex items-center gap-2.5 font-headline font-extrabold text-[19px] tracking-display-tight text-ink leading-none focus-ring"
         >
+          <WatermanMark />
           Waterman
         </Link>
 
@@ -64,23 +73,17 @@ export function TopNav() {
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-pill transition-colors duration-fast ease-smooth focus-ring ${
                   isActive
                     ? "bg-accent-tint text-accent"
-                    : "text-dim hover:text-faded-ink hover:bg-ink-hover"
+                    : "text-faded-ink hover:text-ink hover:bg-ink-hover"
                 }`}
               >
                 <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="font-data text-[10px] tracking-[0.1em]">{tab.label}</span>
+                <span className="font-data text-[11px] tracking-[0.08em]">{tab.label}</span>
               </Link>
             );
           })}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {shareUrl && (
-            <ShareButton
-              url={shareUrl}
-              className="h-8 w-8 rounded-full border border-card text-faded-ink hover:bg-ink-hover transition-colors duration-fast ease-smooth"
-            />
-          )}
           {authLoading ? (
             <div className="w-20 h-8" />
           ) : isAuthenticated ? (

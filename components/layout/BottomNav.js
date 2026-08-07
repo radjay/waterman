@@ -92,11 +92,11 @@ export function BottomNav() {
                 <tab.icon
                   size={17}
                   strokeWidth={isActive ? 2.5 : 2}
-                  className={isActive ? "text-accent" : "text-dim"}
+                  className={isActive ? "text-accent" : "text-faded-ink"}
                 />
                 <span
                   className={`font-data text-[0.47rem] uppercase tracking-[0.1em] leading-none ${
-                    isActive ? "text-accent" : "text-dim"
+                    isActive ? "text-accent" : "text-faded-ink"
                   }`}
                 >
                   {tab.label}

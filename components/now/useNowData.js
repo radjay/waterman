@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { agreementFor, groupByTimestamp, thresholdFor } from "../../lib/agreement";
-import { deriveVerdict, pickNowSpot, verdictReason } from "../../lib/verdict";
+import { deriveVerdict, VERDICT } from "../../lib/verdict";
 import {
   SLOT_HOURS,
   detectWindows,
@@ -15,7 +15,97 @@ import {
 import { spotsWithSlots } from "../../lib/reportData";
 import { classifyProximity, stationIdFromUrl } from "../../lib/stations";
 import { buildStationCard } from "../../lib/station";
+import { formatTideTime } from "../../lib/utils";
+import { dtf } from "../../lib/datetime";
 import { useFlag } from "../flags/FlagProvider";
+
+const WAVE_TZ = "Europe/Lisbon";
+
+/** YYYY-MM-DD in the spot timezone — used to keep the wave chart on "today". */
+function localDateKey(ms, timeZone = WAVE_TZ) {
+  return dtf("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
+}
+
+/**
+ * Swell series + tides for the Waves · Tide half of the Now hero.
+ *
+ * History is today's forecast slots only (every 3h from the scrape), not a
+ * multi-day trail — the card answers "how is the water right now", not the week.
+ */
+function buildWavesTide({ slot, slots = [], tides, nowMs }) {
+  const hasWave =
+    slot?.waveHeight !== null &&
+    slot?.waveHeight !== undefined &&
+    slot.waveHeight > 0;
+
+  const todayKey = localDateKey(nowMs);
+
+  const history = (slots || [])
+    .filter(
+      (s) =>
+        s.waveHeight !== null &&
+        s.waveHeight !== undefined &&
+        Number.isFinite(Number(s.waveHeight)) &&
+        localDateKey(s.timestamp) === todayKey
+    )
+    .map((s) => ({
+      time: s.timestamp,
+      height: Number(s.waveHeight),
+      period:
+        s.wavePeriod !== null && s.wavePeriod !== undefined
+          ? Number(s.wavePeriod)
+          : null,
+    }))
+    .sort((a, b) => a.time - b.time);
+
+  const domainMin = history.length > 0 ? history[0].time : nowMs;
+  const domainMax =
+    history.length > 0 ? history[history.length - 1].time : nowMs;
+
+  const chartTides = (tides || [])
+    .filter(
+      (t) =>
+        (t.type === "high" || t.type === "low") &&
+        localDateKey(t.time) === todayKey
+    )
+    .sort((a, b) => a.time - b.time)
+    .map((t) => ({
+      type: t.type,
+      time: t.time,
+      height: t.height,
+      timeStr: t.timeStr || formatTideTime(t.time),
+    }));
+
+  // Headline list still shows the next two from now, not every mark on the axis.
+  const upcoming = chartTides
+    .filter((t) => t.time >= nowMs - 30 * 60 * 1000)
+    .slice(0, 2);
+
+  if (!hasWave && history.length === 0 && chartTides.length === 0) return null;
+
+  // Prefer the slot covering now for the headline; fall back to the nearest
+  // history point so a missing current wave field still shows a number.
+  const nearest =
+    history.find((p) => p.time === slot?.timestamp) ||
+    history.reduce((best, p) => {
+      if (!best) return p;
+      return Math.abs(p.time - nowMs) < Math.abs(best.time - nowMs) ? p : best;
+    }, null);
+
+  return {
+    waveHeight: hasWave ? slot.waveHeight : nearest?.height ?? null,
+    wavePeriod: slot?.wavePeriod ?? nearest?.period ?? null,
+    waveDirection: slot?.waveDirection ?? null,
+    history,
+    tides: upcoming,
+    chartTides,
+  };
+}
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -29,29 +119,99 @@ function currentSlot(slots, nowMs) {
   );
 }
 
-/** How long the current run of good slots holds for. */
-function holdsUntil(slots, fromMs) {
-  const windows = detectWindows(slots);
-  const active = windows.find((w) => w.start <= fromMs && fromMs < w.end);
-  return active ? active.end : null;
+/** Remaining charted slots today from NOW, contiguous, capped. */
+function buildTrajectory(slots, fromSlot) {
+  const SLOT_MS = SLOT_HOURS * 60 * 60 * 1000;
+  const TRAJECTORY_MAX = 4;
+  const charted = slots.filter((s) => isChartedSlot(s.timestamp));
+  const fromIndex = charted.findIndex((s) => s.timestamp === fromSlot.timestamp);
+  const trajectory = [];
+  if (fromIndex === -1) return trajectory;
+  for (const slot of charted.slice(fromIndex, fromIndex + TRAJECTORY_MAX)) {
+    const previous = trajectory[trajectory.length - 1];
+    if (previous && slot.timestamp - previous.timestamp > SLOT_MS) break;
+    trajectory.push(slot);
+  }
+  return trajectory;
+}
+
+/**
+ * One Now card's worth of data for a candidate spot.
+ * Cam / station / waves always belong to this spot — never mixed.
+ */
+async function buildVerdictPack(candidate, report, now, showStation, sport) {
+  let agreement = null;
+  try {
+    const modelRows = await client.query(api.models.getModelSlotsForSpot, {
+      spotId: candidate.spot._id,
+      sinceTimestamp: now - 3 * 60 * 60 * 1000,
+    });
+    const byTime = groupByTimestamp(modelRows);
+    const threshold = thresholdFor(candidate.config, sport, candidate.slots);
+    if (threshold) {
+      agreement = agreementFor(byTime.get(candidate.slot.timestamp) || [], threshold);
+    }
+  } catch {
+    agreement = null;
+  }
+
+  let station = null;
+  const stationId = stationIdFromUrl(candidate.spot.liveReportUrl);
+  if (stationId) {
+    try {
+      const readings = await client.query(api.stations.getStationReadings, {
+        stationId,
+        sinceAt: now - 6 * 60 * 60 * 1000,
+      });
+      station = buildStationCard({
+        readings,
+        forecastSlot: candidate.slot,
+        forecastSlots: candidate.slots,
+        proximity: classifyProximity(stationId, candidate.spot),
+        nowMs: now,
+      });
+    } catch {
+      station = null;
+    }
+  }
+
+  const waves = buildWavesTide({
+    slot: candidate.slot,
+    slots: candidate.slots,
+    tides: report?.data?.[candidate.spot._id]?.tides ?? [],
+    nowMs: now,
+  });
+
+  const stationDelta = showStation ? (station?.delta ?? null) : null;
+  const verdict = deriveVerdict({
+    score: candidate.score,
+    agreement,
+    stationDelta,
+  });
+
+  return {
+    verdict,
+    spot: candidate.spot,
+    slot: candidate.slot,
+    score: candidate.score,
+    agreement,
+    station,
+    waves,
+    trajectory: buildTrajectory(candidate.slots, candidate.slot),
+  };
 }
 
 /**
  * Everything the Now screen needs, for one sport.
  *
- * Spot selection: the best-scoring candidate right now. The spot is free to
- * change from hour to hour as conditions move down the coast — that is the
- * intent, because Now answers "can I go", not "how is my usual spot". The cam
- * and station shown always belong to the returned spot; a verdict for one spot
- * beside another's cam would be actively misleading.
+ * Up to two cards: the best-scoring favourite right now, plus a second spot
+ * when it is also eligible (GO / MAYBE). NO spots never take the second slot —
+ * the primary card still shows when the coast is flat.
  */
 export function useNowData(sport, favoriteIds = []) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
-  // Gated here, not just at the EvidenceStack card: the card and the verdict
-  // are two different surfaces reading the same reading, and the flag being
-  // off must mean the delta cannot move the verdict either — otherwise the
-  // moment the cron starts running, a station can flip NO to MARGINAL while
-  // the card that would explain why stays hidden (RAD station-evidence).
+  // Gated here: the card and the verdict both read the station, and the flag
+  // being off must mean the delta cannot move the verdict either.
   const showStation = useFlag("stationEvidence");
 
   useEffect(() => {
@@ -66,10 +226,6 @@ export function useNowData(sport, favoriteIds = []) {
         const now = Date.now();
         const candidates = [];
 
-        // Now speaks for ONE spot, so it has to be one the rider actually goes
-        // to. Ranking the whole coast would send someone an hour up the road
-        // without saying so — with favourites it is their own beaches, and
-        // without them the screen asks rather than guesses.
         const all = spotsWithSlots(report, sport);
         const mine = favoriteIds.length
           ? all.filter(({ spot }) => favoriteIds.includes(spot._id))
@@ -79,7 +235,7 @@ export function useNowData(sport, favoriteIds = []) {
           setState({
             loading: false,
             error: null,
-            data: { needsFavorites: true, verdict: null, spot: null },
+            data: { needsFavorites: true, verdicts: [], spot: null },
           });
           return;
         }
@@ -91,112 +247,57 @@ export function useNowData(sport, favoriteIds = []) {
           candidates.push({ spot, slot, slots, score: slot.score, config });
         }
 
-        const chosen = pickNowSpot(candidates);
-        if (!chosen) {
+        // Best score first so the primary card is always the top answer.
+        candidates.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+
+        if (candidates.length === 0) {
           setState({
             loading: false,
             error: null,
-            // Favourites exist but none of them support this sport, or none
-            // have slots — different from having no favourites at all.
-            data: { verdict: null, spot: null, noSpotForSport: mine.length === 0 },
+            data: {
+              verdicts: [],
+              spot: null,
+              noSpotForSport: mine.length === 0,
+            },
           });
           return;
         }
 
-        // Model agreement for the chosen spot's current slot. A failure here
-        // must read as "no model data", never as disagreement.
-        let agreement = null;
-        try {
-          const modelRows = await client.query(api.models.getModelSlotsForSpot, {
-            spotId: chosen.spot._id,
-            sinceTimestamp: now - 3 * 60 * 60 * 1000,
-          });
-          const byTime = groupByTimestamp(modelRows);
-          const threshold = thresholdFor(chosen.config, sport, chosen.slots);
-          if (threshold) {
-            agreement = agreementFor(byTime.get(chosen.slot.timestamp) || [], threshold);
-          }
-        } catch {
-          agreement = null;
-        }
-        if (cancelled) return;
+        const packs = [];
+        for (const candidate of candidates) {
+          if (packs.length >= 2) break;
+          const pack = await buildVerdictPack(
+            candidate,
+            report,
+            now,
+            showStation,
+            sport
+          );
+          if (cancelled) return;
 
-        // The live station, when the chosen spot has one. As with agreement,
-        // a failure here must read as "no station", never as a reading.
-        let station = null;
-        const stationId = stationIdFromUrl(chosen.spot.liveReportUrl);
-        if (stationId) {
-          try {
-            const readings = await client.query(api.stations.getStationReadings, {
-              stationId,
-              // Match lib/station HISTORY_MS (6h sparkline window).
-              sinceAt: now - 6 * 60 * 60 * 1000,
-            });
-            station = buildStationCard({
-              readings,
-              forecastSlot: chosen.slot,
-              // Full trail so the sparkline can paint the model over 6h, not
-              // just the single slot used for the "+N vs forecast" delta.
-              forecastSlots: chosen.slots,
-              proximity: classifyProximity(stationId, chosen.spot),
-              nowMs: now,
-            });
-          } catch {
-            station = null;
+          // First card always ships (even on a flat day). Second only if eligible.
+          if (packs.length === 0) {
+            packs.push(pack);
+            continue;
+          }
+          if (pack.verdict !== VERDICT.NO) {
+            packs.push(pack);
           }
         }
-        if (cancelled) return;
 
-        const verdict = deriveVerdict({
-          score: chosen.score,
-          agreement,
-          stationDelta: showStation ? (station?.delta ?? null) : null,
-        });
-
-        // Where the rider should look instead, when the answer is no.
-        // Daylight only — a window starting at 04:00 is not a session anyone
-        // is being offered, and it is what the chart draws from too.
         const bySpot = candidates.map((c) => ({
           spot: c.spot,
           windows: detectWindows(c.slots.filter((s) => isChartedSlot(s.timestamp))),
         }));
         const next = soonestWindow(bySpot, now);
-        // The verdict card above is already describing the chosen spot's
-        // running window; listing it again here showed the same session twice.
+        // Drop windows that belong to a card already on screen.
+        const shownIds = new Set(packs.map((p) => p.spot._id));
         const nextWindows = upcomingWindows(bySpot, now, 3, {
-          excludeActiveAt: chosen.spot._id,
-        });
+          excludeActiveAt: packs[0]?.spot?._id,
+        }).filter(({ spot }) => !shownIds.has(spot._id));
 
-        // Remaining charted slots today from NOW, capped at 4. Shape is what
-        // says "and it holds" or "and it dies" once the hero wind row went away
-        // and each cell carries its own reading.
-        //
-        // Contiguous only. The charted slots skip the night, so at 20:00 the
-        // "next" ones are tomorrow 07:00 — drawing those beside NOW claims a
-        // continuation that does not exist. A run that stops stops.
-        const SLOT_MS = SLOT_HOURS * 60 * 60 * 1000;
-        const TRAJECTORY_MAX = 4;
-        const charted = chosen.slots.filter((s) => isChartedSlot(s.timestamp));
-        const fromIndex = charted.findIndex((s) => s.timestamp === chosen.slot.timestamp);
-        const trajectory = [];
-        if (fromIndex !== -1) {
-          for (const slot of charted.slice(fromIndex, fromIndex + TRAJECTORY_MAX)) {
-            const previous = trajectory[trajectory.length - 1];
-            if (previous && slot.timestamp - previous.timestamp > SLOT_MS) break;
-            trajectory.push(slot);
-          }
-        }
-
-        // "Nothing at your spots" and "nothing on the coast" are completely
-        // different decisions, and the screen could not tell them apart. Only
-        // meaningful when the rider actually has favourites to be scoped to.
         const scopedToFavorites = mine.length > 0;
         const dayEnd = now + 24 * 60 * 60 * 1000;
-        // Narrow BEFORE the expensive part. detectWindows plus the per-slot
-        // charted-hours check over every spot on the coast is a lot of work for
-        // a single integer, and almost all of those slots are outside the next
-        // 24 hours. Filtering on timestamp first is a plain numeric compare and
-        // throws away the large majority of them.
         const elsewhereToday = scopedToFavorites
           ? all
               .filter(({ spot }) => !favoriteIds.includes(spot._id))
@@ -213,35 +314,29 @@ export function useNowData(sport, favoriteIds = []) {
               .filter((w) => w.end > now && w.start < dayEnd).length
           : 0;
 
+        const primary = packs[0] || null;
+
         setState({
           loading: false,
           error: null,
           data: {
-            verdict,
-            trajectory,
+            verdicts: packs,
+            // Back-compat aliases used by a few call sites / mental model.
+            verdict: primary?.verdict ?? null,
+            trajectory: primary?.trajectory ?? [],
             elsewhereToday,
-            spot: chosen.spot,
-            slot: chosen.slot,
-            agreement,
-            station,
-            score: chosen.score,
-            reasoning: chosen.slot.reasoning,
+            spot: primary?.spot ?? null,
+            slot: primary?.slot ?? null,
+            agreement: primary?.agreement ?? null,
+            station: primary?.station ?? null,
+            waves: primary?.waves ?? null,
+            score: primary?.score ?? null,
             nextWindow: next,
             nextWindows,
-            reason: verdictReason({
-              verdict,
-              holdsUntil: holdsUntil(chosen.slots, now),
-              agreement,
-              stationDelta: showStation ? (station?.delta ?? null) : null,
-              nextWindowStart: next?.window?.start ?? null,
-            }),
           },
         });
       } catch (error) {
         if (cancelled) return;
-        // Surfacing this matters: the audit flags that the report swallows
-        // Convex errors and shows "No conditions", which is indistinguishable
-        // from a genuinely flat day (RAD-59).
         setState({ loading: false, error, data: null });
       }
     })();

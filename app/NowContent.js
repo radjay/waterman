@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, MapPin, Share } from "lucide-react";
+import { CalendarClock, MapPin } from "lucide-react";
 import { MainLayout } from "../components/layout/MainLayout";
-import { PageHeader } from "../components/layout/PageHeader";
 import { useSport } from "../components/sport/SportProvider";
 import { useUser } from "../components/auth/AuthProvider";
 import { useFlag } from "../components/flags/FlagProvider";
 import { VerdictCard } from "../components/now/VerdictCard";
-import { VERDICT } from "../lib/verdict";
-import { EvidenceStack, InTheWaterCard } from "../components/now/EvidenceStack";
+import { InTheWaterCard, ModelAgreementCard } from "../components/now/EvidenceStack";
 import { LabsSection } from "../components/ui/LabsSection";
+import { agreementSentence, BANDS } from "../lib/agreement";
 import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
 import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
 import { useNowData } from "../components/now/useNowData";
@@ -20,7 +19,7 @@ import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
 import { primaryMetric } from "../lib/conditions";
 import { dayStartOf } from "../lib/windows";
 import { toSpotSlug } from "../lib/spotSlug";
-import { useShare } from "../hooks/useShare";
+import { VERDICT } from "../lib/verdict";
 
 export function NowContent() {
   const router = useRouter();
@@ -31,38 +30,16 @@ export function NowContent() {
   const user = useUser();
   const favoriteIds = user?.favoriteSpots ?? [];
   const { loading, error, data } = useNowData(sport, favoriteIds);
-  // The cam opens where it already is. Sending the rider to /cams to watch the
-  // picture they were already looking at loses the verdict it belongs to.
-  const [camOpen, setCamOpen] = useState(false);
-  const { share } = useShare({
-    url: typeof window !== "undefined" ? window.location.href : "",
-    title: "Waterman",
-  });
+  // Which cam is open (spot id) — two verdict cards may each have a stream.
+  const [camSpotId, setCamSpotId] = useState(null);
 
-  // Fixtures only. Never written to Convex — production and development share
-  // one deployment, so seeded dummies would be shown to real users.
-  const riderCount = showRiderCounts && data?.spot ? fixtureRiderCount(data.spot._id) : null;
+  const verdicts = data?.verdicts ?? [];
+  const primary = verdicts[0] ?? null;
 
   return (
     <MainLayout>
-      <PageHeader
-        title="Go now"
-        subtitle="Best of your spots, right now."
-        actions={
-          <button
-            onClick={share}
-            aria-label="Share"
-            className="md:hidden w-9 h-9 flex-none flex items-center justify-center rounded-pill border border-btn text-faded-ink focus-ring"
-          >
-            <Share size={14} />
-          </button>
-        }
-      />
-
       {loading && <NowSkeleton />}
 
-      {/* An error is not a flat day. Saying "nothing on" when the backend
-          failed is the RAD-59 bug, and it destroys trust in every other NO. */}
       {!loading && error && (
         <div className="rounded-card-lg border border-marginal/30 bg-marginal/10 p-4">
           <div className="font-data text-[10px] tracking-label text-marginal mb-1.5">
@@ -111,49 +88,61 @@ export function NowContent() {
 
       {!loading && !error && data && !data.needsFavorites && (
         <>
-          <VerdictCard
-            verdict={data.verdict}
-            sport={sport}
-            spotName={data.spot?.name}
-            score={data.slot?.score}
-            metric={primaryMetric(data.slot, sport)}
-            liveReportUrl={data.spot?.liveReportUrl}
-            reason={data.reason}
-            riderCount={riderCount}
-            reasoning={data.reasoning}
-            station={showStation ? data.station : null}
-            trajectory={data.trajectory}
-            elsewhereToday={data.elsewhereToday}
-            onSeeElsewhere={() => router.push("/next")}
-            // On a NO GO the video is the least useful thing on screen and was
-            // taking half the viewport. Collapsed to a strip, still one tap
-            // from the full picture.
-            compactCam={data.verdict === VERDICT.NO}
-            camSlot={data.spot && streamUrlFor(data.spot) ? <LiveCam spot={data.spot} /> : null}
-            // The cam itself is the affordance — a separate WATCH CAM button
-            // underneath was a second control for the same thing.
-            onOpenCam={() => setCamOpen(true)}
-            // The verdict is about one spot; the card is the way into that
-            // spot's week rather than into the coast-wide list.
-            onOpenSpot={
-              data.spot
-                ? () => router.push(`/next/${toSpotSlug(data.spot.name)}`)
-                : undefined
-            }
-          />
+          <div className="flex flex-col gap-3">
+            {verdicts.map((pack, index) => {
+              const riderCount =
+                showRiderCounts && pack.spot
+                  ? fixtureRiderCount(pack.spot._id)
+                  : null;
+              return (
+                <VerdictCard
+                  key={pack.spot?._id ?? index}
+                  verdict={pack.verdict}
+                  sport={sport}
+                  spotName={pack.spot?.name}
+                  score={pack.slot?.score}
+                  metric={primaryMetric(pack.slot, sport)}
+                  liveReportUrl={pack.spot?.liveReportUrl}
+                  riderCount={riderCount}
+                  station={showStation ? pack.station : null}
+                  waves={pack.waves}
+                  trajectory={pack.trajectory}
+                  // Elsewhere only on the primary card when it is a flat day.
+                  elsewhereToday={
+                    index === 0 && pack.verdict === VERDICT.NO
+                      ? data.elsewhereToday
+                      : 0
+                  }
+                  onSeeElsewhere={() => router.push("/next")}
+                  camSlot={
+                    pack.spot && streamUrlFor(pack.spot) ? (
+                      <LiveCam spot={pack.spot} />
+                    ) : null
+                  }
+                  onOpenCam={() => setCamSpotId(pack.spot?._id ?? null)}
+                  onOpenSpot={
+                    pack.spot
+                      ? () => router.push(`/next/${toSpotSlug(pack.spot.name)}`)
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
 
-          {camOpen && data.spot && (
-            <WebcamFullscreen
-              spot={data.spot}
-              score={data.slot?.score}
-              onClose={() => setCamOpen(false)}
-            />
-          )}
+          {camSpotId &&
+            (() => {
+              const pack = verdicts.find((v) => v.spot?._id === camSpotId);
+              if (!pack?.spot) return null;
+              return (
+                <WebcamFullscreen
+                  spot={pack.spot}
+                  score={pack.slot?.score}
+                  onClose={() => setCamSpotId(null)}
+                />
+              );
+            })()}
 
-          {/* Three, not one. A single next window answers "when" but not "or
-              else what", and on a flat day the second and third options are the
-              ones that actually get someone on the water. */}
-          {/* Escape hatch to "when's next" — only after the go-now answer. */}
           {data.nextWindows?.length > 0 && (
             <section className="pt-4">
               <div className="flex items-baseline justify-between gap-3 mb-2.5">
@@ -187,15 +176,33 @@ export function NowContent() {
             </section>
           )}
 
-          <EvidenceStack agreement={showModels ? data.agreement : null} />
+          {/* Model agreement lives in Labs — same pattern as the window page.
+              It is a curiosity, not the reason for the verdict above. */}
+          {showModels &&
+            primary?.agreement &&
+            primary.agreement.band !== BANDS.UNKNOWN && (
+              <LabsSection
+                title="Model comparison"
+                caption={
+                  agreementSentence(primary.agreement) ??
+                  `${primary.agreement.agreed} of ${primary.agreement.total}`
+                }
+              >
+                <ModelAgreementCard agreement={primary.agreement} bare />
+              </LabsSection>
+            )}
 
-          {riderCount && (
+          {showRiderCounts && primary?.spot && fixtureRiderCount(primary.spot._id) && (
             <LabsSection title="IN THE WATER" caption="Estimated from webcam footage">
-              <InTheWaterCard reading={riderCount} sportNoun={meta.noun} bare />
+              <InTheWaterCard
+                reading={fixtureRiderCount(primary.spot._id)}
+                sportNoun={meta.noun}
+                bare
+              />
             </LabsSection>
           )}
 
-          {!data.spot && (
+          {verdicts.length === 0 && (
             <div className="pt-10 text-center">
               <p className="font-headline font-extrabold text-[27px] tracking-display-tight text-ink leading-[1.1]">
                 {data.noSpotForSport
@@ -221,11 +228,6 @@ export function NowContent() {
   );
 }
 
-/**
- * Evidence arrives separately from the forecast — station and rider counts are
- * different round trips — so each card needs its own resting state rather than
- * the whole screen blocking on the slowest one.
- */
 function NowSkeleton() {
   return (
     <div className="animate-pulse" aria-hidden="true">

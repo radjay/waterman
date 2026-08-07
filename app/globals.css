@@ -17,6 +17,14 @@
 }
 
 @layer components {
+  /* Favicon is black-on-transparent; invert on Nightglass (the default). */
+  .wm-brand-mark {
+    filter: invert(1);
+  }
+  :root[data-theme="day"] .wm-brand-mark {
+    filter: none;
+  }
+
   .slot-spot {
     @apply h-full flex items-center justify-start pl-4;
   }

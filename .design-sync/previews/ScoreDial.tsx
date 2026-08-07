@@ -40,11 +40,26 @@ export const HiddenBelowSixty = () => (
   </div>
 );
 
-export const WithLabelAndSport = () => (
+// Number only. Captions ("SCORE", "BEST") and sport glyphs used to live inside
+// the ring and were removed: the dial is one comparable figure, and the extra
+// chrome made a row of scores harder to scan. Anything that needs saying goes
+// next to the dial, not inside it.
+export const NumberOnly = () => (
   <div className="flex items-center gap-6">
-    <ScoreDial score={88} size="lg" label="NOW" />
-    <ScoreDial score={95} size="xl" label="BEST" />
-    <ScoreDial score={81} size="lg" sport="wingfoil" />
+    <div className="flex items-center gap-3">
+      <ScoreDial score={88} size="lg" />
+      <div>
+        <div className="font-data text-[10px] tracking-label text-accent">NOW</div>
+        <div className="font-data text-[11px] text-faded-ink mt-0.5">18 kn NNW</div>
+      </div>
+    </div>
+    <div className="flex items-center gap-3">
+      <ScoreDial score={95} size="xl" />
+      <div>
+        <div className="font-data text-[10px] tracking-label text-faded-ink">BEST · 15:00</div>
+        <div className="font-data text-[11px] text-faded-ink mt-0.5">21 kn NNW</div>
+      </div>
+    </div>
   </div>
 );
 
@@ -52,7 +67,7 @@ export const WithLabelAndSport = () => (
 // punches a page-coloured hole and reads as a sticker.
 export const OnATintedCard = () => (
   <div className="bg-accent-tint-card border border-accent-border rounded-card-lg p-4 flex items-center gap-4 max-w-[420px]">
-    <ScoreDial score={84} size="md" on="card" label="NOW" />
+    <ScoreDial score={84} size="md" on="card" />
     <div>
       <div className="font-headline font-bold text-[15px] text-ink tracking-display">
         Praia do Guincho

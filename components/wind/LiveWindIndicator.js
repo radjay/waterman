@@ -81,10 +81,18 @@ export function LiveWindIndicator({
   // Don't show stale data — hiding is less confusing than showing old readings
   if (isStale) return fallback;
 
-  const speed = Math.round(liveWind.windSpeedKnots);
-  const gust = Number.isFinite(liveWind.windGustKnots)
-    ? Math.round(liveWind.windGustKnots)
-    : null;
+  // Windguru occasionally returns sentinel garbage (e.g. -534 kn / -990°) when
+  // a station is flaky. Never paint that on a cam — fall back to LIVE.
+  const rawSpeed = liveWind.windSpeedKnots;
+  const rawGust = liveWind.windGustKnots;
+  const plausible =
+    rawSpeed >= 0 &&
+    rawSpeed <= 150 &&
+    (!Number.isFinite(rawGust) || (rawGust >= 0 && rawGust <= 200));
+  if (!plausible) return fallback;
+
+  const speed = Math.round(rawSpeed);
+  const gust = Number.isFinite(rawGust) ? Math.round(rawGust) : null;
   const arrow = Number.isFinite(liveWind.windDirection) ? (
     <Arrow direction={(liveWind.windDirection + 180) % 360} size={compact ? 8 : 10} />
   ) : null;
