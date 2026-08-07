@@ -4,6 +4,11 @@ import { EvidenceStack } from 'waterman';
 // rider trusts it. The stack must read as complete with only the cards it can
 // fill: most spots have neither a cam nor a live station, and one honest card is
 // a legitimate screen where three skeletons that never resolve are not.
+// History points carry `time` (epoch ms) as well as a speed: StationCard draws
+// them through StationWindChart, whose x-axis is Lisbon wall-clock time, so a
+// bare list of speeds plots nothing.
+const START = Date.UTC(2026, 6, 14, 9, 0); // 10:00 in Lisbon
+
 const STATION = {
   speed: 19.4,
   gust: 25,
@@ -11,7 +16,14 @@ const STATION = {
   delta: 2,
   agoLabel: '8 MIN AGO',
   caption: 'Windguru station 4021',
-  history: [11, 13, 12, 16, 18, 17, 19, 21, 20, 19].map((speed) => ({ speed })),
+  history: [
+    14, 14.8, 15.4, 16.1, 16.8, 17.2, 17.9, 18.4, 18.8, 19.3, 19.7, 20.1, 20.4,
+    20.8, 21.1, 20.7, 20.3, 19.9, 19.6, 19.4,
+  ].map((speed, i) => ({
+    time: START + i * 10 * 60_000,
+    speed,
+    gust: Math.round(speed * 1.29 * 10) / 10,
+  })),
 };
 
 export const StationReading = () => (

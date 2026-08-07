@@ -9,7 +9,7 @@ import {
   LiveWindIndicator,
   extractWindguruStationId,
 } from "../wind/LiveWindIndicator";
-import { StationCard } from "./EvidenceStack";
+import { StationCard, WavesTideCard } from "./EvidenceStack";
 import { WindReading } from "./WindReading";
 import { primaryMetric } from "../../lib/conditions";
 import { dtf } from "../../lib/datetime";
@@ -34,12 +34,12 @@ const VERDICT_WORD = {
 /**
  * The answer to "can I go", before anything else.
  *
- * The verdict word carries the colour (accent / caution / dim). The card shell
- * stays neutral — tinting the whole box for MAYBE/GO made the accent fight the
- * score dial and the wind reading for attention.
- *
- * Wind and score live in the timeslot strip, not a separate hero row: one place
- * to compare now vs later. No direction arrow — compass text is enough.
+ * Order on the card:
+ *   1. Verdict + spot + sport chip
+ *   2. Trajectory (when today)
+ *   3. Cam (always 16:9 — a thin strip is not useful)
+ *   4. Station | waves·tide (half-width pair when both present)
+ *   5. LLM reasoning (last — evidence first, then the write-up)
  *
  * The card as a whole leads to this spot's week. A div rather than a button:
  * the sport chip and the cam are their own controls inside it, and a button
@@ -53,14 +53,15 @@ export function VerdictCard({
   score: _score,
   metric: _metric,
   liveReportUrl,
-  reason,
-  reasoning,
+  // reason / reasoning kept for callers; prose is intentionally not rendered.
+  reason: _reason,
+  reasoning: _reasoning,
   station = null,
+  waves = null,
   trajectory = [],
   elsewhereToday = 0,
   riderCount,
   camSlot,
-  compactCam = false,
   onOpenCam,
   onOpenSpot,
   onSeeElsewhere,
@@ -68,6 +69,7 @@ export function VerdictCard({
   const tone = VERDICT_TONE[verdict] || "dim";
   const isGo = verdict === VERDICT.GO;
   const isMarginal = verdict === VERDICT.MARGINAL;
+  const showEvidenceRow = Boolean(station || waves);
 
   // Controls inside the card have to claim their own clicks, or every one of
   // them would also navigate away to the week.
@@ -93,6 +95,7 @@ export function VerdictCard({
         onOpenSpot ? "cursor-pointer focus-ring" : ""
       }`}
     >
+      {/* 1 — answer + where + sport */}
       <div className="flex items-start justify-between gap-3">
         {/* Mobile: spot under the verdict so "@ Marina de Cascais" is not
             truncated to "Mar…". Desktop: same baseline as before. */}
@@ -119,40 +122,17 @@ export function VerdictCard({
         </span>
       </div>
 
-      {/* GO NOW: answer → when today → why → live numbers → glance at cam. */}
+      {/* 2 — when today */}
       {trajectory.length > 0 && (
         <Trajectory slots={trajectory} sport={sport} />
       )}
 
-      {(reasoning || reason) && (
-        <p
-          className="mt-3 text-[13px] leading-[1.45] text-faded-ink line-clamp-3"
-          onClick={own()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          {reasoning || reason}
-        </p>
-      )}
-
-      {station && (
-        <div
-          className="mt-3"
-          onClick={own()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <StationCard station={station} />
-        </div>
-      )}
-
+      {/* 3 — live scene, full card width, true 16:9. */}
       {camSlot && (
         <button
           onClick={own(onOpenCam)}
           aria-label="Open the live cam"
-          // Capped height: confirm the scene without scrolling through a
-          // full-bleed beach before "if not now". Fullscreen is one tap away.
-          className={`relative block w-full max-h-[min(36vh,280px)] rounded-card-sm overflow-hidden mt-3 border focus-ring border-card ${
-            compactCam ? "aspect-[21/6]" : "aspect-video"
-          }`}
+          className="relative mt-3 block w-full aspect-video rounded-card-sm overflow-hidden border focus-ring border-card"
         >
           {camSlot}
           <span className="absolute top-[9px] left-[9px] flex items-center gap-[7px] pointer-events-none">
@@ -175,6 +155,24 @@ export function VerdictCard({
           </span>
         </button>
       )}
+
+      {/* 4 — measured wind | waves + tide */}
+      {showEvidenceRow && (
+        <div
+          className={`mt-3 grid gap-2 ${
+            station && waves ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+          }`}
+          onClick={own()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {station && <StationCard station={station} compactChart={Boolean(waves)} />}
+          {waves && (
+            <WavesTideCard waves={waves} compactChart={Boolean(station)} />
+          )}
+        </div>
+      )}
+
+      {/* Scorer prose intentionally omitted — noisy and not reliable enough. */}
 
       {!isGo && !isMarginal && elsewhereToday > 0 && onSeeElsewhere && (
         <button

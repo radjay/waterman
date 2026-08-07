@@ -96,9 +96,12 @@ utilities for layout (flex, grid, gap, max-w), not to re-skin a control.
     verdict="GO"
     sport="wingfoil"
     spotName="Praia do Guincho"
-    score={92}
-    metric={{ value: 18, unit: 'kn', secondary: '(24*)', directionLabel: 'NNW', directionDegrees: 340 }}
     reason="HOLDING UNTIL ABOUT 18:00"
+    trajectory={[
+      { timestamp: t, score: 88, speed: 18, gust: 24, direction: 160 },
+      { timestamp: t + 3 * HOUR, score: 92, speed: 21, gust: 27, direction: 160 },
+      { timestamp: t + 6 * HOUR, score: 84, speed: 19, gust: 23, direction: 160 },
+    ]}
   />
 
   <section className="pt-5">
@@ -117,6 +120,12 @@ Library components carry the styling; the `grid`/`gap` glue is yours. Note the
 hand-built, and the first card highlighted because it is the recommendation —
 not merely the earliest.
 
+`VerdictCard` takes a **`trajectory`** of the remaining slots today and renders
+each one's wind and score itself; card-level `score` and `metric` are still
+accepted for older callers but ignored. Slots are forecast slots —
+`primaryMetric(slot, sport)` reads `speed`/`gust`/`direction` for the wind
+sports and `waveHeight`/`wavePeriod` for surf.
+
 ## Worth knowing
 
 - Scores are 0–100. `ScoreDial` **renders nothing below 60** unless you pass
@@ -128,9 +137,10 @@ not merely the earliest.
   headline metric is sport-specific: wind sports lead with wind, surf leads with
   swell height and keeps wind as context.
 - **Direction is stored as the bearing the energy travels TO and displayed as
-  where it comes FROM (+180).** `Arrow` and the verdict card's ring rotate by the
-  RAW bearing; the conversion lives in the label. Mixing these up silently
-  reverses every wind direction in the UI.
+  where it comes FROM (+180).** `Arrow` rotates by the RAW bearing; the
+  conversion lives in the label. Mixing these up silently reverses every wind
+  direction in the UI. `WindReading` prints the compass label and deliberately
+  no arrow — the label is the whole statement.
 - `Badge` is the only pill. Its `overlay` and `accent-solid` variants exist for
   sitting on video, where theme text tokens are wrong by definition.
 - `LiveWindIndicator`, `LiveWindRow`, `RecordButton` and `UserMenu` render

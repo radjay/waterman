@@ -172,15 +172,70 @@ Then grade anything in `verification.pendingGrade` from the fresh sheets, check
 validate's warn lines against "Known render warns" below, and upload per the
 skill's §5 if `upload.any` is true.
 
-**This sync's baseline (2026-08-04):** 91 components, 89 authored previews all
-graded `good`, 2 deliberate floor cards (LiveWindRow, UserMenu — both need a
-live endpoint or a session), render check 91/91 clean, validate exits 0 with no
-warnings. A re-sync that reports materially worse than that has regressed — do
-not just accept it.
+**This sync's baseline (2026-08-06, commit `332e4d8`):** 96 components, 94
+authored previews all graded `good`, 2 deliberate floor cards (LiveWindRow,
+UserMenu — both need a live endpoint or a session), render check 96/96 clean,
+validate exits 0. A re-sync that reports materially worse than that has
+regressed — do not just accept it.
+
+(The 2026-08-04 baseline was 91 components / 89 previews on the same themes.)
+
+**Record the synced commit above on every sync.** The next run needs it for the
+source diff described under "The verification partition is blind to component
+code" — without a SHA to diff against, that check has no starting point.
 
 (The 2026-08-03 baseline was 72 components on the old newsprint theme. What
 changed in between is the whole visual system — see "The 2026-08-04 re-sync"
 below.)
+
+## The verification partition is blind to component code — READ THIS FIRST
+
+**The driver's `changed` list will be empty even when the app's components were
+rewritten.** `renderHashes` / `sourceKeys` are computed from the authored
+preview `.tsx`, the preview-affecting config and the emitted per-component
+artifacts. They do **not** hash the bundle. Every component in this repo lives
+in the bundle, so a pull that rewrites `VerdictCard` reports
+`unchanged: 91, changed: 0` while that card renders something completely
+different. `upload.bundle: true` is the only hint, and it names nothing.
+
+The 2026-08-06 sync hit exactly this: the driver reported zero changed
+components, and four previews were quietly wrong.
+
+**So on every re-sync, before trusting the partition, diff the source:**
+
+```sh
+git diff <last-synced-sha>..HEAD --stat -- components/
+git diff <last-synced-sha>..HEAD -- components/ | grep -E '^[-+]export (function|const)'
+```
+
+Anything whose destructured signature moved needs its preview re-read, whether
+or not the driver flagged it. The render check does **not** catch this class:
+a preview passing removed props still renders, just without the thing the props
+were for. Known shapes of it, all seen in one pull:
+
+- a prop is **removed** and the component silently ignores it (`ScoreDial`'s
+  `label`/`sport`) — the cells that existed to show it become duplicates;
+- a prop is **retired but still accepted** (`VerdictCard`'s `score`/`metric`,
+  destructured as `_score`/`_metric`) — the card renders, minus its numbers;
+- a **new required-ish prop** carries the component's point (`VerdictCard`'s
+  `trajectory`, `HourByHour`'s `peakTimestamp`) — absent, the card looks fine
+  and teaches an outdated composition;
+- a **fixture shape grows a field** (`station.history` points now need `time`
+  in epoch ms for `StationWindChart`) — the old fixture plots nothing.
+
+## Install before building: the bundle resolves the app's real deps
+
+`npm ci` after any pull that touched `package.json`, **before** the prep build.
+The converter bundles the app's actual imports, so a dependency added by a pull
+that is not installed fails the build outright — 2026-08-06 added `recharts`
+(for `StationWindChart`) and the build died on `[UNRESOLVED_IMPORT] recharts`.
+
+## A partial ds-bundle/ blocks the next build
+
+`[OUT_UNSAFE] refusing to rm …/ds-bundle` means the directory is non-empty but
+carries no bundle marker — an interrupted prior run. `rm -rf ds-bundle` and
+re-run; it is regenerated output. Grades are **not** in there (they live in
+`.design-sync/.cache/review/`), so nothing verified is lost.
 
 ## Preview-authoring gotchas (learned the hard way)
 
@@ -215,6 +270,36 @@ below.)
   wider than a grid cell) and `Modal: {cardMode:"single", primaryStory:
   "ScoreBreakdown"}` (overlay escapes the grid). Both came from
   `[GRID_OVERFLOW]` warns naming the exact remedy.
+
+## Preview facts from the 2026-08-06 components
+
+- **`VerdictCard` needs a wide stage.** Its `trajectory` strip is one row of
+  equal columns from `md` up, each holding a `WindReading` beside a `ScoreDial`.
+  The capture viewport is 900px so `md:` is always active: at a 520px stage the
+  compass label runs under the dial on any 3-slot story. The preview stages at
+  `max-w-[860px]`, which is what the real page container (`MainLayout`,
+  `max-w-[1200px] px-8`) gives it on desktop.
+- **`StationWindChart`'s y-axis starts at zero.** A fixture that only wanders
+  between 18 and 22 kn draws a near-flat line and two stories that look
+  identical. Use a shape with real range (the committed one runs 7 → 26 kn),
+  and make the `forecast` step visibly diverge from the station lines or the
+  dashed third line reads as chart furniture.
+- **`WindReading`'s `md` and `lg` are nearly identical at desktop width** — the
+  size difference is a phone/`md:` responsive step, not a static scale. Showing
+  them side by side produces a "variants render identically" card; the preview
+  shows each in the context it was sized for (timeslot cell vs station block)
+  instead.
+- **`SportFilterChip` always reads WING inside a preview.** It takes no props
+  and reads `SportProvider`, which restores from `localStorage` after mount;
+  there is no stored selection in the harness. The `VerdictCard` surf story
+  therefore shows a WING chip while its strip prints swell in metres — the
+  card's own `sport` prop is what drives the metric. Do **not** "fix" this by
+  seeding localStorage from a story: the key is global, so one cell would flip
+  the chip in every other cell on the card.
+- **`LiveEvidencePanel` gets one story on purpose.** Its cam strip only appears
+  when `streamUrlFor(spot)` resolves, and per the webcam-fixture rule above a
+  fake URL just makes hls.js retry until capture times out. The station half is
+  what a static preview can honestly show.
 
 ## Capture-harness facts (wave 2)
 
@@ -251,7 +336,10 @@ below.)
 it says, batch them into ONE targeted `preview-rebuild.mjs` run:
 
 - `cardMode: "column"` (renders wider than a grid cell): `TideChart`,
-  `DaySection`, `ForecastSlot`, `ViewToggle`.
+  `DaySection`, `ForecastSlot`, `ViewToggle`, and — added 2026-08-06 —
+  `EvidenceStack`, `StationCard`, `StationWindChart`, `VerdictCard`. All four
+  are new-or-widened because `StationCard` now embeds a full-width chart and the
+  verdict card now carries a multi-column strip.
 - `cardMode: "single"` + `primaryStory` (fixed/portal content escapes the grid):
   `Modal`, `Toast`, `ToastProvider`, `ScoreModal`, `WebcamModal`, `BottomNav`,
   `GlobalNavigation`, `MobileMenu`, `OnboardingFooter`, `OnboardingModal`,
@@ -460,6 +548,31 @@ removed again, `grep -rl <Name> .design-sync/previews/` before rebuilding.
   `source-kit.mjs` fork is a preview-affecting config change, so all 89 grades
   cleared and had to be re-minted even though not one render changed. Budget for
   that before touching the grouping again.
+## Re-sync risks — added 2026-08-06
+
+- **The partition will lie to you about what changed.** Fully described under
+  "The verification partition is blind to component code" above. It is the
+  single highest-value check on a re-sync that follows app development, and
+  nothing in the tooling performs it for you.
+- **`.design-sync/conventions.md` can rot without any name breaking.** The
+  2026-08-06 validation pass found every class and component it names still
+  resolving, while its worked example passed two props the component had
+  stopped reading — the header taught a snippet that renders a card with no
+  numbers. Name-checking is necessary and not sufficient: re-read the example
+  against the current `.d.ts` and the component source, not just the build's
+  file list.
+- **`FAVORITES` and `SPORTS` are excluded by hand** (`componentSrcMap: null`).
+  `make-entry.mjs` exports every PascalCase binding, so any new ALL-CAPS
+  constant will appear as a component and needs the same exclusion — the signal
+  is a "component" with no props and a nonsense card.
+- **`StationCard` and `InTheWaterCard` both come from `EvidenceStack.js`.** Two
+  more named exports from one file; if that file is split, both `componentSrcMap`
+  entries need repointing or they silently resolve to the wrong source.
+- **The trajectory/station fixtures are hand-built objects** matching what
+  `primaryMetric` and `StationCard` destructure. Same standing risk as the
+  older forecast fixtures: they compile and render plausibly after a signature
+  change while being wrong.
+
 - **`upload.deletePaths` was empty because no anchor was passed.** The remote
   `_ds_sync.json` described the pre-regroup layout, so the delete list was
   derived by hand from `DesignSync(list_files)` — the sanctioned no-anchor path.

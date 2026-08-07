@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
+import {
+  fetchCurrentStationPayload,
+  parseCurrentReading,
+} from "../../../../lib/windguru";
 
 /**
- * API endpoint to fetch live wind data from Windguru stations.
+ * Live wind for overlays (cam, next strip).
  *
- * Windguru JSON API returns real-time wind measurements from weather stations.
- * Data includes wind speed, wind direction, gusts, and timestamp.
- *
- * @param {Request} request
- * @param {Object} params - { stationId: string } - Windguru station ID (e.g., "2329")
- * @returns {Object} Live wind data or error
+ * Uses the same Windguru parse path as the station cron — the old hand-rolled
+ * mapping treated Windguru's garbage sentinels (e.g. wind_avg: -534.6,
+ * wind_direction: -990 on a flaky Cabo Raso poll) as real knots and painted
+ * "-535" on the cam. parseCurrentReading rejects those.
  */
 export async function GET(request, { params }) {
   try {
-    // Await params (Next.js 15+ requirement)
     const resolvedParams = await params;
     const stationId = resolvedParams?.stationId;
 
@@ -23,59 +24,42 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Try multiple Windguru API endpoints
-    // First try the v2 API
-    let windguruUrl = `https://www.windguru.cz/int/iapi.php?q=station_data_current&id_station=${stationId}`;
+    const payload = await fetchCurrentStationPayload(stationId);
+    const reading = parseCurrentReading(payload);
 
-    let response = await fetch(windguruUrl, {
-      cache: "no-store", // Always fetch fresh — never serve a cached wind reading
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        Accept: "application/json, */*",
-        Referer: `https://www.windguru.cz/station/${stationId}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Windguru API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // Extract latest measurement from Windguru response
-    // The API returns current station data
-    if (!data) {
+    if (!reading) {
+      // Dead station, calm-without-unixtime, or junk values — caller falls back
+      // to a plain LIVE chip rather than a fabricated number.
       return NextResponse.json(
-        { error: "No data available for station" },
+        { error: "No usable reading for station" },
         { status: 404 }
       );
     }
 
-    // Windguru iAPI returns data in this format:
-    // { wind_avg: number, wind_max: number, wind_direction: number, etc. }
-    // NOTE: Data is already in KNOTS, not m/s!
-    // NOTE: When windstill, Windguru omits wind_avg/wind_max entirely (no field at all).
-    //       Treat absent wind fields as 0 — the station is alive but reporting calm conditions.
-    const windSpeed = data.wind_avg ?? 0;
-    const windGust = data.wind_max ?? 0;
+    // Direction outside 0–360 is the same class of sentinel as negative speed.
+    const direction =
+      Number.isFinite(reading.direction) &&
+      reading.direction >= 0 &&
+      reading.direction <= 360
+        ? reading.direction
+        : null;
 
     const liveWind = {
-      stationId: stationId,
-      timestamp: data.unixtime ? data.unixtime * 1000 : Date.now(), // unixtime is the correct field name
-      windSpeed,
-      windGust,
-      windSpeedKnots: Math.round(windSpeed * 10) / 10,
-      windGustKnots: Math.round(windGust * 10) / 10,
-      windDirection: data.wind_direction ?? null, // Direction in degrees (null when calm is valid)
-      temperature: data.temperature ?? null, // Temperature in Celsius
+      stationId,
+      timestamp: reading.time,
+      windSpeed: reading.speed,
+      windGust: reading.gust ?? null,
+      windSpeedKnots: reading.speed,
+      windGustKnots: reading.gust ?? null,
+      windDirection: direction,
+      temperature: reading.tempC ?? null,
       updatedAt: Date.now(),
     };
 
     return NextResponse.json(liveWind, {
       status: 200,
       headers: {
-        "Cache-Control": "public, max-age=60", // Cache for 1 minute
+        "Cache-Control": "public, max-age=60",
       },
     });
   } catch (error) {

@@ -17,11 +17,15 @@ const slot = (h: number, score: number, speed: number, gust: number) => ({
   waveDirection: 280,
 });
 
+// `peakTimestamp` marks the hour the window was scored on, so the row that
+// earned the headline score is the one called out rather than left for the
+// reader to find by comparing bars.
 export const Wind = () => (
   <div className="max-w-md">
     <HourByHour
       slots={[slot(0, 88, 18, 24), slot(3, 92, 21, 27), slot(6, 84, 19, 23)]}
       sport="wingfoil"
+      peakTimestamp={base + 3 * HOUR}
     />
   </div>
 );

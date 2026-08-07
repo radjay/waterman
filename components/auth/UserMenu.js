@@ -65,30 +65,32 @@ export default function UserMenu() {
     <div className="relative overflow-visible" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 h-[27px] px-2 rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-newsprint hover:bg-surface active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
+        className="flex items-center gap-1.5 h-[27px] px-2 rounded-full ring-1 ring-inset ring-ink/15 shadow-sm bg-page hover:bg-ink-hover active:scale-[0.98] transition-all duration-fast ease-smooth focus-ring"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className="w-[19px] h-[19px] rounded-full bg-ink text-newsprint flex items-center justify-center text-[9px] font-medium leading-none flex-shrink-0">
+        <div className="w-[19px] h-[19px] rounded-full bg-ink text-page flex items-center justify-center text-[9px] font-medium leading-none flex-shrink-0">
           {getInitials()}
         </div>
         <span className="hidden sm:block text-xs text-ink font-semibold uppercase tracking-wider leading-none max-w-[70px] truncate">
           {getDisplayName()}
         </span>
         <ChevronDown
-          className={`hidden sm:block w-3 h-3 text-ink/50 transition-transform flex-shrink-0 ${
+          className={`hidden sm:block w-3 h-3 text-faded-ink transition-transform flex-shrink-0 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-surface border border-ink/20 rounded-md shadow-lg z-[9999]">
-          <div className="py-2 px-4 border-b border-ink/10">
+        // bg-page (opaque), not bg-surface: Nightglass surface is ~5% ink and
+        // reads as a glass panel when the menu floats over content.
+        <div className="absolute right-0 mt-2 w-56 bg-page border border-card rounded-card-sm shadow-lg z-[9999]">
+          <div className="py-2 px-4 border-b border-card">
             <p className="text-sm font-medium text-ink truncate">
               {user.name || "Account"}
             </p>
-            <p className="text-xs text-ink/60 truncate">{user.email}</p>
+            <p className="text-xs text-faded-ink truncate">{user.email}</p>
           </div>
 
           <div className="py-1">
@@ -97,7 +99,7 @@ export default function UserMenu() {
                 router.push("/profile");
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <User className="w-4 h-4" />
               Profile
@@ -108,7 +110,7 @@ export default function UserMenu() {
                 router.push("/recordings");
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <Video className="w-4 h-4" />
               My Recordings
@@ -119,7 +121,7 @@ export default function UserMenu() {
                 router.push("/settings");
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <Settings className="w-4 h-4" />
               Settings
@@ -130,7 +132,7 @@ export default function UserMenu() {
                 router.push("/request-spot");
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <MapPin className="w-4 h-4" />
               Request a Spot
@@ -138,20 +140,20 @@ export default function UserMenu() {
 
             <button
               onClick={() => { share(); setIsOpen(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <Share className="w-4 h-4" />
               {copied ? "Link Copied!" : "Share Page"}
             </button>
 
-            <div className="border-t border-ink/10 my-1" />
+            <div className="border-t border-card my-1" />
 
             <button
               onClick={() => {
                 router.push("/subscribe");
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <Calendar className="w-4 h-4" />
               Add to Calendar
@@ -160,17 +162,17 @@ export default function UserMenu() {
             <Link
               href="/changelog"
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <FileText className="w-4 h-4" />
               Changelog
             </Link>
 
-            <div className="border-t border-ink/10 my-1" />
+            <div className="border-t border-card my-1" />
 
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink/5 transition-colors"
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
