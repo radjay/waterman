@@ -37,6 +37,7 @@
 
 - [x] **NOW redesign UX regressions (2026-08-15)** — webcam fullscreen on image click; live wind in chart header; column hover tooltip; y-axis label inset; tide scrape kept morning marks; score → `/report/[slug]?sport=`.
 - [x] **NOW chart follow-up UX (2026-08-15)** — tooltip below wind band; station-sample hover (e.g. 15:42) not snapped to 3h slot; LIVE badge with TO direction on cam (top-left); whole SCORE column clickable.
+- [x] **LIVE cam overlays + All spots (2026-08-15)** — LiveStationBadge on every cam with a reading (fullscreen, TV); Windguru/Windy on LIVE cams; SpotPicker “All spots” (full coast) + scrollable desktop grid.
 
 ### Near Term (This Week)
 

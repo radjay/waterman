@@ -19,6 +19,8 @@ import { sportMeta } from "../sport/SportProvider";
  * tap and the rare one (change the list) is still reachable.
  */
 export const ALL_SPOTS = "__all__";
+/** Full coast wall on LIVE — distinct from favorites (`ALL_SPOTS`). */
+export const ALL_COAST_SPOTS = "__all_coast__";
 
 export function SpotPickerSheet({
   open,
@@ -34,6 +36,11 @@ export function SpotPickerSheet({
    * one — Now and Spot forecast are always about exactly one beach and do not.
    */
   allOption = false,
+  /**
+   * LIVE only: adds an "All spots" row (full coast via useCoastData.spots).
+   * Kept separate from "All my spots" so favorites stay the default.
+   */
+  coastAllOption = false,
 }) {
   useEffect(() => {
     if (!open) return;
@@ -44,6 +51,8 @@ export function SpotPickerSheet({
 
   const router = useRouter();
   if (!open) return null;
+
+  const hasAggregate = allOption || coastAllOption;
 
   return (
     <>
@@ -80,6 +89,24 @@ export function SpotPickerSheet({
           </button>
         )}
 
+        {coastAllOption && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange?.(ALL_COAST_SPOTS);
+              onClose?.();
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left focus-ring transition-colors duration-fast ease-smooth border-t border-card ${
+              value === ALL_COAST_SPOTS ? "bg-accent-tint" : "hover:bg-ink-hover"
+            }`}
+          >
+            <span className="flex-1 font-headline font-bold text-[16px] tracking-display text-ink">
+              All spots
+            </span>
+            {value === ALL_COAST_SPOTS && <Check size={17} className="text-accent flex-none" />}
+          </button>
+        )}
+
         {spots.map((entry, i) => {
           const active = entry.spot._id === value;
           return (
@@ -97,7 +124,7 @@ export function SpotPickerSheet({
                 onChange?.(entry.spot._id);
                 onClose?.();
               }}
-              className={`${i > 0 || allOption ? "border-t border-card" : ""} ${
+              className={`${i > 0 || hasAggregate ? "border-t border-card" : ""} ${
                 active ? "bg-accent-tint" : "hover:bg-ink-hover"
               } transition-colors duration-fast ease-smooth`}
               trailing={active ? <Check size={17} className="text-accent flex-none" /> : null}

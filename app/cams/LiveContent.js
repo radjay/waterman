@@ -9,7 +9,7 @@ import { useSport, isWindSport } from "../../components/sport/SportProvider";
 import { useCoastData } from "../../components/data/useCoastData";
 import { useIsDesktop } from "../../lib/hooks/useMediaQuery";
 import { useSelectedSpot } from "../../lib/hooks/useSelectedSpot";
-import { ALL_SPOTS, SpotPickerSheet } from "../../components/spot/SpotPickerSheet";
+import { ALL_SPOTS, ALL_COAST_SPOTS, SpotPickerSheet } from "../../components/spot/SpotPickerSheet";
 import { LiveCard, LiveLegend } from "../../components/live/LiveCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
@@ -35,21 +35,29 @@ export default function LiveContent() {
   const router = useRouter();
   const { sport } = useSport();
   const isDesktop = useIsDesktop();
-  const { loading, error, mySpots, now, today } = useCoastData(sport);
+  const { loading, error, mySpots, spots, now, today } = useCoastData(sport);
   const [selectedId, setSelectedId] = useSelectedSpot();
   const [camSpot, setCamSpot] = useState(null);
   const [tvMode, setTvMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [onlyId, setOnlyId] = useState(ALL_SPOTS);
 
+  const pool = onlyId === ALL_COAST_SPOTS ? spots : mySpots;
+
   // Same ranking as Now, so the wall reads top-left to bottom-right as best to
   // worst rather than as whatever order the database happened to return.
   const ranked = useMemo(() => {
-    const sorted = [...mySpots].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
-    if (onlyId === ALL_SPOTS) return sorted;
+    const sorted = [...pool].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+    if (onlyId === ALL_SPOTS || onlyId === ALL_COAST_SPOTS) return sorted;
     const one = sorted.filter((p) => p.spot._id === onlyId);
-    return one.length ? one : sorted;
-  }, [mySpots, onlyId]);
+    if (one.length) return one;
+    // Single-spot pick may be outside the current pool (e.g. coast spot while
+    // still on favorites) — fall back to the full coast list.
+    const fromCoast = spots
+      .filter((p) => p.spot._id === onlyId)
+      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+    return fromCoast.length ? fromCoast : sorted;
+  }, [pool, spots, onlyId]);
 
   const charts = useMemo(() => {
     const map = new Map();
@@ -58,6 +66,18 @@ export default function LiveContent() {
     }
     return map;
   }, [ranked, today, now]);
+
+  const headerTitle =
+    onlyId === ALL_COAST_SPOTS
+      ? "All spots"
+      : onlyId === ALL_SPOTS
+        ? "My spots"
+        : (ranked[0]?.spot?.name ?? "My spots");
+
+  // Desktop favorites wall stays a 2×2; All spots scrolls the full coast.
+  const desktopCards = onlyId === ALL_COAST_SPOTS ? ranked : ranked.slice(0, 4);
+  const camPack = camSpot ? ranked.find((p) => p.spot._id === camSpot._id) : null;
+  const camStation = isWindSport(sport) ? (camPack?.station ?? null) : null;
 
   if (loading) {
     return (
@@ -103,19 +123,20 @@ export default function LiveContent() {
       }
     >
       <ScreenHeader
-        title={onlyId === ALL_SPOTS ? "My spots" : (ranked[0]?.spot?.name ?? "My spots")}
+        title={headerTitle}
         pickerOpen={pickerOpen}
         onTogglePicker={() => setPickerOpen((v) => !v)}
         sheet={
           <SpotPickerSheet
             open={pickerOpen}
             onClose={() => setPickerOpen(false)}
-            spots={mySpots}
+            spots={spots}
             value={onlyId}
             allOption
+            coastAllOption
             onChange={(id) => {
               setOnlyId(id);
-              if (id !== ALL_SPOTS) setSelectedId(id);
+              if (id !== ALL_SPOTS && id !== ALL_COAST_SPOTS) setSelectedId(id);
             }}
             sport={sport}
           />
@@ -125,10 +146,18 @@ export default function LiveContent() {
 
       {isDesktop ? (
         <div
-          className="grid grid-cols-2 gap-4 mt-3.5"
-          style={{ height: "calc(100vh - 190px)", minHeight: 520 }}
+          className={`grid grid-cols-2 gap-4 mt-3.5 ${
+            onlyId === ALL_COAST_SPOTS ? "overflow-y-auto content-start" : ""
+          }`}
+          style={{
+            height: "calc(100vh - 190px)",
+            minHeight: 520,
+            ...(onlyId === ALL_COAST_SPOTS
+              ? { gridAutoRows: "minmax(280px, 42vh)" }
+              : null),
+          }}
         >
-          {ranked.slice(0, 4).map((pack) => (
+          {desktopCards.map((pack) => (
             <LiveCard
               key={pack.spot._id}
               pack={pack}
@@ -160,14 +189,24 @@ export default function LiveContent() {
       {camSpot && (
         <WebcamFullscreen
           spot={camSpot}
-          score={ranked.find((p) => p.spot._id === camSpot._id)?.score ?? null}
+          score={camPack?.score ?? null}
+          station={camStation}
+          showExternalLinks
           onClose={() => setCamSpot(null)}
           allWebcams={ranked.map((p) => p.spot)}
           onNavigate={setCamSpot}
         />
       )}
 
-      {tvMode && <TvMode webcams={ranked.map((p) => p.spot)} onClose={() => setTvMode(false)} />}
+      {tvMode && (
+        <TvMode
+          packs={ranked.map((p) => ({
+            spot: p.spot,
+            station: isWindSport(sport) ? p.station : null,
+          }))}
+          onClose={() => setTvMode(false)}
+        />
+      )}
     </MainLayout>
   );
 }

@@ -85,13 +85,20 @@ export function LiveCard({
 
   // Same pack.station as the wind chart — CamFrame overlays LiveStationBadge
   // top-left when there is a reading; surfing / dead stations stay blank.
+  // Windguru + Windy sit top-right (LIVE only) left of Maximize.
   const camStation = isWindSport(sport) ? station : null;
 
   if (desktop) {
     return (
       <div className={`${shell} flex flex-col min-h-0`} onClick={onSelect}>
         <div className="flex-1 min-h-0 relative">
-          <CamFrame spot={spot} station={camStation} fill onFullscreen={onOpenCam} />
+          <CamFrame
+            spot={spot}
+            station={camStation}
+            showExternalLinks
+            fill
+            onFullscreen={onOpenCam}
+          />
         </div>
         <div className="flex-none px-[14px] pt-[10px] pb-[11px]">
           {identity}
@@ -105,7 +112,13 @@ export function LiveCard({
     <div className={`${shell} px-[11px] pt-[6px] pb-[7px]`} onClick={onSelect}>
       {identity}
       <div className="mt-2">
-        <CamFrame spot={spot} station={camStation} radius={11} onFullscreen={onOpenCam} />
+        <CamFrame
+          spot={spot}
+          station={camStation}
+          showExternalLinks
+          radius={11}
+          onFullscreen={onOpenCam}
+        />
       </div>
       {wind}
     </div>

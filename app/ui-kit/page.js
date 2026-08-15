@@ -795,7 +795,7 @@ export default function UIKitPage() {
             label="SpotTitle + SpotPickerSheet — the screen title IS the picker"
             importPath="components/spot/SpotPickerSheet"
             on={["NOW", "NEXT", "LIVE", "SPOT"]}
-            note="carries each spot's score and live wind, so the choice is not made blind"
+            note="carries each spot's score and live wind, so the choice is not made blind; LIVE also offers All spots (full coast) beside All my spots"
             full
           >
             <div className="relative max-w-[420px]">
@@ -1212,15 +1212,17 @@ export default function UIKitPage() {
             on={["NOW", "NEXT", "LIVE"]}
           >
             The cam, in a box: 16:9, fullscreen affordance top-right, and when the
-            spot has a live station reading{" "}
+            spot has a live reading a{" "}
             <code className="font-data text-[11px] text-ink">LiveStationBadge</code>{" "}
-            top-left (same <code className="font-data text-[11px] text-ink">pack.station</code>{" "}
-            as the wind chart). Documented rather than rendered because it opens a
-            live HLS stream. The offline plate is the part worth knowing: it
-            distinguishes a cam that broke this morning (&ldquo;CAM OFFLINE SINCE
-            08:20&rdquo;) from a spot that never had one (&ldquo;No cam at this
-            spot&rdquo;) — Praia do CDS and Fonte da Telha are the second case, and a
-            black rectangle would have said neither.
+            overlays top-left (same <code className="font-data text-[11px] text-ink">pack.station</code>{" "}
+            as the wind chart). LIVE also overlays Windguru + Windy links (same
+            over-video scrim as Maximize) to the left of the fullscreen control.
+            Documented rather than rendered because it opens a live HLS stream.
+            The offline plate is the part worth knowing: it distinguishes a cam
+            that broke this morning (&ldquo;CAM OFFLINE SINCE 08:20&rdquo;) from a
+            spot that never had one (&ldquo;No cam at this spot&rdquo;) — Praia do
+            CDS and Fonte da Telha are the second case, and a black rectangle
+            would have said neither.
           </Documented>
 
           <Documented
@@ -1234,8 +1236,9 @@ export default function UIKitPage() {
             absorbing the slack) so cams with less data below the image do not come up short.
             Its <code className="font-data text-[11px] text-ink">overlayBadge</code> slot is how
             the rider count and the live wind pill share one row instead of stacking on each
-            other. LiveCam is the compact player for the verdict card; WebcamFullscreen is the
-            modal both Now and Cams open.
+            other. LiveCam is the compact player for the verdict card; WebcamFullscreen and
+            TvMode take the same <code className="font-data text-[11px] text-ink">pack.station</code>{" "}
+            as CamFrame for the LIVE badge (no second wind fetch).
           </Documented>
 
           <Documented

@@ -3,6 +3,9 @@
 ## [2026-08-15]
 
 ### Fixed
+- LIVE station wind overlays every cam surface that has a reading (CamFrame, fullscreen, TV mode) — same number as the wind chart, direction as TO.
+- LIVE cams show Windguru and Windy shortcuts on the video (top-right, left of fullscreen), without stealing the tap that opens the cam.
+- LIVE spot picker includes “All spots” (full coast) alongside “All my spots”; desktop All spots grid scrolls instead of stopping at four.
 - NOW chart hover tips sit below the wind band (not covering the wind plot).
 - Hovering a station wind reading shows that sample’s clock (e.g. 15:42), not the 3-hour forecast slot it falls in.
 - LIVE station wind sits on the cam (top-left badge), with wind direction as TO (same as the rest of the app).

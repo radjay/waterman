@@ -265,6 +265,11 @@ export function NowContent() {
         <WebcamFullscreen
           spot={camSpot}
           score={ranked.find((p) => p.spot._id === camSpot._id)?.score ?? null}
+          station={
+            isWindSport(sport)
+              ? (ranked.find((p) => p.spot._id === camSpot._id)?.station ?? null)
+              : null
+          }
           onClose={() => setCamSpot(null)}
           allWebcams={camList}
           onNavigate={setCamSpot}
