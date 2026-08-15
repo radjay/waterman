@@ -9,8 +9,9 @@ import { PLOT_LABEL_INSET_PX, SCORE_FILL, scoreBand } from "../../lib/dayChart";
  * that answers "and when is it best" — a shape alone tells you there is a peak
  * but not whether the peak is a 90 or a 61, and those are different afternoons.
  *
- * When `reportHref` is set, each number is a real link to that spot's report
- * for today (`/report/[slug]`), so keyboard focus and open-in-new-tab work.
+ * When `reportHref` is set, each whole column (number + bar) is a real link to
+ * that spot's report for today (`/report/[slug]`), so keyboard focus and
+ * open-in-new-tab work — not only the digits.
  *
  * The bar for the slot covering now takes the now hue on its number only, not
  * its fill: the fill encodes quality and the hue encodes position, and painting
@@ -49,35 +50,57 @@ export function ScoreBand({
               ? "text-marginal"
               : "text-faded-ink";
           const rounded = Math.round(score);
-          const numberProps = {
-            className: `font-data font-bold text-center tabular-nums leading-none mb-[3px] focus-ring rounded-sm ${numberClass} ${
-              reportHref ? "hover:underline underline-offset-2" : ""
-            }`,
-            style: { fontSize: numberSize },
+          const shellClass = `absolute inset-y-0 flex flex-col justify-end ${
+            reportHref
+              ? "focus-ring rounded-sm hover:opacity-90 transition-opacity duration-fast ease-smooth"
+              : ""
+          }`;
+          const shellStyle = {
+            left: `${col.left}%`,
+            width: `${col.width}%`,
+            padding: `0 ${gutter}px`,
           };
+          const numberEl = (
+            <div
+              className={`font-data font-bold text-center tabular-nums leading-none mb-[3px] ${numberClass} ${
+                reportHref ? "underline-offset-2 group-hover:underline" : ""
+              }`}
+              style={{ fontSize: numberSize }}
+            >
+              {rounded}
+            </div>
+          );
+          const barEl = (
+            <div
+              className="w-full"
+              style={{
+                height: `${Math.max(0, Math.min(100, score)) * barRatio}%`,
+                borderRadius: `${radius}px ${radius}px 0 0`,
+                background: fill.color,
+                opacity: fill.opacity,
+              }}
+            />
+          );
+
+          if (reportHref) {
+            return (
+              <a
+                key={col.slot.timestamp}
+                href={reportHref}
+                aria-label={`Score ${rounded}, open spot report`}
+                className={`${shellClass} group`}
+                style={shellStyle}
+              >
+                {numberEl}
+                {barEl}
+              </a>
+            );
+          }
 
           return (
-            <div
-              key={col.slot.timestamp}
-              className="absolute inset-y-0 flex flex-col justify-end"
-              style={{ left: `${col.left}%`, width: `${col.width}%`, padding: `0 ${gutter}px` }}
-            >
-              {reportHref ? (
-                <a href={reportHref} aria-label={`Score ${rounded}, open spot report`} {...numberProps}>
-                  {rounded}
-                </a>
-              ) : (
-                <div {...numberProps}>{rounded}</div>
-              )}
-              <div
-                className="w-full"
-                style={{
-                  height: `${Math.max(0, Math.min(100, score)) * barRatio}%`,
-                  borderRadius: `${radius}px ${radius}px 0 0`,
-                  background: fill.color,
-                  opacity: fill.opacity,
-                }}
-              />
+            <div key={col.slot.timestamp} className={shellClass} style={shellStyle}>
+              {numberEl}
+              {barEl}
             </div>
           );
         })}
