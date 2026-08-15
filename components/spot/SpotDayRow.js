@@ -33,6 +33,7 @@ export function SpotDayRow({
   open,
   onToggle,
   onLive,
+  reportHref = null,
   nowMs = Date.now(),
   desktop = false,
   className = "",
@@ -168,6 +169,8 @@ export function SpotDayRow({
             variant={desktop ? "desktop" : "mobile"}
             showWash={false}
             showNow={false}
+            showHover={false}
+            reportHref={reportHref}
             bandHeights={
               desktop ? { wind: 52, waves: 36, score: 40 } : { wind: 66, waves: 46, score: 44 }
             }

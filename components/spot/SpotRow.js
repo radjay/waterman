@@ -50,7 +50,6 @@ export function SpotRow({
   style,
 }) {
   const s = SIZES[size] ?? SIZES.md;
-  const Tag = onClick ? "button" : "div";
 
   // The live station is the better answer when it exists; the forecast slot is
   // the fallback. Never both — two wind readings on one row is a puzzle.
@@ -68,11 +67,24 @@ export function SpotRow({
       }
     : undefined;
 
+  // Div + role=button so a CamThumb (also a control) can sit in `leading`
+  // without nesting interactive elements.
   return (
-    <Tag
+    <div
       onClick={onClick}
-      type={onClick ? "button" : undefined}
-      className={`w-full flex items-center text-left ${onClick ? "focus-ring" : ""} ${
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={`w-full flex items-center text-left ${onClick ? "focus-ring cursor-pointer" : ""} ${
         dim ? "opacity-60" : ""
       } ${className}`}
       style={{ gap: s.gap, padding: s.pad, ...style }}
@@ -99,6 +111,6 @@ export function SpotRow({
       </span>
       {dialSide === "trailing" && <ScoreDial score={score ?? null} size={s.dial} showAll />}
       {trailing}
-    </Tag>
+    </div>
   );
 }

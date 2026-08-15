@@ -32,6 +32,7 @@ export function WindowCard({
   highlight = false,
   withStill = false,
   onClick,
+  onOpenCam,
   className = "",
 }) {
   const dial = highlight ? 62 : 52;
@@ -59,26 +60,31 @@ export function WindowCard({
 
   if (withStill) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`rounded-card-lg overflow-hidden border text-left focus-ring transition-colors duration-fast ease-smooth ${
+      <div
+        className={`rounded-card-lg overflow-hidden border ${
           highlight
             ? "bg-accent-tint-card border-accent-border"
-            : "bg-surface border-card hover:bg-ink-hover"
+            : "bg-surface border-card"
         } ${className}`}
       >
         <CamFrame
           spot={spot}
+          onFullscreen={onOpenCam}
           overlay={
-            <span className="absolute top-[11px] left-3">
+            <span className="absolute top-[11px] left-3 pointer-events-none">
               <DayTag variant={isToday ? "today" : "overlay"} size="md">
                 {dayLabel}
               </DayTag>
             </span>
           }
         />
-        <div className="px-[17px] pt-[15px] pb-[17px] flex items-center gap-[15px]">
+        <button
+          type="button"
+          onClick={onClick}
+          className={`w-full px-[17px] pt-[15px] pb-[17px] flex items-center gap-[15px] text-left focus-ring transition-colors duration-fast ease-smooth ${
+            highlight ? "" : "hover:bg-ink-hover"
+          }`}
+        >
           <ScoreDial score={win.score} size={58} ring={9} value={20} showAll />
           <div className="flex-1 min-w-0">
             <div className="font-headline font-bold text-[19px] tracking-display text-ink truncate">
@@ -91,8 +97,8 @@ export function WindowCard({
               className="block text-faded-ink mt-1"
             />
           </div>
-        </div>
-      </button>
+        </button>
+      </div>
     );
   }
 

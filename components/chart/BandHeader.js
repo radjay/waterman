@@ -7,11 +7,17 @@ import { MicroLabel } from "../ui/MicroLabel";
  * The legend lives here rather than under the panel because the three bands
  * are read one at a time — a rider looking at WAVES & TIDE should not have to
  * scroll past SCORE to find out which line is the tide.
+ *
+ * `aside` is for a live reading next to the label (e.g. current station knots
+ * on the Wind band) without inventing a second header language.
  */
-export function BandHeader({ label, legend, size = "sm", className = "" }) {
+export function BandHeader({ label, legend, aside = null, size = "sm", className = "" }) {
   return (
     <div className={`flex items-baseline justify-between gap-3 ${className}`}>
-      <MicroLabel size={size}>{label}</MicroLabel>
+      <div className="flex items-baseline gap-2.5 min-w-0">
+        <MicroLabel size={size}>{label}</MicroLabel>
+        {aside}
+      </div>
       {legend ? (
         <div
           className="flex gap-2.5 font-data whitespace-nowrap"

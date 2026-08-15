@@ -17,6 +17,9 @@ import { dtf } from "../../lib/datetime";
  * the same treatment without a time, because "no cam here" and "the cam broke
  * this morning" are different answers.
  *
+ * When `onFullscreen` is set and the stream is live, the whole frame opens
+ * WebcamFullscreen — not only the corner button. Thumbs use the same contract.
+ *
  * @param {object} spot
  * @param {boolean} [rounded]   corner radius token, 0 for the full-bleed hero
  * @param {Function} [onFullscreen]
@@ -25,6 +28,13 @@ import { dtf } from "../../lib/datetime";
 const TZ = "Europe/Lisbon";
 const clock = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
+
+function openFullscreen(e, onFullscreen) {
+  if (!onFullscreen) return;
+  e?.stopPropagation?.();
+  e?.preventDefault?.();
+  onFullscreen();
+}
 
 export function CamFrame({
   spot,
@@ -37,11 +47,25 @@ export function CamFrame({
   className = "",
 }) {
   const hasStream = Boolean(streamUrlFor(spot));
+  const clickable = Boolean(onFullscreen && hasStream);
 
   return (
     <div
-      className={`relative overflow-hidden bg-offline-bg ${fill ? "w-full h-full" : "w-full"} ${className}`}
+      className={`relative overflow-hidden bg-offline-bg ${fill ? "w-full h-full" : "w-full"} ${
+        clickable ? "cursor-pointer focus-ring" : ""
+      } ${className}`}
       style={{ borderRadius: radius || undefined, aspectRatio: fill ? undefined : ratio }}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? "Open the cam fullscreen" : undefined}
+      onClick={clickable ? (e) => openFullscreen(e, onFullscreen) : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") openFullscreen(e, onFullscreen);
+            }
+          : undefined
+      }
     >
       {hasStream ? (
         <LiveCam spot={spot} />
@@ -51,15 +75,10 @@ export function CamFrame({
 
       {overlay}
 
-      {onFullscreen && hasStream && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onFullscreen();
-          }}
-          aria-label="Open the cam fullscreen"
-          className="absolute top-[11px] right-[14px] w-8 h-8 rounded-full flex items-center justify-center focus-ring transition-opacity duration-fast ease-smooth hover:opacity-80"
+      {clickable && (
+        <span
+          aria-hidden="true"
+          className="absolute top-[11px] right-[14px] w-8 h-8 rounded-full flex items-center justify-center pointer-events-none transition-opacity duration-fast ease-smooth"
           style={{
             // Fixed, not tokenised: this sits on a photograph, not on the page,
             // so it must not follow the theme.
@@ -69,7 +88,7 @@ export function CamFrame({
           }}
         >
           <Maximize size={14} />
-        </button>
+        </span>
       )}
     </div>
   );
@@ -87,13 +106,25 @@ export function CamOffline({ since = null, never = false }) {
 }
 
 /** The 76×50 still used in the compact spot cards under the Now hero. */
-export function CamThumb({ spot, className = "" }) {
+export function CamThumb({ spot, onFullscreen, className = "" }) {
   const hasStream = Boolean(streamUrlFor(spot));
+  const clickable = Boolean(onFullscreen && hasStream);
   return (
     <div
       className={`relative overflow-hidden rounded-[9px] flex-none w-[76px] h-[50px] ${
         hasStream ? "" : "bg-offline-bg flex items-center justify-center text-dim"
-      } ${className}`}
+      } ${clickable ? "cursor-pointer focus-ring" : ""} ${className}`}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? `Open ${spot?.name ?? "cam"} fullscreen` : undefined}
+      onClick={clickable ? (e) => openFullscreen(e, onFullscreen) : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") openFullscreen(e, onFullscreen);
+            }
+          : undefined
+      }
     >
       {hasStream ? <LiveCam spot={spot} /> : <CameraOff size={17} />}
     </div>

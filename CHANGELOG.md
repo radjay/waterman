@@ -2,6 +2,14 @@
 
 ## [2026-08-15]
 
+### Fixed
+- Webcam images open the fullscreen cam on click (whole frame, not only the corner button), including thumbs under NOW.
+- NOW Wind chart header shows live station knots and gusts when a station reading exists.
+- Hovering a NOW chart time column shows forecast wind (and station, when available) for that slot.
+- Day-chart y-axis labels no longer sit on top of bars and lines.
+- Tide scrape keeps earlier-today highs/lows so the WAVES & TIDE band covers the full charted day, not only the future.
+- SCORE numbers on the day chart link to that spot’s report for today.
+
 ### Changed
 - Now answers one spot at a time. Swipe or tap to change the spot.
 - Next shows the next windows first, then the rest of the week.
