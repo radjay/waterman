@@ -1,4 +1,4 @@
-import { hourLabel } from "../../lib/dayChart";
+import { hourLabel, PLOT_LABEL_INSET_PX } from "../../lib/dayChart";
 
 /**
  * The one time axis every band on a panel shares.
@@ -7,11 +7,18 @@ import { hourLabel } from "../../lib/dayChart";
  * — the forecast grid is UTC, so it lands an hour earlier in winter, and a
  * fixed axis labelled every column wrong for half the year.
  */
-export function TimeAxis({ chart, size = 9, withMinutes = false, className = "", style }) {
+export function TimeAxis({
+  chart,
+  size = 9,
+  withMinutes = false,
+  labelInset = PLOT_LABEL_INSET_PX,
+  className = "",
+  style,
+}) {
   return (
     <div
       className={`flex items-center justify-between font-data text-dim tabular-nums ${className}`}
-      style={{ fontSize: size, ...style }}
+      style={{ fontSize: size, paddingLeft: labelInset, ...style }}
       aria-hidden="true"
     >
       {chart.marks.map((h) => (
@@ -29,13 +36,27 @@ export function TimeAxis({ chart, size = 9, withMinutes = false, className = "",
  * Rendered as a sibling of the bands rather than inside one so a single rule
  * crosses all three and the eye can follow it down.
  */
-export function NowLine({ chart, top = 0, bottom = 0, className = "", z = 3 }) {
+export function NowLine({
+  chart,
+  top = 0,
+  bottom = 0,
+  labelInset = PLOT_LABEL_INSET_PX,
+  className = "",
+  z = 3,
+}) {
   if (chart.nowPct === null) return null;
   return (
     <div
       aria-hidden="true"
       className={`absolute w-[2px] bg-now ${className}`}
-      style={{ left: `${chart.nowPct}%`, top, bottom, zIndex: z }}
+      style={{
+        left: labelInset
+          ? `calc(${labelInset}px + (100% - ${labelInset}px) * ${chart.nowPct / 100})`
+          : `${chart.nowPct}%`,
+        top,
+        bottom,
+        zIndex: z,
+      }}
     />
   );
 }

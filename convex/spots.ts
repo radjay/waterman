@@ -275,10 +275,9 @@ export const saveTides = mutation({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
-        // Delete ALL old tides for this spot before saving new ones
-        // This prevents accumulation of duplicate/outdated tide data
-        // We only need current and future tides for display
-        const now = Date.now();
+        // Delete ALL old tides for this spot before saving new ones.
+        // Each scrape should include earlier-today marks (see scraper /
+        // admin tide window) so the day chart still has a morning curve.
         const allTides = await ctx.db
             .query("tides")
             .withIndex("by_spot_time", q => q.eq("spotId", args.spotId))

@@ -48,7 +48,8 @@ export function NowContent() {
 
   const [selectedId, setSelectedId] = useSelectedSpot();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [camOpen, setCamOpen] = useState(false);
+  /** Spot whose cam is open in WebcamFullscreen (null = closed). */
+  const [camSpot, setCamSpot] = useState(null);
 
   // A ?spot= slug is how Spot forecast's LIVE button lands here on the right
   // beach. It is consumed once and folded into the persisted choice, so a
@@ -132,6 +133,9 @@ export function NowContent() {
     <ScoreDial score={pack.score} size={size} ring={ring} value={value} showAll />
   );
 
+  const reportHref = `/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`;
+  const camList = ranked.map((p) => p.spot);
+
   return (
     <MainLayout>
       <ScreenHeader
@@ -168,7 +172,7 @@ export function NowContent() {
             <CamFrame
               spot={pack.spot}
               radius={18}
-              onFullscreen={() => setCamOpen(true)}
+              onFullscreen={() => setCamSpot(pack.spot)}
               className="border border-card"
             />
             {chart && (
@@ -180,6 +184,7 @@ export function NowContent() {
                 nowMs={now}
                 variant="desktop"
                 fluid
+                reportHref={reportHref}
                 className="h-full min-h-0 w-full"
               />
             )}
@@ -199,7 +204,12 @@ export function NowContent() {
                   size="lg"
                   dialSide="trailing"
                   dim={other.score === null}
-                  leading={<CamThumb spot={other.spot} />}
+                  leading={
+                    <CamThumb
+                      spot={other.spot}
+                      onFullscreen={() => setCamSpot(other.spot)}
+                    />
+                  }
                   onClick={() => setSelectedId(other.spot._id)}
                   className="flex-1 rounded-[15px] border border-card bg-surface px-[14px] py-3 hover:bg-ink-hover transition-colors duration-fast ease-smooth"
                 />
@@ -212,7 +222,7 @@ export function NowContent() {
           {/* Full-bleed: a 16:9 frame inset by the page gutters reads as a
               thumbnail, and this is the only live evidence on the screen. */}
           <div className="-mx-5 mt-3">
-            <CamFrame spot={pack.spot} onFullscreen={() => setCamOpen(true)} />
+            <CamFrame spot={pack.spot} onFullscreen={() => setCamSpot(pack.spot)} />
           </div>
 
           <SwipeDots
@@ -235,14 +245,21 @@ export function NowContent() {
               station={pack.station}
               tides={pack.tides}
               nowMs={now}
+              reportHref={reportHref}
               className="pt-[18px]"
             />
           )}
         </div>
       )}
 
-      {camOpen && (
-        <WebcamFullscreen spot={pack.spot} score={pack.score} onClose={() => setCamOpen(false)} />
+      {camSpot && (
+        <WebcamFullscreen
+          spot={camSpot}
+          score={ranked.find((p) => p.spot._id === camSpot._id)?.score ?? null}
+          onClose={() => setCamSpot(null)}
+          allWebcams={camList}
+          onNavigate={setCamSpot}
+        />
       )}
     </MainLayout>
   );

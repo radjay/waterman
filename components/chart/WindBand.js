@@ -1,7 +1,7 @@
 "use client";
 
 import { averageWindow } from "../../lib/station";
-import { topPct, windScale } from "../../lib/dayChart";
+import { PLOT_LABEL_INSET_PX, topPct, windScale } from "../../lib/dayChart";
 
 /**
  * Wind: forecast as columns, the live station as lines.
@@ -32,6 +32,7 @@ export function WindBand({
   radius = 3,
   labelSize = 8.5,
   showWash = true,
+  labelInset = PLOT_LABEL_INSET_PX,
   className = "",
 }) {
   const values = [
@@ -44,89 +45,91 @@ export function WindBand({
 
   return (
     <div className={`relative ${className}`} style={{ height }}>
-      {/* Everything from now on is forecast. The wash says so without a label. */}
-      {showWash && chart.futureFrom !== null && (
-        <div
-          className="absolute inset-y-0 right-0 bg-accent-wash"
-          style={{ left: `${chart.futureFrom}%` }}
-        />
-      )}
-
-      {chart.columns.map((col) => {
-        const base = col.slot?.speed;
-        const gust = col.slot?.gust;
-        if (!Number.isFinite(base)) return null;
-        const alpha = col.isPast ? PAST : LIVE;
-        const capTop = topPct(base, scale.max);
-        const bandTop = Number.isFinite(gust) ? topPct(gust, scale.max) : capTop;
-
-        return (
+      <div className="absolute inset-0" style={{ left: labelInset }}>
+        {/* Everything from now on is forecast. The wash says so without a label. */}
+        {showWash && chart.futureFrom !== null && (
           <div
-            key={col.slot.timestamp}
-            className="absolute inset-y-0"
-            style={{ left: `${col.left}%`, width: `${col.width}%`, padding: `0 ${gutter}px` }}
-          >
-            <div
-              className="absolute bg-accent"
-              style={{
-                left: gutter,
-                right: gutter,
-                top: `${bandTop}%`,
-                bottom: `${100 - capTop}%`,
-                opacity: alpha.band,
-                borderRadius: radius,
-              }}
-            />
-            <div
-              className="absolute bg-accent"
-              style={{
-                left: gutter,
-                right: gutter,
-                top: `${capTop}%`,
-                height: 2,
-                opacity: alpha.cap,
-                borderRadius: 2,
-              }}
-            />
-          </div>
-        );
-      })}
+            className="absolute inset-y-0 right-0 bg-accent-wash"
+            style={{ left: `${chart.futureFrom}%` }}
+          />
+        )}
 
-      {stationPaths && (
-        <svg
-          viewBox="0 0 300 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full z-[1]"
-          aria-hidden="true"
-        >
-          {stationPaths.gust && (
-            <path
-              d={stationPaths.gust}
-              fill="none"
-              stroke="rgb(var(--wm-ink))"
-              strokeWidth="1.6"
-              strokeDasharray="4 4"
-              opacity="0.55"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-          {stationPaths.speed && (
-            <path
-              d={stationPaths.speed}
-              fill="none"
-              stroke="rgb(var(--wm-ink))"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-        </svg>
-      )}
+        {chart.columns.map((col) => {
+          const base = col.slot?.speed;
+          const gust = col.slot?.gust;
+          if (!Number.isFinite(base)) return null;
+          const alpha = col.isPast ? PAST : LIVE;
+          const capTop = topPct(base, scale.max);
+          const bandTop = Number.isFinite(gust) ? topPct(gust, scale.max) : capTop;
+
+          return (
+            <div
+              key={col.slot.timestamp}
+              className="absolute inset-y-0"
+              style={{ left: `${col.left}%`, width: `${col.width}%`, padding: `0 ${gutter}px` }}
+            >
+              <div
+                className="absolute bg-accent"
+                style={{
+                  left: gutter,
+                  right: gutter,
+                  top: `${bandTop}%`,
+                  bottom: `${100 - capTop}%`,
+                  opacity: alpha.band,
+                  borderRadius: radius,
+                }}
+              />
+              <div
+                className="absolute bg-accent"
+                style={{
+                  left: gutter,
+                  right: gutter,
+                  top: `${capTop}%`,
+                  height: 2,
+                  opacity: alpha.cap,
+                  borderRadius: 2,
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {stationPaths && (
+          <svg
+            viewBox="0 0 300 100"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full z-[1]"
+            aria-hidden="true"
+          >
+            {stationPaths.gust && (
+              <path
+                d={stationPaths.gust}
+                fill="none"
+                stroke="rgb(var(--wm-ink))"
+                strokeWidth="1.6"
+                strokeDasharray="4 4"
+                opacity="0.55"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+            {stationPaths.speed && (
+              <path
+                d={stationPaths.speed}
+                fill="none"
+                stroke="rgb(var(--wm-ink))"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+          </svg>
+        )}
+      </div>
 
       {/* Gridlines sit ABOVE the traces: the value of a reference line is that
           you can follow it across the plot, and behind a filled column it
-          disappears exactly where you need it. */}
-      <GridLines lines={scale.lines} labelSize={labelSize} />
+          disappears exactly where you need it. Labels occupy the left inset. */}
+      <GridLines lines={scale.lines} labelSize={labelSize} labelInset={labelInset} />
     </div>
   );
 }
@@ -134,23 +137,21 @@ export function WindBand({
 /**
  * Reference lines with their labels.
  *
- * The label does not paint a background to knock out the line behind it — it
- * sits BESIDE the line, which starts after it. A `bg-page` knock-out only works
- * on the page: inside a tinted Live card or an expanded forecast row it drew a
- * visible dark rectangle in the wrong colour.
+ * The label sits in the shared left inset; the dashed rule starts after it so
+ * bars and lines never paint under "25kt".
  */
-export function GridLines({ lines, labelSize = 8.5 }) {
+export function GridLines({ lines, labelSize = 8.5, labelInset = PLOT_LABEL_INSET_PX }) {
   return (
     <div className="absolute inset-0 pointer-events-none z-[2]">
       {lines.map((line) => (
         <div
           key={line.value}
-          className="absolute left-0 right-0 flex items-center gap-1 -translate-y-1/2"
-          style={{ top: `${line.top}%` }}
+          className="absolute right-0 flex items-center gap-1 -translate-y-1/2"
+          style={{ top: `${line.top}%`, left: 0 }}
         >
           <span
-            className="font-data text-dim leading-none flex-none"
-            style={{ fontSize: labelSize }}
+            className="font-data text-dim leading-none flex-none text-right"
+            style={{ fontSize: labelSize, width: labelInset - 4, paddingRight: 2 }}
           >
             {line.label}
           </span>

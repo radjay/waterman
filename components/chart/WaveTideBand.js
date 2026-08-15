@@ -1,6 +1,6 @@
 "use client";
 
-import { topPct, waveScale } from "../../lib/dayChart";
+import { PLOT_LABEL_INSET_PX, topPct, waveScale } from "../../lib/dayChart";
 import { tideCurve } from "../../lib/tideCurve";
 import { GridLines } from "./WindBand";
 
@@ -42,6 +42,7 @@ export function WaveTideBand({
   labelSize = 8.5,
   showWash = true,
   nowMs = Date.now(),
+  labelInset = PLOT_LABEL_INSET_PX,
   className = "",
 }) {
   const wavePoints = chart.columns
@@ -72,42 +73,44 @@ export function WaveTideBand({
 
   return (
     <div className={`relative ${className}`} style={{ height }}>
-      {showWash && chart.futureFrom !== null && (
-        <div
-          className="absolute inset-y-0 right-0 bg-accent-wash"
-          style={{ left: `${chart.futureFrom}%` }}
-        />
-      )}
-
-      <svg
-        viewBox="0 0 300 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 w-full h-full z-[1]"
-        aria-hidden="true"
-      >
-        {tidePath && (
-          <path
-            d={tidePath}
-            fill="none"
-            stroke="rgb(var(--wm-accent))"
-            strokeWidth="1.2"
-            strokeDasharray="3 3"
-            opacity="0.8"
-            vectorEffect="non-scaling-stroke"
+      <div className="absolute inset-0" style={{ left: labelInset }}>
+        {showWash && chart.futureFrom !== null && (
+          <div
+            className="absolute inset-y-0 right-0 bg-accent-wash"
+            style={{ left: `${chart.futureFrom}%` }}
           />
         )}
-        {wavePath && (
-          <path
-            d={wavePath}
-            fill="none"
-            stroke="var(--wm-muted)"
-            strokeWidth="1.6"
-            vectorEffect="non-scaling-stroke"
-          />
-        )}
-      </svg>
 
-      {wavePath && <GridLines lines={scale.lines} labelSize={labelSize} />}
+        <svg
+          viewBox="0 0 300 100"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full z-[1]"
+          aria-hidden="true"
+        >
+          {tidePath && (
+            <path
+              d={tidePath}
+              fill="none"
+              stroke="rgb(var(--wm-accent))"
+              strokeWidth="1.2"
+              strokeDasharray="3 3"
+              opacity="0.8"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+          {wavePath && (
+            <path
+              d={wavePath}
+              fill="none"
+              stroke="var(--wm-muted)"
+              strokeWidth="1.6"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </svg>
+      </div>
+
+      {wavePath && <GridLines lines={scale.lines} labelSize={labelSize} labelInset={labelInset} />}
     </div>
   );
 }

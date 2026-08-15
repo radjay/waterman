@@ -35,7 +35,7 @@
 
 ### Bugs
 
-(none)
+- [x] **NOW redesign UX regressions (2026-08-15)** — webcam fullscreen on image click; live wind in chart header; column hover tooltip; y-axis label inset; tide scrape kept morning marks; score → `/report/[slug]?sport=`.
 
 ### Near Term (This Week)
 

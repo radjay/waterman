@@ -1,6 +1,7 @@
 "use client";
 
 import { isWindSport } from "../sport/SportProvider";
+import { StationLine } from "../ui/WindLine";
 import {
   BandHeader,
   WIND_FORECAST_LEGEND,
@@ -8,6 +9,7 @@ import {
   waveTideLabel,
   waveTideLegend,
 } from "./BandHeader";
+import { ChartColumnHover } from "./ChartColumnHover";
 import { NowLine, TimeAxis } from "./TimeAxis";
 import { ScoreBand } from "./ScoreBand";
 import { WaveTideBand, waveTidePresence } from "./WaveTideBand";
@@ -48,6 +50,10 @@ export function DayChartPanel({
    */
   showWash = true,
   showNow = true,
+  /** Hover tooltips on the column tops (Now). Off on forecast-only panels. */
+  showHover = true,
+  /** Real link target for SCORE numbers — `/report/[slug]?sport=…`. */
+  reportHref = null,
   bandHeights,
   className = "",
   nowMs = Date.now(),
@@ -85,28 +91,42 @@ export function DayChartPanel({
       numberSize={desktop ? 15 : 12}
       gutter={desktop ? 3 : 1.5}
       radius={desktop ? 4 : 3}
+      reportHref={reportHref}
       className={fluid ? "flex-1 min-h-0" : ""}
     />
   ) : null;
+
+  const windAside =
+    live && Number.isFinite(live.speed) ? (
+      <StationLine
+        station={live}
+        size={desktop ? 11 : 10}
+        className="text-ink"
+      />
+    ) : null;
 
   const windBand = (
     <>
       <BandHeader
         label="Wind"
         size={size}
+        aside={windAside}
         legend={live ? WIND_LIVE_LEGEND : WIND_FORECAST_LEGEND}
         className="pb-[7px]"
       />
-      <WindBand
-        chart={chart}
-        station={live}
-        labelSize={labelSize}
-        showWash={showWash}
-        gutter={desktop ? 3 : 2}
-        radius={desktop ? 4 : 3}
-        height={fluid ? undefined : h.wind}
-        className={fluid ? "flex-[1.5] min-h-0" : ""}
-      />
+      <div className={`relative ${fluid ? "flex-[1.5] min-h-0" : ""}`}>
+        <WindBand
+          chart={chart}
+          station={live}
+          labelSize={labelSize}
+          showWash={showWash}
+          gutter={desktop ? 3 : 2}
+          radius={desktop ? 4 : 3}
+          height={fluid ? undefined : h.wind}
+          className={fluid ? "h-full min-h-0" : ""}
+        />
+        {showHover && <ChartColumnHover chart={chart} station={live} nowMs={nowMs} />}
+      </div>
     </>
   );
 

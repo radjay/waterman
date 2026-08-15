@@ -909,14 +909,17 @@ export const triggerScrape = action({
           });
         }
         
-        // Process tide data
+        // Process tide data. Keep earlier-today marks (not only the future):
+        // saveTides replaces the whole table, and a `>= now` filter left the
+        // day chart with no morning tide to draw.
         if (tideData.length >= 5) {
+          const tideKeepFrom = now - 18 * 60 * 60 * 1000;
           const sortedTides = tideData
             .map(t => ({
               time: t.timestamp * 1000,
               height: t.tideHeight,
             }))
-            .filter(t => t.time >= now)
+            .filter(t => t.time >= tideKeepFrom)
             .sort((a, b) => a.time - b.time);
           
           const WINDOW = 3;

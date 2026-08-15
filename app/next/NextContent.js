@@ -11,6 +11,7 @@ import { useSelectedSpot } from "../../lib/hooks/useSelectedSpot";
 import { ALL_SPOTS, SpotPickerSheet } from "../../components/spot/SpotPickerSheet";
 import { WindowCard } from "../../components/next/WindowCard";
 import { WeekStrip } from "../../components/next/WeekStrip";
+import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { ScreenError, ScreenEmpty, ScreenSkeleton } from "../../components/common/ScreenState";
 import { MicroLabel } from "../../components/ui/MicroLabel";
 import { buildDayChart, DAY_MS, sameDay } from "../../lib/dayChart";
@@ -45,6 +46,7 @@ export function NextContent({ spotSlug = null }) {
   const [, setSelectedSpot] = useSelectedSpot();
   const [openDay, setOpenDay] = useState(today);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [camSpot, setCamSpot] = useState(null);
 
   // Scoped to one spot when the path names one, otherwise across my spots.
   const scoped = useMemo(() => {
@@ -208,6 +210,7 @@ export function NextContent({ spotSlug = null }) {
               highlight={i === 0}
               withStill={isDesktop}
               onClick={() => openSpot(card.spot)}
+              onOpenCam={() => setCamSpot(card.spot)}
             />
           ))}
         </div>
@@ -237,6 +240,16 @@ export function NextContent({ spotSlug = null }) {
       {/* Said out loud because Now and Live show the CURRENT score for the same
           beach, and two different numbers with no explanation reads as a bug. */}
       <MicroLabel className="pt-4">Scores here are each window&rsquo;s peak</MicroLabel>
+
+      {camSpot && (
+        <WebcamFullscreen
+          spot={camSpot}
+          score={scoped.find((p) => p.spot._id === camSpot._id)?.peakScore ?? null}
+          onClose={() => setCamSpot(null)}
+          allWebcams={view.cards.map((c) => c.spot).filter((s, i, a) => a.findIndex((x) => x._id === s._id) === i)}
+          onNavigate={setCamSpot}
+        />
+      )}
     </MainLayout>
   );
 }
