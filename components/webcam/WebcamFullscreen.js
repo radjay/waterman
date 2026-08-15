@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, CircleGauge, ChartNoAxesCombined } from "lucide-react";
 import Hls from "hls.js";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
 import { WindGroup } from "../forecast/WindGroup";
 import { ScoreDial } from "../ui/ScoreDial";
+import { LiveStationBadge } from "../ui/LiveStationBadge";
+import { OVER_VIDEO_SCRIM } from "../ui/CamFrame";
 import { WaveGroup } from "../forecast/WaveGroup";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 import { formatTideTime } from "../../lib/utils";
@@ -16,17 +18,28 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
 /**
  * Fullscreen webcam modal component with video and metadata.
- * 
+ *
  * @param {Object} spot - Webcam spot object
  * @param {number|null} score - Condition score for this spot right now. Passed
  *   in rather than fetched: scores live in condition_scores (not the forecast
  *   slots this component loads), and every caller already has the number the
  *   rider is here to confirm.
+ * @param {object|null} station - Same pack.station as CamFrame / wind chart.
+ *   LiveStationBadge top-left when present; surfing callers pass null.
+ * @param {boolean} [showExternalLinks] Windguru + Windy (LIVE) left of close.
  * @param {Function} onClose - Callback to close the modal
  * @param {Array} allWebcams - Array of all available webcams for navigation
  * @param {Function} onNavigate - Callback to navigate to a different webcam
  */
-export function WebcamFullscreen({ spot, score = null, onClose, allWebcams = [], onNavigate }) {
+export function WebcamFullscreen({
+  spot,
+  score = null,
+  station = null,
+  showExternalLinks = false,
+  onClose,
+  allWebcams = [],
+  onNavigate,
+}) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [currentConditions, setCurrentConditions] = useState(null);
@@ -342,12 +355,40 @@ export function WebcamFullscreen({ spot, score = null, onClose, allWebcams = [],
           </>
         )}
 
-        {/* Top controls: record button + close */}
+        {/* Top controls: Windguru/Windy (LIVE) + record + close */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {allWebcams.length > 1 && (
             <span className="font-data text-[11px] text-white/60 tabular-nums px-2">
               {index + 1} / {allWebcams.length}
             </span>
+          )}
+          {showExternalLinks && spot.liveReportUrl && (
+            <a
+              href={spot.liveReportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={OVER_VIDEO_SCRIM}
+              aria-label="Open Windguru live report"
+              title="Windguru"
+            >
+              <CircleGauge size={14} />
+            </a>
+          )}
+          {showExternalLinks && spot.url && (
+            <a
+              href={spot.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={OVER_VIDEO_SCRIM}
+              aria-label="Open Windy forecast"
+              title="Windy"
+            >
+              <ChartNoAxesCombined size={14} />
+            </a>
           )}
           <RecordButton spotId={spot._id} />
           <button
@@ -358,6 +399,13 @@ export function WebcamFullscreen({ spot, score = null, onClose, allWebcams = [],
             <X size={24} />
           </button>
         </div>
+
+        {/* LIVE station — same pack.station as CamFrame; no second fetch. */}
+        {station && (
+          <span className="absolute top-4 left-4 z-20 pointer-events-none">
+            <LiveStationBadge station={station} />
+          </span>
+        )}
 
         {/* Video container - fills viewport with letterboxing (no cropping). Click letterbox bars to close. */}
         <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">

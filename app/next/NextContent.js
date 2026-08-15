@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { useSport } from "../../components/sport/SportProvider";
+import { useSport, isWindSport } from "../../components/sport/SportProvider";
 import { useCoastData } from "../../components/data/useCoastData";
 import { useIsDesktop } from "../../lib/hooks/useMediaQuery";
 import { useSelectedSpot } from "../../lib/hooks/useSelectedSpot";
@@ -205,6 +205,7 @@ export function NextContent({ spotSlug = null }) {
               spot={card.spot}
               window={card.window}
               sport={sport}
+              station={isWindSport(sport) ? (scoped.find((p) => p.spot._id === card.spot._id)?.station ?? null) : null}
               dayLabel={card.day.long}
               isToday={card.day.isToday}
               highlight={i === 0}
@@ -245,6 +246,11 @@ export function NextContent({ spotSlug = null }) {
         <WebcamFullscreen
           spot={camSpot}
           score={scoped.find((p) => p.spot._id === camSpot._id)?.peakScore ?? null}
+          station={
+            isWindSport(sport)
+              ? (scoped.find((p) => p.spot._id === camSpot._id)?.station ?? null)
+              : null
+          }
           onClose={() => setCamSpot(null)}
           allWebcams={view.cards.map((c) => c.spot).filter((s, i, a) => a.findIndex((x) => x._id === s._id) === i)}
           onNavigate={setCamSpot}

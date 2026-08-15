@@ -1,6 +1,6 @@
 "use client";
 
-import { CameraOff, Maximize } from "lucide-react";
+import { CameraOff, Maximize, CircleGauge, ChartNoAxesCombined } from "lucide-react";
 import { LiveCam, streamUrlFor } from "../now/LiveCam";
 import { LiveStationBadge } from "./LiveStationBadge";
 import { dtf } from "../../lib/datetime";
@@ -25,8 +25,13 @@ import { dtf } from "../../lib/datetime";
  * Pass the same `pack.station` the wind chart uses — LiveStationBadge returns
  * null when there is no reading, so spots without a station stay clean.
  *
+ * `showExternalLinks` (LIVE) puts Windguru + Windy icons top-right, left of
+ * Maximize, with the same over-video scrim. Clicks stopPropagation so they do
+ * not open fullscreen.
+ *
  * @param {object} spot
  * @param {object|null} [station] pack.station — LIVE badge top-left when present
+ * @param {boolean} [showExternalLinks] Windguru/Windy overlays (LIVE)
  * @param {boolean} [rounded]   corner radius token, 0 for the full-bleed hero
  * @param {Function} [onFullscreen]
  * @param {number|null} [offlineSince] ms — renders the offline plate
@@ -34,6 +39,13 @@ import { dtf } from "../../lib/datetime";
 const TZ = "Europe/Lisbon";
 const clock = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
+
+/** Scrim for controls that sit on footage — must not follow the theme. */
+export const OVER_VIDEO_SCRIM = {
+  background: "rgba(4,8,13,.6)",
+  border: "1px solid rgba(234,244,246,.28)",
+  color: "#EAF4F6",
+};
 
 function openFullscreen(e, onFullscreen) {
   if (!onFullscreen) return;
@@ -45,6 +57,7 @@ function openFullscreen(e, onFullscreen) {
 export function CamFrame({
   spot,
   station = null,
+  showExternalLinks = false,
   radius = 0,
   onFullscreen,
   offlineSince = null,
@@ -55,6 +68,10 @@ export function CamFrame({
 }) {
   const hasStream = Boolean(streamUrlFor(spot));
   const clickable = Boolean(onFullscreen && hasStream);
+  const windguruUrl = showExternalLinks ? spot?.liveReportUrl : null;
+  const windyUrl = showExternalLinks ? spot?.url : null;
+  const hasLinks = Boolean(windguruUrl || windyUrl);
+  const showTopRight = hasLinks || clickable;
 
   return (
     <div
@@ -80,27 +97,54 @@ export function CamFrame({
         <CamOffline since={offlineSince} never={!spot?.webcamUrl && !spot?.webcamStreamId} />
       )}
 
-      {station && (
-        <span className="absolute top-[11px] left-3 z-[1] pointer-events-none">
-          <LiveStationBadge station={station} />
+      {(station || overlay) && (
+        <span className="absolute top-[11px] left-3 z-[1] pointer-events-none flex items-center gap-2">
+          {station && <LiveStationBadge station={station} />}
+          {overlay}
         </span>
       )}
 
-      {overlay}
-
-      {clickable && (
-        <span
-          aria-hidden="true"
-          className="absolute top-[11px] right-[14px] w-8 h-8 rounded-full flex items-center justify-center pointer-events-none transition-opacity duration-fast ease-smooth"
-          style={{
-            // Fixed, not tokenised: this sits on a photograph, not on the page,
-            // so it must not follow the theme.
-            background: "rgba(4,8,13,.6)",
-            border: "1px solid rgba(234,244,246,.28)",
-            color: "#EAF4F6",
-          }}
-        >
-          <Maximize size={14} />
+      {showTopRight && (
+        <span className="absolute top-[11px] right-[14px] z-[1] flex items-center gap-2">
+          {windguruUrl && (
+            <a
+              href={windguruUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="w-8 h-8 rounded-full flex items-center justify-center focus-ring"
+              style={OVER_VIDEO_SCRIM}
+              aria-label="Open Windguru live report"
+              title="Windguru"
+            >
+              <CircleGauge size={14} />
+            </a>
+          )}
+          {windyUrl && (
+            <a
+              href={windyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="w-8 h-8 rounded-full flex items-center justify-center focus-ring"
+              style={OVER_VIDEO_SCRIM}
+              aria-label="Open Windy forecast"
+              title="Windy"
+            >
+              <ChartNoAxesCombined size={14} />
+            </a>
+          )}
+          {clickable && (
+            <span
+              aria-hidden="true"
+              className="w-8 h-8 rounded-full flex items-center justify-center pointer-events-none transition-opacity duration-fast ease-smooth"
+              style={OVER_VIDEO_SCRIM}
+            >
+              <Maximize size={14} />
+            </span>
+          )}
         </span>
       )}
     </div>

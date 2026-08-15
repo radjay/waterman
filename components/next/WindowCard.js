@@ -27,6 +27,7 @@ export function WindowCard({
   spot,
   window: win,
   sport,
+  station = null,
   dayLabel,
   isToday = false,
   highlight = false,
@@ -69,13 +70,12 @@ export function WindowCard({
       >
         <CamFrame
           spot={spot}
+          station={station}
           onFullscreen={onOpenCam}
           overlay={
-            <span className="absolute top-[11px] left-3 pointer-events-none">
-              <DayTag variant={isToday ? "today" : "overlay"} size="md">
-                {dayLabel}
-              </DayTag>
-            </span>
+            <DayTag variant={isToday ? "today" : "overlay"} size="md">
+              {dayLabel}
+            </DayTag>
           }
         />
         <button

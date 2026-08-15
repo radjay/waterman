@@ -3,65 +3,62 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Maximize2 } from "lucide-react";
 import Hls from "hls.js";
-import { LiveWindIndicator, extractWindguruStationId } from "../wind/LiveWindIndicator";
+import { LiveStationBadge } from "../ui/LiveStationBadge";
 
 /**
- * TvMode component - Fullscreen dark theme view with 3-column grid and no spacing.
- * Designed for displaying all webcams simultaneously on a TV or large display.
- * Clicking a webcam focuses on it in fullscreen.
+ * TvMode — fullscreen dark grid of cams for a club-wall screen.
  *
- * @param {Array} webcams - Array of webcam spot objects
- * @param {Function} onClose - Callback when TV mode is exited
+ * Each cell overlays LiveStationBadge (same pack.station as LIVE cards) when
+ * that spot has a live reading. No second wind fetch — callers pass station.
+ *
+ * @param {Array<{spot: object, station?: object|null}>} packs
+ * @param {Function} onClose
  */
 const TV_COLUMNS_KEY = "waterman_tv_columns";
 const GRID_CLASSES = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
 
-export function TvMode({ webcams, onClose }) {
-  const [focusedSpot, setFocusedSpot] = useState(null);
+export function TvMode({ packs = [], webcams, onClose }) {
+  // Prefer packs (spot + station). Legacy `webcams` still works without badges.
+  const cells = packs.length
+    ? packs
+    : (webcams ?? []).map((spot) => ({ spot, station: null }));
+
+  const [focused, setFocused] = useState(null);
   const [columns, setColumns] = useState(3);
 
   useEffect(() => {
     const stored = localStorage.getItem(TV_COLUMNS_KEY);
     if (stored && GRID_CLASSES[stored]) setColumns(parseInt(stored));
   }, []);
-  // Get stream URL for a spot
+
   const getStreamUrl = (spot) => {
-    // New format: webcamStreamId + webcamStreamSource
     if (spot.webcamStreamId) {
       if (spot.webcamStreamSource === "quanteec") {
         return `https://deliverys5.quanteec.com/contents/encodings/live/${spot.webcamStreamId}/media_0.m3u8`;
       } else if (spot.webcamStreamSource === "iol") {
-        return spot.webcamStreamId; // IOL streamId is already the full URL
+        return spot.webcamStreamId;
       }
     }
-
-    // Old format: webcamUrl (full URL)
     if (spot.webcamUrl && spot.webcamUrl.trim() !== "") {
       return spot.webcamUrl;
     }
-
     return null;
   };
 
-  // Handle ESC key - close focused cam or exit TV mode
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
-        if (focusedSpot) {
-          // If focused on a cam, just unfocus it (back to grid)
-          setFocusedSpot(null);
+        if (focused) {
+          setFocused(null);
         } else {
-          // If in grid view, exit TV mode completely
           onClose();
         }
       }
     };
-
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [focusedSpot, onClose]);
+  }, [focused, onClose]);
 
-  // Lock body scroll when TV mode is active
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -69,38 +66,41 @@ export function TvMode({ webcams, onClose }) {
     };
   }, []);
 
-  // If a spot is focused, show it fullscreen
-  if (focusedSpot) {
+  if (focused) {
     return (
       <div className="fixed inset-0 z-[200] bg-black">
-        {/* Close button - unfocuses cam and returns to grid */}
         <button
-          onClick={() => setFocusedSpot(null)}
+          onClick={() => setFocused(null)}
           className="absolute top-4 right-4 z-[201] p-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
           aria-label="Back to grid"
         >
           <X className="w-6 h-6 text-white" />
         </button>
-
-        {/* Fullscreen single webcam */}
         <div className="w-full h-full">
-          <TvWebcamCell spot={focusedSpot} getStreamUrl={getStreamUrl} />
+          <TvWebcamCell
+            spot={focused.spot}
+            station={focused.station}
+            getStreamUrl={getStreamUrl}
+          />
         </div>
       </div>
     );
   }
 
-  // Grid view
   return (
     <div className="fixed inset-0 z-[200] bg-black">
-      {/* Controls: column selector + close button */}
       <div className="absolute top-4 right-4 z-[201] flex items-center gap-2">
         <div className="flex items-center gap-1 bg-white/10 rounded-md p-1">
-          {[2, 3, 4].map(n => (
+          {[2, 3, 4].map((n) => (
             <button
               key={n}
-              onClick={() => { setColumns(n); localStorage.setItem(TV_COLUMNS_KEY, String(n)); }}
-              className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${columns === n ? "bg-white/30 text-white" : "text-white/50 hover:text-white/80"}`}
+              onClick={() => {
+                setColumns(n);
+                localStorage.setItem(TV_COLUMNS_KEY, String(n));
+              }}
+              className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${
+                columns === n ? "bg-white/30 text-white" : "text-white/50 hover:text-white/80"
+              }`}
               aria-label={`${n} columns`}
             >
               {n}
@@ -116,14 +116,14 @@ export function TvMode({ webcams, onClose }) {
         </button>
       </div>
 
-      {/* Dynamic grid, scrollable */}
       <div className={`grid ${GRID_CLASSES[columns]} auto-rows-min gap-0 overflow-y-auto h-full`}>
-        {webcams.map((webcam) => (
+        {cells.map((cell) => (
           <TvWebcamCell
-            key={webcam._id}
-            spot={webcam}
+            key={cell.spot._id}
+            spot={cell.spot}
+            station={cell.station}
             getStreamUrl={getStreamUrl}
-            onClick={() => setFocusedSpot(webcam)}
+            onClick={() => setFocused(cell)}
           />
         ))}
       </div>
@@ -131,16 +131,10 @@ export function TvMode({ webcams, onClose }) {
   );
 }
 
-/**
- * Individual webcam cell for TV mode grid.
- * Each cell contains a video player and spot name overlay.
- * Clicking the cell focuses on it in fullscreen.
- */
-function TvWebcamCell({ spot, getStreamUrl, onClick }) {
+function TvWebcamCell({ spot, station = null, getStreamUrl, onClick }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
-  // Initialize HLS player
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -153,7 +147,6 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
 
     const initializePlayer = () => {
       if (Hls.isSupported()) {
-        // Clean up existing HLS instance
         if (hlsRef.current) {
           hlsRef.current.destroy();
         }
@@ -169,12 +162,10 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          // Check if video element is still valid before playing
           if (video && videoRef.current === video) {
             const playPromise = video.play();
             if (playPromise !== undefined) {
               playPromise.catch((error) => {
-                // Ignore AbortError - it's expected when cleanup happens
                 if (error.name !== "AbortError" && error.name !== "NotAllowedError") {
                   console.error("Error playing video:", error);
                 }
@@ -202,7 +193,6 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
           }
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Native HLS support (Safari)
         video.src = streamUrl;
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -217,7 +207,6 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
 
     initializePlayer();
 
-    // Cleanup
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -231,7 +220,6 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
       className="relative w-full aspect-video bg-black overflow-hidden group cursor-pointer"
       onClick={onClick}
     >
-      {/* Video player */}
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
@@ -240,29 +228,21 @@ function TvWebcamCell({ spot, getStreamUrl, onClick }) {
         controls={false}
       />
 
-      {/* Live wind indicator overlay - top left corner */}
-      {spot.liveReportUrl && extractWindguruStationId(spot.liveReportUrl) && (
-        <div className="absolute top-2 left-2 z-10">
-          <LiveWindIndicator
-            stationId={extractWindguruStationId(spot.liveReportUrl)}
-            compact={true}
-          />
-        </div>
+      {station && (
+        <span className="absolute top-2 left-2 z-10 pointer-events-none">
+          <LiveStationBadge station={station} />
+        </span>
       )}
 
-      {/* Hover overlay with expand icon */}
       {onClick && (
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <Maximize2 className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       )}
 
-      {/* Spot name overlay (bottom-left) - subtle */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
         <h3 className="text-white/90 font-medium text-sm">{spot.name}</h3>
-        {spot.town && (
-          <p className="text-white/60 text-xs">{spot.town}</p>
-        )}
+        {spot.town && <p className="text-white/60 text-xs">{spot.town}</p>}
       </div>
     </div>
   );
