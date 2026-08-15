@@ -449,7 +449,7 @@ export function WebcamFullscreen({
               ) : currentConditions ? (
                 <div className="flex items-center gap-2 md:gap-8 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
                   <div className="bg-white/5 rounded-lg px-2.5 py-1 md:px-6 md:py-3 flex-shrink-0 md:flex-1">
-                    <div className="text-white scale-90 origin-left md:scale-100">
+                    <div className="text-white">
                       <WindGroup
                         speed={currentConditions.speed}
                         gust={currentConditions.gust}
@@ -460,7 +460,7 @@ export function WebcamFullscreen({
 
                   {currentConditions.waveHeight !== undefined && (
                     <div className="bg-white/5 rounded-lg px-2.5 py-1 md:px-6 md:py-3 flex-shrink-0 md:flex-1">
-                      <div className="text-white scale-90 origin-left md:scale-100">
+                      <div className="text-white">
                         <WaveGroup
                           waveHeight={currentConditions.waveHeight}
                           wavePeriod={currentConditions.wavePeriod}
