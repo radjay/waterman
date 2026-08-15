@@ -32,6 +32,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.js"],
     include: ["**/__tests__/**/*.test.{js,jsx}"],
-    exclude: ["node_modules/**", ".next/**", ".ds-sync/**", ".design-sync/**"],
+    exclude: ["node_modules/**", ".next/**", ".ds-sync/**", ".design-sync/**", ".claude/worktrees/**"],
   },
 });
