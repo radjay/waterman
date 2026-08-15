@@ -97,9 +97,51 @@ export function stationHoverText(point, chart = null) {
 }
 
 /**
+ * Plot marks for a hover hit — same x as `xPct`, values for WindBand's y scale.
+ *
+ * Station: speed (+ gust) at the sample. Column: the forecast slot band, and the
+ * in-slot station sample when the tip mentions one.
+ */
+export function hoverMarks({ kind, xPct, point = null, column = null, stationPoint = null, chart = null }) {
+  if (kind === "station" && point && Number.isFinite(point.speed)) {
+    return {
+      xPct,
+      station: {
+        xPct,
+        speed: point.speed,
+        gust: Number.isFinite(point.gust) ? point.gust : null,
+      },
+    };
+  }
+  if (kind === "column" && column?.slot && Number.isFinite(column.slot.speed)) {
+    const marks = {
+      xPct,
+      column: {
+        left: column.left,
+        width: column.width,
+        speed: column.slot.speed,
+        gust: Number.isFinite(column.slot.gust) ? column.slot.gust : null,
+      },
+    };
+    if (stationPoint && Number.isFinite(stationPoint.speed)) {
+      const sx = timePctOnChart(chart, stationPoint.time);
+      if (sx != null && sx >= 0 && sx <= 100) {
+        marks.station = {
+          xPct: sx,
+          speed: stationPoint.speed,
+          gust: Number.isFinite(stationPoint.gust) ? stationPoint.gust : null,
+        };
+      }
+    }
+    return marks;
+  }
+  return null;
+}
+
+/**
  * Resolve what the pointer is on: a station sample, or a forecast column.
  *
- * @returns {{ kind: 'station'|'column', xPct: number, text: string } | null}
+ * @returns {{ kind: 'station'|'column', xPct: number, text: string, marks: object } | null}
  */
 export function resolveChartHover({
   chart,
@@ -131,7 +173,12 @@ export function resolveChartHover({
   if (nearest && nearestDist <= stationHitPct) {
     const text = stationHoverText(nearest, chart);
     if (text) {
-      return { kind: "station", xPct: nearestPct, text };
+      return {
+        kind: "station",
+        xPct: nearestPct,
+        text,
+        marks: hoverMarks({ kind: "station", xPct: nearestPct, point: nearest }),
+      };
     }
   }
 
@@ -139,9 +186,18 @@ export function resolveChartHover({
   if (!column) return null;
   const text = columnHoverText(column, station, nowMs);
   if (!text) return null;
+  const tipX = column.left + column.width / 2;
+  const live = stationInSlot(station?.history, column.slot.timestamp, nowMs);
   return {
     kind: "column",
-    xPct: column.left + column.width / 2,
+    xPct: tipX,
     text,
+    marks: hoverMarks({
+      kind: "column",
+      xPct: tipX,
+      column,
+      stationPoint: live,
+      chart,
+    }),
   };
 }

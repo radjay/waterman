@@ -3,6 +3,7 @@
 ## [2026-08-15]
 
 ### Fixed
+- NOW wind-chart hover marks the selected station/forecast points on the plot (not only the tip), and touch no longer leaves a sticky tooltip after a tap.
 - LIVE station wind overlays every cam surface that has a reading (CamFrame, fullscreen, TV mode) — same number as the wind chart, direction as TO.
 - LIVE cams show Windguru and Windy shortcuts on the video (top-right, left of fullscreen), without stealing the tap that opens the cam.
 - LIVE spot picker includes “All spots” (full coast) alongside “All my spots”; desktop All spots grid scrolls instead of stopping at four.
