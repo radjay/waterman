@@ -9,8 +9,8 @@ import { MicroLabel } from "../ui/MicroLabel";
  * scroll past SCORE to find out which line is the tide.
  *
  * `aside` is for a short note next to the label when needed. Live station knots
- * on NOW use LiveStationBadge in the screen header instead — burying them here
- * made the reading too quiet.
+ * on NOW overlay the cam via LiveStationBadge — burying them here made the
+ * reading too quiet.
  */
 export function BandHeader({ label, legend, aside = null, size = "sm", className = "" }) {
   return (

@@ -2,13 +2,15 @@
 
 import { CameraOff, Maximize } from "lucide-react";
 import { LiveCam, streamUrlFor } from "../now/LiveCam";
+import { LiveStationBadge } from "./LiveStationBadge";
 import { dtf } from "../../lib/datetime";
 
 /**
  * The cam, in a box.
  *
  * Every screen shows the same picture at the same ratio, so the frame is one
- * component: 16:9, no overlay chrome except the fullscreen affordance, and an
+ * component: 16:9, no overlay chrome except the fullscreen affordance and (when
+ * the spot has a live reading) LiveStationBadge in the top-left, plus an
  * explicit offline state rather than a black rectangle.
  *
  * A dead cam is information. The card around it still carries the station
@@ -20,7 +22,11 @@ import { dtf } from "../../lib/datetime";
  * When `onFullscreen` is set and the stream is live, the whole frame opens
  * WebcamFullscreen — not only the corner button. Thumbs use the same contract.
  *
+ * Pass the same `pack.station` the wind chart uses — LiveStationBadge returns
+ * null when there is no reading, so spots without a station stay clean.
+ *
  * @param {object} spot
+ * @param {object|null} [station] pack.station — LIVE badge top-left when present
  * @param {boolean} [rounded]   corner radius token, 0 for the full-bleed hero
  * @param {Function} [onFullscreen]
  * @param {number|null} [offlineSince] ms — renders the offline plate
@@ -38,6 +44,7 @@ function openFullscreen(e, onFullscreen) {
 
 export function CamFrame({
   spot,
+  station = null,
   radius = 0,
   onFullscreen,
   offlineSince = null,
@@ -71,6 +78,12 @@ export function CamFrame({
         <LiveCam spot={spot} />
       ) : (
         <CamOffline since={offlineSince} never={!spot?.webcamUrl && !spot?.webcamStreamId} />
+      )}
+
+      {station && (
+        <span className="absolute top-[11px] left-3 z-[1] pointer-events-none">
+          <LiveStationBadge station={station} />
+        </span>
       )}
 
       {overlay}

@@ -5,7 +5,7 @@
 ### Fixed
 - NOW chart hover tips sit below the wind band (not covering the wind plot).
 - Hovering a station wind reading shows that sample’s clock (e.g. 15:42), not the 3-hour forecast slot it falls in.
-- LIVE station wind on NOW is a pronounced badge next to the spot header, with wind direction as TO (same as the rest of the app).
+- LIVE station wind sits on the cam (top-left badge), with wind direction as TO (same as the rest of the app).
 - Whole SCORE columns on the day chart link to that spot’s report for today (not only the digits).
 - Webcam images open the fullscreen cam on click (whole frame, not only the corner button), including thumbs under NOW.
 - Day-chart y-axis labels no longer sit on top of bars and lines.

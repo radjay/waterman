@@ -95,9 +95,9 @@ export function DayChartPanel({
     />
   ) : null;
 
-  // Live knots live on the NOW header as LiveStationBadge — not beside the
-  // Wind label — so the reading is impossible to miss and cannot disagree with
-  // a second copy here.
+  // Live knots live on the cam as LiveStationBadge (top-left overlay) — not
+  // beside the Wind label — so the reading cannot disagree with a second copy
+  // here.
   const windBand = (
     <>
       <BandHeader

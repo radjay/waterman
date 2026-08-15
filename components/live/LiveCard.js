@@ -83,11 +83,15 @@ export function LiveCard({
     highlight ? "border-accent-border bg-accent-tint-card" : "border-card bg-surface"
   } ${onSelect ? "focus-ring cursor-pointer" : ""} ${className}`;
 
+  // Same pack.station as the wind chart — CamFrame overlays LiveStationBadge
+  // top-left when there is a reading; surfing / dead stations stay blank.
+  const camStation = isWindSport(sport) ? station : null;
+
   if (desktop) {
     return (
       <div className={`${shell} flex flex-col min-h-0`} onClick={onSelect}>
         <div className="flex-1 min-h-0 relative">
-          <CamFrame spot={spot} fill onFullscreen={onOpenCam} />
+          <CamFrame spot={spot} station={camStation} fill onFullscreen={onOpenCam} />
         </div>
         <div className="flex-none px-[14px] pt-[10px] pb-[11px]">
           {identity}
@@ -101,7 +105,7 @@ export function LiveCard({
     <div className={`${shell} px-[11px] pt-[6px] pb-[7px]`} onClick={onSelect}>
       {identity}
       <div className="mt-2">
-        <CamFrame spot={spot} radius={11} onFullscreen={onOpenCam} />
+        <CamFrame spot={spot} station={camStation} radius={11} onFullscreen={onOpenCam} />
       </div>
       {wind}
     </div>

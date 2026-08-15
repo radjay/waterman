@@ -458,7 +458,7 @@ export default function UIKitPage() {
             label="LiveStationBadge — LIVE + station knots (TO direction)"
             importPath="components/ui/LiveStationBadge"
             on={["NOW"]}
-            note="same pack.station as the wind chart; direction is display TO, never raw FROM"
+            note="same pack.station as the wind chart; overlays CamFrame top-left; direction is display TO, never raw FROM"
           >
             <LiveStationBadge
               station={{
@@ -1211,11 +1211,15 @@ export default function UIKitPage() {
             importPath="components/ui/CamFrame"
             on={["NOW", "NEXT", "LIVE"]}
           >
-            The cam, in a box: 16:9, no overlay chrome except the fullscreen affordance.
-            Documented rather than rendered because it opens a live HLS stream. The offline
-            plate is the part worth knowing: it distinguishes a cam that broke this morning
-            (&ldquo;CAM OFFLINE SINCE 08:20&rdquo;) from a spot that never had one (&ldquo;No cam
-            at this spot&rdquo;) — Praia do CDS and Fonte da Telha are the second case, and a
+            The cam, in a box: 16:9, fullscreen affordance top-right, and when the
+            spot has a live station reading{" "}
+            <code className="font-data text-[11px] text-ink">LiveStationBadge</code>{" "}
+            top-left (same <code className="font-data text-[11px] text-ink">pack.station</code>{" "}
+            as the wind chart). Documented rather than rendered because it opens a
+            live HLS stream. The offline plate is the part worth knowing: it
+            distinguishes a cam that broke this morning (&ldquo;CAM OFFLINE SINCE
+            08:20&rdquo;) from a spot that never had one (&ldquo;No cam at this
+            spot&rdquo;) — Praia do CDS and Fonte da Telha are the second case, and a
             black rectangle would have said neither.
           </Documented>
 
