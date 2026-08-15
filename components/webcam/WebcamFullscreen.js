@@ -420,37 +420,35 @@ export function WebcamFullscreen({
         </div>
 
         {/* Conditions bar.
-            NOT `landscape:hidden`. That is an ORIENTATION query, so it matched
-            every desktop window and the `hidden md:flex` row below it — spot
-            name, wind, waves, tide — was unreachable code on any desktop. The
-            cam is where a rider checks whether the verdict is true, and it was
-            confirming nothing.
-            Short viewports get tighter padding instead of losing the data. */}
+            Landscape (any width) and md+ share one thin row — phones in
+            landscape stay under `md` but still need a single bottom strip, not
+            the tall stack. Do NOT use `landscape:hidden` on the whole bar:
+            that is an orientation query and wiped the data on every desktop.
+            Portrait phones keep a compact stack that must not eat the cam. */}
         <div
-          className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 px-4 py-2.5 md:px-6 md:py-4"
+          className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm border-t border-white/10 px-3 py-2 landscape:py-1.5 md:px-6 md:py-4"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="max-w-6xl mx-auto">
-            {/* Large screens: single row with spot name and metadata side by side */}
-            <div className="hidden md:flex items-center w-full gap-8">
-              {/* Spot name */}
-              <div className="flex-shrink-0 min-w-[200px] flex items-center gap-3">
+            {/* Single thin row: landscape (any width) or desktop */}
+            <div className="hidden landscape:flex md:flex items-center w-full gap-3 md:gap-8 min-w-0">
+              <div className="flex-shrink-0 flex items-center gap-2 md:gap-3 min-w-0 md:min-w-[200px]">
                 {score != null && <ScoreDial score={score} size="sm" showAll />}
-                <div>
-                  <h2 className="font-headline text-xl font-bold text-white mb-1">
+                <div className="min-w-0">
+                  <h2 className="font-headline text-sm md:text-xl font-bold text-white truncate md:mb-1">
                     {spot.name}
                   </h2>
-                  {spot.town && <p className="text-white/60 text-sm">{spot.town}</p>}
+                  {spot.town && (
+                    <p className="hidden md:block text-white/60 text-sm">{spot.town}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Metadata in a row - evenly spaced */}
               {loading ? (
-                <div className="text-white/60 text-sm">Loading conditions...</div>
+                <div className="text-white/60 text-xs md:text-sm">Loading conditions...</div>
               ) : currentConditions ? (
-                <div className="flex items-center justify-between gap-8 flex-1">
-                  {/* Wind */}
-                  <div className="bg-white/5 rounded-lg px-6 py-3 flex-1">
+                <div className="flex items-center gap-2 md:gap-8 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+                  <div className="bg-white/5 rounded-lg px-2.5 py-1 md:px-6 md:py-3 flex-shrink-0 md:flex-1">
                     <div className="text-white">
                       <WindGroup
                         speed={currentConditions.speed}
@@ -460,9 +458,8 @@ export function WebcamFullscreen({
                     </div>
                   </div>
 
-                  {/* Waves */}
                   {currentConditions.waveHeight !== undefined && (
-                    <div className="bg-white/5 rounded-lg px-6 py-3 flex-1">
+                    <div className="bg-white/5 rounded-lg px-2.5 py-1 md:px-6 md:py-3 flex-shrink-0 md:flex-1">
                       <div className="text-white">
                         <WaveGroup
                           waveHeight={currentConditions.waveHeight}
@@ -473,15 +470,14 @@ export function WebcamFullscreen({
                     </div>
                   )}
 
-                  {/* Tides */}
                   {tides.length > 0 && (
-                    <div className="bg-white/5 rounded-lg px-6 py-3 flex-1">
-                      <div className="flex items-center justify-center gap-4">
+                    <div className="bg-white/5 rounded-lg px-2.5 py-1 md:px-6 md:py-3 flex-shrink-0 md:flex-1">
+                      <div className="flex items-center justify-center gap-2 md:gap-4">
                         {tides.map((tide, idx) => {
                           const type = tide.type?.toLowerCase();
                           const timeStr = tide.timeStr || formatTideTime(new Date(tide.time));
                           return (
-                            <div key={idx} className="flex items-center gap-2 text-white">
+                            <div key={idx} className="flex items-center gap-1.5 md:gap-2 text-white text-xs md:text-base">
                               {type === 'high' ? (
                                 <WavesArrowUp size={14} className="text-white flex-shrink-0" strokeWidth={2} />
                               ) : type === 'low' ? (
@@ -489,7 +485,7 @@ export function WebcamFullscreen({
                               ) : (
                                 <span className="text-white">•</span>
                               )}
-                              <span>{timeStr}</span>
+                              <span className="font-data tabular-nums">{timeStr}</span>
                             </div>
                           );
                         })}
@@ -498,32 +494,26 @@ export function WebcamFullscreen({
                   )}
                 </div>
               ) : (
-                <div className="text-white/60 text-sm">No condition data available</div>
+                <div className="text-white/60 text-xs md:text-sm">No condition data available</div>
               )}
             </div>
 
-            {/* Mobile portrait: stacked layout */}
-            <div className="md:hidden">
-              {/* Spot name */}
-              <div className="mb-4 flex items-center gap-3">
+            {/* Portrait phone only: compact stack (hidden in landscape and on md+) */}
+            <div className="flex flex-col landscape:hidden md:hidden">
+              <div className="mb-2 flex items-center gap-2">
                 {score != null && <ScoreDial score={score} size="sm" showAll />}
-                <div>
-                <h2 className="font-headline text-lg font-bold text-white mb-1">
-                  {spot.name}
-                </h2>
-                {spot.town && (
-                  <p className="text-white/60 text-sm">{spot.town}</p>
-                )}
+                <div className="min-w-0">
+                  <h2 className="font-headline text-base font-bold text-white truncate">
+                    {spot.name}
+                  </h2>
                 </div>
               </div>
 
-              {/* Metadata stacked in three rows */}
               {loading ? (
                 <div className="text-white/60 text-sm">Loading conditions...</div>
               ) : currentConditions ? (
-                <div className="flex flex-col gap-3">
-                  {/* Wind */}
-                  <div className="bg-white/5 rounded-lg p-3">
+                <div className="flex flex-col gap-1.5">
+                  <div className="bg-white/5 rounded-lg px-2.5 py-1.5">
                     <div className="text-white">
                       <WindGroup
                         speed={currentConditions.speed}
@@ -533,9 +523,8 @@ export function WebcamFullscreen({
                     </div>
                   </div>
 
-                  {/* Waves */}
                   {currentConditions.waveHeight !== undefined && (
-                    <div className="bg-white/5 rounded-lg p-3">
+                    <div className="bg-white/5 rounded-lg px-2.5 py-1.5">
                       <div className="text-white">
                         <WaveGroup
                           waveHeight={currentConditions.waveHeight}
@@ -546,15 +535,14 @@ export function WebcamFullscreen({
                     </div>
                   )}
 
-                  {/* Tides */}
                   {tides.length > 0 && (
-                    <div className="bg-white/5 rounded-lg p-3">
+                    <div className="bg-white/5 rounded-lg px-2.5 py-1.5">
                       <div className="flex items-center gap-3">
                         {tides.map((tide, idx) => {
                           const type = tide.type?.toLowerCase();
                           const timeStr = tide.timeStr || formatTideTime(new Date(tide.time));
                           return (
-                            <div key={idx} className="flex items-center gap-2 text-white">
+                            <div key={idx} className="flex items-center gap-2 text-white text-sm">
                               {type === 'high' ? (
                                 <WavesArrowUp size={14} className="text-white flex-shrink-0" strokeWidth={2} />
                               ) : type === 'low' ? (
@@ -562,7 +550,7 @@ export function WebcamFullscreen({
                               ) : (
                                 <span className="text-white">•</span>
                               )}
-                              <span>{timeStr}</span>
+                              <span className="font-data tabular-nums">{timeStr}</span>
                             </div>
                           );
                         })}
