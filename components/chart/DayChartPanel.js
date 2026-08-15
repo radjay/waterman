@@ -1,7 +1,6 @@
 "use client";
 
 import { isWindSport } from "../sport/SportProvider";
-import { StationLine } from "../ui/WindLine";
 import {
   BandHeader,
   WIND_FORECAST_LEGEND,
@@ -96,25 +95,18 @@ export function DayChartPanel({
     />
   ) : null;
 
-  const windAside =
-    live && Number.isFinite(live.speed) ? (
-      <StationLine
-        station={live}
-        size={desktop ? 11 : 10}
-        className="text-ink"
-      />
-    ) : null;
-
+  // Live knots live on the NOW header as LiveStationBadge — not beside the
+  // Wind label — so the reading is impossible to miss and cannot disagree with
+  // a second copy here.
   const windBand = (
     <>
       <BandHeader
         label="Wind"
         size={size}
-        aside={windAside}
         legend={live ? WIND_LIVE_LEGEND : WIND_FORECAST_LEGEND}
         className="pb-[7px]"
       />
-      <div className={`relative ${fluid ? "flex-[1.5] min-h-0" : ""}`}>
+      <div className={`relative overflow-visible ${fluid ? "flex-[1.5] min-h-0" : ""}`}>
         <WindBand
           chart={chart}
           station={live}

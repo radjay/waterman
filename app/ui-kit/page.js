@@ -7,6 +7,7 @@ import { useTheme } from "../../components/theme/ThemeProvider";
 
 // — Current —
 import { Badge } from "../../components/ui/Badge";
+import { LiveStationBadge } from "../../components/ui/LiveStationBadge";
 import { Button } from "../../components/ui/Button";
 import { Divider } from "../../components/ui/Divider";
 import { Heading } from "../../components/ui/Heading";
@@ -452,6 +453,22 @@ export default function UIKitPage() {
               <Badge variant="overlay">overlay</Badge>
               <Badge variant="accent-solid">accent-solid</Badge>
             </span>
+          </Row>
+          <Row
+            label="LiveStationBadge — LIVE + station knots (TO direction)"
+            importPath="components/ui/LiveStationBadge"
+            on={["NOW"]}
+            note="same pack.station as the wind chart; direction is display TO, never raw FROM"
+          >
+            <LiveStationBadge
+              station={{
+                speed: 7,
+                gust: 10,
+                directionLabel: "NE",
+                agoLabel: "2 MIN AGO",
+              }}
+            />
+            <LiveStationBadge station={{ speed: 14, gust: null, directionLabel: "SW" }} />
           </Row>
           <Row label="…the last two are for sitting on video" full>
             <p className="text-[13px] text-faded-ink max-w-[70ch]">
@@ -903,8 +920,23 @@ export default function UIKitPage() {
                 station={STATION_TRAIL}
                 tides={TIDES}
                 nowMs={CHART_NOW}
+                showHover
               />
             </div>
+          </Row>
+          <Row
+            label="ChartColumnHover — tip below the wind band; station samples or 3h columns"
+            importPath="components/chart/ChartColumnHover"
+            on={["NOW"]}
+            note="hit-testing in chartHover.js: a 15:42 station reading does not collapse to the 1pm slot"
+            full
+          >
+            <p className="text-[13px] text-faded-ink max-w-[70ch]">
+              Wired inside DayChartPanel when <code className="font-data text-[11px] text-ink">showHover</code>{" "}
+              is on. Hover the wind band above — tips sit below the plot, and near a station
+              sample the copy leads with that sample&apos;s clock (
+              <code className="font-data text-[11px] text-ink">chartHover</code>).
+            </p>
           </Row>
 
           <Row

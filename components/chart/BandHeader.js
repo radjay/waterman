@@ -8,8 +8,9 @@ import { MicroLabel } from "../ui/MicroLabel";
  * are read one at a time — a rider looking at WAVES & TIDE should not have to
  * scroll past SCORE to find out which line is the tide.
  *
- * `aside` is for a live reading next to the label (e.g. current station knots
- * on the Wind band) without inventing a second header language.
+ * `aside` is for a short note next to the label when needed. Live station knots
+ * on NOW use LiveStationBadge in the screen header instead — burying them here
+ * made the reading too quiet.
  */
 export function BandHeader({ label, legend, aside = null, size = "sm", className = "" }) {
   return (

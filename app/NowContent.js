@@ -13,12 +13,14 @@ import { SpotRow } from "../components/spot/SpotRow";
 import { CamFrame, CamThumb } from "../components/ui/CamFrame";
 import { SwipeDots } from "../components/ui/SwipeDots";
 import { ScoreDial } from "../components/ui/ScoreDial";
+import { LiveStationBadge } from "../components/ui/LiveStationBadge";
 import { DayChartPanel } from "../components/chart/DayChartPanel";
 import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
 import { ScreenError, ScreenSkeleton, ScreenEmpty } from "../components/common/ScreenState";
 import { buildDayChart } from "../lib/dayChart";
 import { VERDICT, VERDICT_TONE, VERDICT_WORD, deriveVerdict } from "../lib/verdict";
 import { toSpotSlug } from "../lib/spotSlug";
+import { isWindSport } from "../components/sport/SportProvider";
 
 const TONE_TEXT = { accent: "text-accent", caution: "text-caution", dim: "text-dim" };
 
@@ -135,6 +137,11 @@ export function NowContent() {
 
   const reportHref = `/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`;
   const camList = ranked.map((p) => p.spot);
+  // Same pack.station the wind chart uses — one number, display (TO) direction.
+  const liveBadge =
+    isWindSport(sport) && pack.station ? (
+      <LiveStationBadge station={pack.station} />
+    ) : null;
 
   return (
     <MainLayout>
@@ -155,10 +162,13 @@ export function NowContent() {
         tools={
           isDesktop ? (
             <span className="flex items-center gap-[34px] pr-1">
+              {liveBadge}
               <VerdictWord verdict={verdict} size={44} />
               {dial(84, 9, 30)}
             </span>
-          ) : null
+          ) : (
+            liveBadge
+          )
         }
       />
 
