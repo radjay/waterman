@@ -7,7 +7,8 @@
 - Bottom nav highlight sits under one tab only — NOW, NEXT, LIVE, and MORE are four equal slots again.
 - Fullscreen cam RECORD / Stop label stays dark on the white pill in night theme (readable over video).
 - Fullscreen cam conditions stay a single thin bottom row in landscape on any width; portrait phone stack is tighter so the video stays visible.
-- NOW wind-chart hover marks the selected station/forecast points on the plot (not only the tip), and touch no longer leaves a sticky tooltip after a tap.
+- NOW wind chart: tap a point on iPhone to see the same tip and marks as desktop hover; scroll or drag over the chart does not select. Tap again or outside to dismiss.
+- NOW wind-chart hover marks the selected station/forecast points on the plot (not only the tip).
 - LIVE station wind overlays every cam surface that has a reading (CamFrame, fullscreen, TV mode) — same number as the wind chart, direction as TO.
 - LIVE cams show Windguru and Windy shortcuts on the video (top-right, left of fullscreen), without stealing the tap that opens the cam.
 - LIVE spot picker includes “All spots” (full coast) alongside “All my spots”; desktop All spots grid scrolls instead of stopping at four.

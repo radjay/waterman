@@ -1,8 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PLOT_LABEL_INSET_PX, topPct, windScale } from "../../lib/dayChart";
 import { resolveChartHover } from "./chartHover";
+
+/** Max pointer travel (px) still counted as a tap, not a pan/scroll. */
+const TAP_SLOP_PX = 10;
+
+function sameHover(a, b) {
+  if (!a || !b) return false;
+  return a.kind === b.kind && Math.abs(a.xPct - b.xPct) < 0.05;
+}
+
+function hoverAtEvent(e, { chart, station, nowMs }) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  if (rect.width <= 0) return null;
+  const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+  return resolveChartHover({ chart, station, xPct, nowMs });
+}
 
 /**
  * Hover overlay for the wind band: forecast columns and station samples.
@@ -12,9 +27,10 @@ import { resolveChartHover } from "./chartHover";
  * BELOW the wind plot (not above) so it does not cover the wind line. Selected
  * points are marked on the plot (same x as the tip, same y scale as WindBand).
  *
- * Desktop mouse only: pointer events with `pointerType === 'mouse'`. Touch and
- * pen must not leave a sticky tip — iOS compatibility mouse events after a tap
- * are ignored because we never listen for mouse* handlers.
+ * Mouse: move shows tip, leave clears. Touch/pen: a tap (not a pan/scroll)
+ * shows the same tip + marks; tap the same point again or tap outside dismisses;
+ * tap a different x moves the tip. Pointer events only — no mouse* handlers
+ * (iOS compatibility mouse after a tap must not fight the sticky tip).
  *
  * Reuses the same surface language as StationWindChart's tooltip (page fill,
  * card border, data font). Lives as a sibling overlay so WindBand stays a pure
@@ -28,6 +44,23 @@ export function ChartColumnHover({
   className = "",
 }) {
   const [hover, setHover] = useState(null);
+  const rootRef = useRef(null);
+  const gestureRef = useRef(null);
+  /** True while the tip was set by a touch/pen tap (sticky until dismiss). */
+  const touchStickyRef = useRef(false);
+
+  useEffect(() => {
+    if (!hover) return undefined;
+    const onDocPointerDown = (e) => {
+      if (!touchStickyRef.current) return;
+      if (rootRef.current?.contains(e.target)) return;
+      touchStickyRef.current = false;
+      setHover(null);
+    };
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
+  }, [hover]);
+
   if (!chart?.columns?.length) return null;
 
   const values = [
@@ -36,23 +69,72 @@ export function ChartColumnHover({
   ];
   const scale = windScale(values);
 
-  const onPointerMove = (e) => {
-    if (e.pointerType !== "mouse") return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    setHover(resolveChartHover({ chart, station, xPct, nowMs }));
+  const onPointerDown = (e) => {
+    if (e.pointerType === "mouse") return;
+    gestureRef.current = {
+      pointerId: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      panned: false,
+    };
   };
 
-  const clearHover = () => setHover(null);
+  const onPointerMove = (e) => {
+    if (e.pointerType === "mouse") {
+      touchStickyRef.current = false;
+      setHover(hoverAtEvent(e, { chart, station, nowMs }));
+      return;
+    }
+    const g = gestureRef.current;
+    if (!g || g.pointerId !== e.pointerId || g.panned) return;
+    if (Math.hypot(e.clientX - g.x, e.clientY - g.y) > TAP_SLOP_PX) {
+      g.panned = true;
+    }
+  };
+
+  const onPointerUp = (e) => {
+    if (e.pointerType === "mouse") return;
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    if (!g || g.pointerId !== e.pointerId || g.panned) return;
+
+    const next = hoverAtEvent(e, { chart, station, nowMs });
+    setHover((prev) => {
+      if (next && sameHover(prev, next)) {
+        touchStickyRef.current = false;
+        return null;
+      }
+      touchStickyRef.current = !!next;
+      return next;
+    });
+  };
+
+  const onPointerLeave = (e) => {
+    if (e.pointerType !== "mouse") return;
+    touchStickyRef.current = false;
+    setHover(null);
+  };
+
+  const onPointerCancel = (e) => {
+    if (gestureRef.current?.pointerId === e.pointerId) {
+      gestureRef.current = null;
+    }
+    if (e.pointerType === "mouse") {
+      touchStickyRef.current = false;
+      setHover(null);
+    }
+  };
 
   return (
     <div
+      ref={rootRef}
       className={`absolute inset-0 z-[4] overflow-visible touch-pan-y ${className}`}
       style={{ left: leftInset }}
+      onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerLeave={clearHover}
-      onPointerCancel={clearHover}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerLeave}
+      onPointerCancel={onPointerCancel}
     >
       {hover?.marks && <HoverMarks marks={hover.marks} scaleMax={scale.max} />}
       {hover && (
