@@ -100,11 +100,16 @@ export function RecordButton({ spotId, className = "" }) {
         }
     };
 
+    // White pills sit on video — fixed dark label, not theme `text-ink`
+    // (night theme ink is light and vanishes on white). Same idea as OVER_VIDEO_SCRIM.
+    const whitePill =
+        "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-[#04080D] text-xs font-semibold uppercase tracking-wider shadow-sm";
+
     if (status === "idle") {
         return (
             <button
                 onClick={(e) => { e.stopPropagation(); handleStart(); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all shadow-sm ${className}`}
+                className={`${whitePill} hover:bg-white active:scale-[0.98] transition-all ${className}`}
                 aria-label="Start recording"
             >
                 <Circle size={10} className="text-red-500" fill="currentColor" />
@@ -115,7 +120,7 @@ export function RecordButton({ spotId, className = "" }) {
 
     if (status === "starting") {
         return (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider ${className}`}>
+            <div className={`${whitePill} ${className}`}>
                 <span className="animate-pulse">Starting...</span>
             </div>
         );
@@ -133,7 +138,7 @@ export function RecordButton({ spotId, className = "" }) {
                 </span>
                 <button
                     onClick={(e) => { e.stopPropagation(); handleStop(); }}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/90 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-white active:scale-[0.98] transition-all shadow-sm"
+                    className={`${whitePill} hover:bg-white active:scale-[0.98] transition-all`}
                     aria-label="Stop recording"
                 >
                     <Square size={10} fill="currentColor" />
@@ -143,9 +148,9 @@ export function RecordButton({ spotId, className = "" }) {
         );
     }
 
-    // stopping
+    // stopping — over-video chip, fixed colors
     return (
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink/10 text-faded-ink text-xs font-semibold uppercase tracking-wider ${className}`}>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-[#04080D]/60 text-xs font-semibold uppercase tracking-wider ${className}`}>
             <span className="animate-pulse">Saving...</span>
         </div>
     );
