@@ -3,6 +3,7 @@
 ## [2026-08-15]
 
 ### Fixed
+- Fullscreen cam on iPhone landscape no longer sits zoomed / clipped — overlay tracks the visible viewport so LIVE, record, close, and arrows stay on screen (pinch still works elsewhere in the app).
 - Lagoa da Albufeira (and other spots still missing morning marks) tide line on NOW now covers the full day after re-scrape; scraper still keeps earlier-today highs/lows.
 - Bottom nav highlight sits under one tab only — NOW, NEXT, LIVE, and MORE are four equal slots again.
 - Fullscreen cam RECORD / Stop label stays dark on the white pill in night theme (readable over video).

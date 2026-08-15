@@ -13,6 +13,7 @@ import { WaveGroup } from "../forecast/WaveGroup";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 import { formatTideTime } from "../../lib/utils";
 import { RecordButton } from "./RecordButton";
+import { useVisualViewportRect } from "../../lib/hooks/useVisualViewportRect";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 
@@ -45,6 +46,8 @@ export function WebcamFullscreen({
   const [currentConditions, setCurrentConditions] = useState(null);
   const [tides, setTides] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Match the visible iOS viewport (not layout viewport after rotate/zoom).
+  const viewport = useVisualViewportRect();
 
   // Get stream URL based on source
   const getStreamUrl = () => {
@@ -311,26 +314,26 @@ export function WebcamFullscreen({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer"
+      className="fixed z-[9999] flex items-center justify-center cursor-pointer"
+      style={{
+        top: viewport.top,
+        left: viewport.left,
+        width: viewport.width ?? "100%",
+        height: viewport.height ?? "100%",
+        // Scope pinch-zoom block to this shell only (not site-wide user-scalable).
+        touchAction: "none",
+      }}
       onClick={onClose}
     >
       {/* Background layer */}
-      <div
-        className="absolute inset-0 bg-black/95"
-        style={{
-          top: 'calc(-1 * env(safe-area-inset-top, 0px))',
-          right: 'calc(-1 * env(safe-area-inset-right, 0px))',
-          bottom: 'calc(-1 * env(safe-area-inset-bottom, 0px))',
-          left: 'calc(-1 * env(safe-area-inset-left, 0px))',
-        }}
-      />
+      <div className="absolute inset-0 bg-black/95" />
       <div
         className="relative w-full h-full flex flex-col"
         style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingRight: 'env(safe-area-inset-right, 0px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingRight: "env(safe-area-inset-right, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          paddingLeft: "env(safe-area-inset-left, 0px)",
         }}
       >
         {/* Paging affordance. Arrow keys already worked; nothing on screen
@@ -341,22 +344,32 @@ export function WebcamFullscreen({
             <button
               onClick={(e) => { e.stopPropagation(); step(-1); }}
               aria-label="Previous cam"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+              className="absolute top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+              style={{ left: "calc(env(safe-area-inset-left, 0px) + 0.75rem)" }}
             >
               <ChevronLeft size={22} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); step(1); }}
               aria-label="Next cam"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+              className="absolute top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
+              style={{ right: "calc(env(safe-area-inset-right, 0px) + 0.75rem)" }}
             >
               <ChevronRight size={22} />
             </button>
           </>
         )}
 
-        {/* Top controls: Windguru/Windy (LIVE) + record + close */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {/* Top controls: Windguru/Windy (LIVE) + record + close.
+            Absolute kids ignore parent padding — bake safe-area into top/right. */}
+        <div
+          className="absolute z-20 flex items-center gap-2"
+          style={{
+            top: "calc(env(safe-area-inset-top, 0px) + 1rem)",
+            right: "calc(env(safe-area-inset-right, 0px) + 1rem)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {allWebcams.length > 1 && (
             <span className="font-data text-[11px] text-white/60 tabular-nums px-2">
               {index + 1} / {allWebcams.length}
@@ -402,7 +415,13 @@ export function WebcamFullscreen({
 
         {/* LIVE station — same pack.station as CamFrame; no second fetch. */}
         {station && (
-          <span className="absolute top-4 left-4 z-20 pointer-events-none">
+          <span
+            className="absolute z-20 pointer-events-none"
+            style={{
+              top: "calc(env(safe-area-inset-top, 0px) + 1rem)",
+              left: "calc(env(safe-area-inset-left, 0px) + 1rem)",
+            }}
+          >
             <LiveStationBadge station={station} />
           </span>
         )}

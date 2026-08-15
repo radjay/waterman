@@ -35,6 +35,7 @@
 
 ### Bugs
 
+- [x] **WebcamFullscreen iOS landscape viewport (2026-08-15)** — overlay sized to `visualViewport` + scroll reset on open/rotate; pinch blocked only inside the shell; top chrome uses safe-area.
 - [x] **Lagoa tide + bottom nav (2026-08-15)** — re-scraped Lagoa/Bico/CDS/Fonte tides (morning marks); Cascais still intact; bottom nav pill measures one of four equal slots.
 - [x] **NOW redesign UX regressions (2026-08-15)** — webcam fullscreen on image click; live wind in chart header; column hover tooltip; y-axis label inset; tide scrape kept morning marks; score → `/report/[slug]?sport=`.
 - [x] **NOW chart follow-up UX (2026-08-15)** — tooltip below wind band; station-sample hover (e.g. 15:42) not snapped to 3h slot; LIVE badge with TO direction on cam (top-left); whole SCORE column clickable.
