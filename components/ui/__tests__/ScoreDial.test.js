@@ -1,23 +1,26 @@
 import { vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ScoreDial, scoreBand } from "../ScoreDial";
+import { ScoreDial, ScoreDialEmpty, scoreBand } from "../ScoreDial";
 
 describe("scoreBand", () => {
-  it("puts 60 and above in the accent band", () => {
-    expect(scoreBand(100)).toBe("good");
-    expect(scoreBand(75)).toBe("good");
+  it("splits the accent range into three, matching the score bars", () => {
+    expect(scoreBand(100)).toBe("epic");
+    expect(scoreBand(86)).toBe("epic");
+    expect(scoreBand(85)).toBe("great");
+    expect(scoreBand(75)).toBe("great");
+    expect(scoreBand(74)).toBe("good");
     expect(scoreBand(60)).toBe("good");
   });
 
-  it("puts 45-59 in the marginal band", () => {
+  it("puts everything below the bar in the marginal band", () => {
     expect(scoreBand(59)).toBe("marginal");
-    expect(scoreBand(45)).toBe("marginal");
+    expect(scoreBand(12)).toBe("marginal");
+    expect(scoreBand(0)).toBe("marginal");
   });
 
-  it("puts below 45 in the low band, so a flat day reads near-empty", () => {
-    expect(scoreBand(44)).toBe("low");
-    expect(scoreBand(12)).toBe("low");
-    expect(scoreBand(0)).toBe("low");
+  it("has no band for a missing score — that is the placeholder's job", () => {
+    expect(scoreBand(null)).toBeNull();
+    expect(scoreBand(undefined)).toBeNull();
   });
 });
 
@@ -37,11 +40,19 @@ describe("ScoreDial visibility", () => {
     expect(screen.getByText("92")).toBeTruthy();
   });
 
-  it("renders nothing for a null or undefined score", () => {
-    const { container: a } = render(<ScoreDial score={null} showAll />);
-    const { container: b } = render(<ScoreDial score={undefined} showAll />);
+  it("renders nothing for a missing score unless the caller wants the placeholder", () => {
+    const { container: a } = render(<ScoreDial score={null} />);
+    const { container: b } = render(<ScoreDial score={undefined} />);
     expect(a).toBeEmptyDOMElement();
     expect(b).toBeEmptyDOMElement();
+  });
+
+  it("draws the dashed placeholder for a missing score when showAll is set", () => {
+    // "We have nothing for you here" is an answer; a gap in a column of dials
+    // reads as a rendering failure, and a 0 would read as "terrible".
+    const { container } = render(<ScoreDial score={null} showAll />);
+    expect(screen.getByText("—")).toBeTruthy();
+    expect(container.querySelector("svg")).toBeNull();
   });
 
   it("renders a zero score when asked, rather than treating it as absent", () => {
@@ -51,35 +62,36 @@ describe("ScoreDial visibility", () => {
 });
 
 describe("ScoreDial rendering", () => {
-  it("clamps the gradient stop to 0-100 for out-of-range scores", () => {
+  const valueArc = (container) => container.querySelectorAll("circle")[1];
+
+  it("draws the value as an arc of the 276.46 circumference", () => {
+    const { container } = render(<ScoreDial score={50} showAll />);
+    expect(valueArc(container).getAttribute("stroke-dasharray")).toBe("138.2 276.46");
+  });
+
+  it("clamps the arc to the full circle for out-of-range scores", () => {
     const { container } = render(<ScoreDial score={140} />);
-    const ring = container.firstChild;
-    expect(ring.style.background).toContain("100%");
-    expect(ring.style.background).not.toContain("140%");
+    expect(valueArc(container).getAttribute("stroke-dasharray")).toBe("276.5 276.46");
   });
 
-  // jsdom's CSS parser drops `rgb(var(--x))`, so read the style attribute that
-  // actually ships rather than the parsed CSSOM value.
-  const styleAttr = (el) => el.getAttribute("style") || "";
-
-  it("uses an opaque inner disc, or the ring shows through", () => {
-    // Regression: bg-surface is rgba(...,.05) and let the conic-gradient
-    // through, so the dial read as a pie chart on tinted cards.
-    const { container } = render(<ScoreDial score={84} on="card" />);
-    const disc = container.querySelector("[data-dial-disc]");
-    expect(styleAttr(disc)).toContain("var(--wm-dial-inner-card)");
-  });
-
-  it("uses the page colour for the inner disc by default", () => {
+  it("needs no opaque inner disc — the ring is a stroke, not a wedge", () => {
+    // Regression: the conic-gradient version had to punch a disc in the middle,
+    // and that disc had to know what colour the card behind it was.
     const { container } = render(<ScoreDial score={84} />);
-    const disc = container.querySelector("[data-dial-disc]");
-    expect(styleAttr(disc)).toContain("rgb(var(--wm-page))");
-    expect(styleAttr(disc)).not.toContain("dial-inner-card");
+    expect(container.querySelector("[data-dial-disc]")).toBeNull();
+    expect(container.innerHTML).not.toContain("dial-inner-card");
+  });
+
+  it("paints the ring marginal below the bar and accent at or above it", () => {
+    const { container: low } = render(<ScoreDial score={41} showAll />);
+    const { container: high } = render(<ScoreDial score={61} />);
+    expect(valueArc(low).getAttribute("stroke")).toContain("--wm-marginal");
+    expect(valueArc(high).getAttribute("stroke")).toContain("--wm-accent");
   });
 
   it("never renders a real <button>, because it sits inside one", () => {
-    // Regression: ScoreCard is a <button> when clickable, so a nested <button>
-    // here is invalid HTML — React fails hydration and regenerates the tree.
+    // Regression: rows are <button> when clickable, so a nested <button> here is
+    // invalid HTML — React fails hydration and regenerates the tree.
     const { container: plain } = render(<ScoreDial score={92} />);
     const { container: clickable } = render(<ScoreDial score={92} onClick={() => {}} />);
     expect(plain.querySelector("button")).toBeNull();
@@ -97,14 +109,27 @@ describe("ScoreDial rendering", () => {
     expect(onClick).toHaveBeenCalled();
   });
 
-  it("exposes no button semantics when not clickable", () => {
+  it("is an image, not a control, when it is not clickable", () => {
     const { container } = render(<ScoreDial score={92} />);
-    expect(container.firstChild.getAttribute("role")).toBeNull();
+    expect(container.firstChild.getAttribute("role")).toBe("img");
     expect(container.firstChild.getAttribute("tabindex")).toBeNull();
+  });
+
+  it("accepts the legacy t-shirt sizes as well as pixels", () => {
+    const { container: named } = render(<ScoreDial score={92} size="md" />);
+    const { container: px } = render(<ScoreDial score={92} size={52} />);
+    expect(named.firstChild.getAttribute("style")).toBe(px.firstChild.getAttribute("style"));
   });
 
   it("rounds fractional scores for display", () => {
     render(<ScoreDial score={84.6} />);
     expect(screen.getByText("85")).toBeTruthy();
+  });
+});
+
+describe("ScoreDialEmpty", () => {
+  it("is labelled so the dash is not read as decoration", () => {
+    render(<ScoreDialEmpty />);
+    expect(screen.getByLabelText("No score")).toBeTruthy();
   });
 });

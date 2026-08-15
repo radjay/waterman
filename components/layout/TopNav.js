@@ -4,60 +4,42 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Zap, CalendarClock, Video, Ellipsis, LogIn } from "lucide-react";
 import { NAV_TABS, activeTabFor } from "./navTabs";
-import { useAuth } from "../auth/AuthProvider";
-import UserMenu from "../auth/UserMenu";
+import { useAuth, useUser } from "../auth/AuthProvider";
+import { SportSegmented } from "../sport/SportSegmented";
 
 /**
- * Desktop navigation.
+ * The desktop header: wordmark · tabs · sport · account.
  *
- * The handoff designed nothing for desktop — every screen was drawn at 390px.
- * But the new IA has to be reachable at width, and the old ViewToggle still
- * listed the PREVIOUS five destinations (Home/Report/Cams/Journal/Calendar), so
- * on desktop the nav change was invisible and, on the new screens, absent
- * entirely: BottomNav is md:hidden and the new pages never rendered Header.
+ * Every control in this bar is a 34px pill with matching radius, including the
+ * segmented sport control whose items fill the group height. That uniformity is
+ * the whole design of the bar — mixed heights made the sport selector read as a
+ * fifth tab that had somehow grown.
  *
- * So the four tabs are promoted into a header bar at md+, using the same icons,
- * labels and accent-tint active treatment as the floating pill. Mobile keeps
- * the pill. One source of truth for the tabs (navTabs.js) so the two can't
- * drift.
+ * One source of truth for the tabs (navTabs.js) so this and the mobile pill
+ * cannot drift.
  */
 const ICONS = { now: Zap, next: CalendarClock, cams: Video, more: Ellipsis };
 
-/**
- * Brand mark — same file as the tab favicon (`public/favicon.png`: black
- * double-wave on transparent). Nightglass inverts it via `.wm-brand-mark` in
- * globals.css so the strokes stay visible on the dark page.
- */
-function WatermanMark({ className = "" }) {
-  return (
-    <img
-      src="/favicon.png"
-      alt=""
-      width={20}
-      height={20}
-      aria-hidden
-      className={`wm-brand-mark shrink-0 w-5 h-5 object-contain ${className}`}
-    />
-  );
-}
-
-export function TopNav() {
+export function TopNav({ tools = null }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const user = useUser();
   const activeTab = activeTabFor(pathname);
 
   const hiddenPaths = ["/admin", "/auth", "/ui-kit"];
   if (hiddenPaths.some((p) => pathname?.startsWith(p))) return null;
 
+  const initial = (user?.name || user?.email || "?").trim().charAt(0).toUpperCase();
+  const handle = (user?.name || user?.email || "").split("@")[0].slice(0, 8).toUpperCase();
+
   return (
-    <header className="hidden md:block sticky top-0 z-40 bg-page/85 backdrop-blur-xl border-b border-card">
-      <div className="max-w-[1200px] mx-auto px-8 h-14 flex items-center gap-6">
+    <header className="hidden md:block sticky top-0 z-40 bg-page/90 backdrop-blur-xl border-b border-card">
+      <div className="mx-auto max-w-[1440px] px-10 h-[66px] flex items-center gap-[34px]">
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-headline font-extrabold text-[19px] tracking-display-tight text-ink leading-none focus-ring"
+          className="font-headline font-extrabold text-[21px] tracking-display-tight text-ink leading-none focus-ring rounded-[4px]"
         >
-          <WatermanMark />
           Waterman
         </Link>
 
@@ -70,30 +52,42 @@ export function TopNav() {
                 key={tab.id}
                 href={tab.path}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-pill transition-colors duration-fast ease-smooth focus-ring ${
+                className={`flex items-center gap-[7px] h-[34px] px-[15px] rounded-pill font-data text-[11px] tracking-[0.12em] transition-colors duration-fast ease-smooth focus-ring ${
                   isActive
                     ? "bg-accent-tint text-accent"
-                    : "text-faded-ink hover:text-ink hover:bg-ink-hover"
+                    : "text-dim hover:text-ink hover:bg-ink-hover"
                 }`}
               >
-                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="font-data text-[11px] tracking-[0.08em]">{tab.label}</span>
+                <Icon size={14} strokeWidth={isActive ? 2.4 : 2} />
+                {tab.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-4">
+          {tools}
+          <SportSegmented />
           {authLoading ? (
-            <div className="w-20 h-8" />
+            <div className="w-[86px] h-[34px]" />
           ) : isAuthenticated ? (
-            <UserMenu />
+            <Link
+              href="/settings"
+              className="flex items-center gap-2 h-[34px] border border-nav-border rounded-pill pl-1 pr-[14px] focus-ring hover:bg-ink-hover transition-colors duration-fast ease-smooth"
+            >
+              <span className="w-6 h-6 rounded-full bg-accent-tint text-accent flex items-center justify-center font-data text-[11px]">
+                {initial}
+              </span>
+              <span className="font-data text-[11px] tracking-[0.1em] text-faded-ink">
+                {handle || "ME"}
+              </span>
+            </Link>
           ) : (
             <button
               onClick={() => router.push("/auth/login")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-pill border border-btn text-ink font-data text-[10px] tracking-[0.1em] hover:bg-ink-hover transition-colors duration-fast ease-smooth focus-ring"
+              className="flex items-center gap-1.5 h-[34px] px-[15px] rounded-pill border border-nav-border text-faded-ink font-data text-[10.5px] tracking-[0.1em] hover:bg-ink-hover hover:text-ink transition-colors duration-fast ease-smooth focus-ring"
             >
-              <LogIn size={14} />
+              <LogIn size={13} />
               SIGN IN
             </button>
           )}

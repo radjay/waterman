@@ -2,29 +2,27 @@ import { BottomNav } from "./BottomNav";
 import { TopNav } from "./TopNav";
 
 /**
- * MainLayout — the shared page container.
+ * The shared page container.
  *
- * Horizontal padding is 18px to match the handoff. The previous px-4 (16px)
- * made every new screen 2px narrow on both sides, which compounds across a
- * design specified to the pixel.
+ * Gutters are 20px on a phone and 40px at width, which is the handoff's
+ * measure. One width for every page, and it is the header's — a body narrower
+ * than the bar above it reads as a misalignment rather than as a deliberate
+ * measure, and it used to be different on different screens.
  *
- * No side borders: the handoff's screens are flat surfaces separated by border
- * and fill, not a bordered column.
- *
- * One width for every page, and it is the header's: max-w-[1200px] with px-8,
- * exactly what TopNav uses. A body narrower than the bar above it reads as a
- * misalignment rather than as a deliberate measure, and it was different on
- * different screens — Next and the confidence view opted into 1200 while Now
- * and Cams sat at 900 under the same 1200-wide header.
+ * The 96px tail is not padding for looks: the bottom nav floats over the page,
+ * so every scroll container has to reserve the space or the last card ends up
+ * behind the pill. It lives here rather than on each screen because forgetting
+ * it is invisible until someone scrolls to the bottom.
  */
-export function MainLayout({ children, nav = true, className = "" }) {
+export function MainLayout({ children, nav = true, tools = null, className = "" }) {
   return (
     <>
-      {nav && <TopNav />}
+      {nav && <TopNav tools={tools} />}
       <main
-        className={`max-w-[1200px] mx-auto px-[18px] pt-4 pb-24 md:px-8 md:pb-16 min-h-screen bg-page overflow-visible ${className}`}
+        className={`max-w-[1440px] mx-auto px-5 pt-[22px] md:px-10 md:pt-7 min-h-screen bg-page ${className}`}
       >
         {children}
+        {nav && <div className="h-24 md:h-8" aria-hidden="true" />}
       </main>
       {nav && <BottomNav />}
     </>

@@ -2,62 +2,122 @@
 
 import { ChevronRight } from "lucide-react";
 import { ScoreDial } from "../ui/ScoreDial";
-import { conditionSummary } from "../../lib/conditions";
-import { relativeDay } from "../../lib/verdict";
-import { dtf } from "../../lib/datetime";
-
-const TZ = "Europe/Lisbon";
-const time = (ms) =>
-  dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
-const capitalise = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+import { DayTag } from "../ui/DayTag";
+import { WindLine } from "../ui/WindLine";
+import { CamFrame } from "../ui/CamFrame";
 
 /**
- * One upcoming window. Shared by Now and Next so the two lists stay identical.
+ * One upcoming window: when, where, how good, how windy.
  *
- * The score leads as its own column: down a ranked list it is the fastest thing
- * to compare, and the handoff's rule that the score is "demoted to a detail"
- * was about not making it the headline of a verdict — not about hiding it from
- * a list whose whole job is ranking.
+ * The day leads, not the spot. A rider reading this screen has already decided
+ * they are not going now, so the question is "which day am I keeping free" —
+ * and the spot is the answer to a question they ask second. Days are spelled
+ * out rather than abbreviated for the same reason: SAT beside a spot name reads
+ * like a code.
  *
- * Lines stack rather than run together because this renders three-across on
- * desktop, where a single row of day + time + conditions truncates to nothing.
+ * The score is the window's PEAK, not the score right now — that is the whole
+ * difference between this screen and Now, and it is why the two can show
+ * different numbers for the same beach without contradicting each other.
+ *
+ * On desktop the card gains the cam still above it, with the day tag on the
+ * image. That is not decoration: three cards for three days at three beaches
+ * are hard to tell apart as text, and the picture is what makes them places.
  */
-export function WindowCard({ spot, window, sport, showSpot = true, highlight = false, onClick }) {
-  const summary = conditionSummary(window.peak, sport, { gust: true });
+export function WindowCard({
+  spot,
+  window: win,
+  sport,
+  dayLabel,
+  isToday = false,
+  highlight = false,
+  withStill = false,
+  onClick,
+  className = "",
+}) {
+  const dial = highlight ? 62 : 52;
+
+  const body = (
+    <>
+      <div className="flex items-center gap-[8px]">
+        <DayTag variant={isToday ? "today" : "muted"}>{dayLabel}</DayTag>
+      </div>
+      <div
+        className={`font-headline font-bold tracking-display text-ink mt-1.5 truncate ${
+          highlight ? "text-[18px]" : "text-[16px]"
+        }`}
+      >
+        {spot.name}
+      </div>
+      <WindLine
+        slot={win.peak}
+        sport={sport}
+        size={highlight ? 11.5 : 11}
+        className="block text-faded-ink mt-[3px]"
+      />
+    </>
+  );
+
+  if (withStill) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`rounded-card-lg overflow-hidden border text-left focus-ring transition-colors duration-fast ease-smooth ${
+          highlight
+            ? "bg-accent-tint-card border-accent-border"
+            : "bg-surface border-card hover:bg-ink-hover"
+        } ${className}`}
+      >
+        <CamFrame
+          spot={spot}
+          overlay={
+            <span className="absolute top-[11px] left-3">
+              <DayTag variant={isToday ? "today" : "overlay"} size="md">
+                {dayLabel}
+              </DayTag>
+            </span>
+          }
+        />
+        <div className="px-[17px] pt-[15px] pb-[17px] flex items-center gap-[15px]">
+          <ScoreDial score={win.score} size={58} ring={9} value={20} showAll />
+          <div className="flex-1 min-w-0">
+            <div className="font-headline font-bold text-[19px] tracking-display text-ink truncate">
+              {spot.name}
+            </div>
+            <WindLine
+              slot={win.peak}
+              sport={sport}
+              size={12}
+              className="block text-faded-ink mt-1"
+            />
+          </div>
+        </div>
+      </button>
+    );
+  }
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`w-full h-full text-left flex items-center gap-3 rounded-[15px] border px-[14px] py-[13px] focus-ring transition-colors duration-fast ease-smooth ${
+      className={`w-full rounded-card-lg border px-4 text-left flex items-center gap-[15px] focus-ring transition-colors duration-fast ease-smooth ${
         highlight
-          ? "bg-accent-tint-card border-accent-border"
-          : "bg-surface border-card hover:bg-ink-hover"
-      }`}
+          ? "bg-accent-tint-card border-accent-border py-[15px]"
+          : "bg-surface border-card py-[14px] hover:bg-ink-hover"
+      } ${className}`}
     >
       <ScoreDial
-        score={window.score}
-        size="sm"
+        score={win.score}
+        size={dial}
+        ring={highlight ? 9 : 10}
+        value={highlight ? 21 : 18}
         showAll
-        on={highlight ? "card" : "page"}
-        className="flex-none"
       />
-
-      <span className="flex-1 min-w-0">
-        {/* Spot leads when there is one to name, day when there is not. Both on
-            one line truncated to "Today · Marina de Ca…" three-across. */}
-        <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
-          {showSpot ? spot.name : capitalise(relativeDay(window.start))}
-        </span>
-        <span className="block font-data text-[10px] text-faded-ink mt-0.5 tabular-nums">
-          {showSpot ? `${capitalise(relativeDay(window.start))} ` : ""}
-          {time(window.start)}–{time(window.end)}
-        </span>
-        {summary && (
-          <span className="block font-data text-[10px] text-faded-ink truncate">{summary}</span>
-        )}
-      </span>
-
-      <ChevronRight size={16} className={`flex-none ${highlight ? "text-accent" : "text-dim"}`} />
+      <div className="flex-1 min-w-0">{body}</div>
+      <ChevronRight
+        size={highlight ? 18 : 16}
+        className={`flex-none ${highlight ? "text-accent" : "text-dim"}`}
+      />
     </button>
   );
 }

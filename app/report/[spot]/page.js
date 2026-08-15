@@ -2,8 +2,7 @@ import { Suspense } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
 import { MainLayout } from "../../../components/layout/MainLayout";
-import { Header } from "../../../components/layout/Header";
-import { Loader } from "../../../components/common/Loader";
+import { ScreenSkeleton } from "../../../components/common/ScreenState";
 import { spotFromSlug } from "../../../lib/spotSlug";
 import SpotReportContent from "./SpotReportContent";
 
@@ -44,10 +43,7 @@ export default async function SpotReportPage({ params }) {
     <Suspense
       fallback={
         <MainLayout>
-          <Header />
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader />
-          </div>
+          <ScreenSkeleton variant="cards" />
         </MainLayout>
       }
     >

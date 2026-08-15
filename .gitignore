@@ -31,6 +31,9 @@ poc.js
 *.tmp
 *.log
 
+# Local agent worktrees
+.claude/worktrees/
+
 # design-sync (claude.ai/design import)
 .ds-sync/
 ds-bundle/

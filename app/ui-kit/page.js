@@ -15,17 +15,38 @@ import { Arrow } from "../../components/ui/Arrow";
 import { Metric } from "../../components/ui/Metric";
 import { DataGroup } from "../../components/ui/DataGroup";
 import { ConditionLine } from "../../components/ui/ConditionLine";
-import { ScoreDial } from "../../components/ui/ScoreDial";
+import { ScoreDial, ScoreDialEmpty } from "../../components/ui/ScoreDial";
+import { MicroLabel } from "../../components/ui/MicroLabel";
+import { DayTag } from "../../components/ui/DayTag";
+import { DayTrack } from "../../components/ui/DayTrack";
+import { SwipeDots } from "../../components/ui/SwipeDots";
+import { WindLine } from "../../components/ui/WindLine";
+import { CamFrame } from "../../components/ui/CamFrame";
+import { SpotRow } from "../../components/spot/SpotRow";
+import { SpotDayRow } from "../../components/spot/SpotDayRow";
+import { SpotPickerSheet, SpotTitle } from "../../components/spot/SpotPickerSheet";
+import { LiveCard, LiveLegend } from "../../components/live/LiveCard";
+import { SportSegmented } from "../../components/sport/SportSegmented";
+import { WindBand } from "../../components/chart/WindBand";
+import { WaveTideBand, waveTidePresence } from "../../components/chart/WaveTideBand";
+import { ScoreBand } from "../../components/chart/ScoreBand";
+import { DayChartPanel } from "../../components/chart/DayChartPanel";
+import { TimeAxis } from "../../components/chart/TimeAxis";
+import {
+  BandHeader,
+  WIND_LIVE_LEGEND,
+  waveTideLabel,
+  waveTideLegend,
+} from "../../components/chart/BandHeader";
+import { ScreenError, ScreenEmpty } from "../../components/common/ScreenState";
 import { SportBadge } from "../../components/ui/SportBadge";
 import { SportFilter } from "../../components/ui/SportFilter";
 import { FilterGroup } from "../../components/ui/FilterGroup";
 import { ShareButton } from "../../components/ui/ShareButton";
 import { LabsSection } from "../../components/ui/LabsSection";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
-import { SpotPicker, FAVORITES } from "../../components/next/SpotPicker";
 import { WindowCard } from "../../components/next/WindowCard";
 import { WeekStrip } from "../../components/next/WeekStrip";
-import { VerdictCard } from "../../components/now/VerdictCard";
 import { EvidenceStack, InTheWaterCard } from "../../components/now/EvidenceStack";
 import { HourByHour } from "../../components/confidence/HourByHour";
 import { ScoreFactors } from "../../components/confidence/ScoreFactors";
@@ -36,7 +57,6 @@ import { WaveGroup } from "../../components/forecast/WaveGroup";
 import { DirectionIndicator } from "../../components/forecast/DirectionIndicator";
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
-import { VERDICT } from "../../lib/verdict";
 import { primaryMetric } from "../../lib/conditions";
 
 // — Legacy —
@@ -54,11 +74,21 @@ import {
   SPOTS,
   WINDOWS,
   WEEK,
+  WEEK_CHART,
+  WEEK_DAYS,
   HOUR_SLOTS,
   FACTORS,
   STATION,
+  STATION_TRAIL,
   RIDER_COUNT,
   MODEL_COLUMNS,
+  CHART,
+  CHART_NOW,
+  TIDES,
+  PACK,
+  PACK_NO_STATION,
+  SPOT_DAY,
+  T0,
   slot,
 } from "./fixtures";
 
@@ -204,10 +234,12 @@ const NAV = [
 
 export default function UIKitPage() {
   const [sports, setSports] = useState(["wingfoil"]);
-  const [scope, setScope] = useState(FAVORITES);
   const [pill, setPill] = useState("best");
   const [inputValue, setInputValue] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [dot, setDot] = useState(1);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dayOpen, setDayOpen] = useState(true);
 
   const toggleSport = (id) =>
     setSports((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -432,31 +464,35 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="ScoreDial — sizes"
+            label="ScoreDial — sizes, in px. A stroked SVG arc, so it needs no opaque disc and works on any ground"
             importPath="components/ui/ScoreDial"
-            on={["NOW", "NEXT", "CAMS", "WINDOW"]}
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
           >
-            {["xs", "sm", "md", "lg", "xl"].map((size) => (
+            {[40, 46, 52, 62, 70, 84].map((size) => (
               <div key={size} className="text-center">
-                <ScoreDial score={92} size={size} className="mx-auto mb-2" />
+                <ScoreDial score={92} size={size} showAll className="mx-auto mb-2" />
                 <span className="font-data text-[10px] text-dim">{size}</span>
               </div>
             ))}
           </Row>
           <Row
             label="ScoreDial — bands"
-            note="under 60 is hidden unless showAll; accent 60+, marginal 45–59, dim below"
+            note="accent at 60+, marginal below; under 60 is hidden unless showAll"
           >
             {[92, 75, 60, 52, 41, 19].map((s) => (
               <div key={s} className="text-center">
-                <ScoreDial score={s} size="md" showAll className="mx-auto mb-2" />
+                <ScoreDial score={s} size={52} showAll className="mx-auto mb-2" />
                 <span className="font-data text-[10px] text-dim">{s}</span>
               </div>
             ))}
+            <div className="text-center">
+              <ScoreDialEmpty size={52} className="mx-auto mb-2" />
+              <span className="font-data text-[10px] text-dim">no score</span>
+            </div>
           </Row>
-          <Row label='ScoreDial on a tinted card — on="card" matches the inner disc' full>
+          <Row label="ScoreDial on a tinted card — no inner disc to match" full>
             <div className="bg-accent-tint-card border border-accent-border rounded-card-lg p-4 flex items-center gap-4 max-w-[420px]">
-              <ScoreDial score={84} size="md" on="card" />
+              <ScoreDial score={84} size={52} showAll />
               <div>
                 <div className="font-headline font-bold text-[15px] text-ink tracking-display">
                   Praia do Guincho
@@ -465,6 +501,91 @@ export default function UIKitPage() {
                   Today 12:00–18:00
                 </div>
               </div>
+            </div>
+          </Row>
+
+          <Row
+            label="MicroLabel — every all-caps mono label, one treatment"
+            importPath="components/ui/MicroLabel"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+          >
+            <MicroLabel>Wind</MicroLabel>
+            <MicroLabel size="md">Waves &amp; tide</MicroLabel>
+            <MicroLabel size="lg">The week</MicroLabel>
+          </Row>
+
+          <Row
+            label="DayTag — TODAY leads in accent, other days are muted, and overlay survives a cam still"
+            importPath="components/ui/DayTag"
+            on={["NEXT"]}
+          >
+            <DayTag variant="today">TODAY</DayTag>
+            <DayTag>SATURDAY</DayTag>
+            <span className="bg-ink/40 rounded p-2">
+              <DayTag variant="overlay" size="md">
+                SUNDAY
+              </DayTag>
+            </span>
+          </Row>
+
+          <Row
+            label="WindLine — the reading, per sport. Never wraps between a number and its unit"
+            importPath="components/ui/WindLine"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+            full
+          >
+            <div className="flex flex-col gap-1.5">
+              <WindLine slot={slot(0, 12, 88)} sport="wingfoil" className="text-ink" />
+              <WindLine slot={slot(0, 12, 88)} sport="surfing" className="text-ink" />
+              <WindLine
+                slot={slot(0, 12, 88)}
+                sport="wingfoil"
+                suffix="nothing today"
+                className="text-faded-ink"
+              />
+              <WindLine slot={null} sport="wingfoil" className="text-faded-ink" />
+            </div>
+          </Row>
+
+          <Row
+            label="SwipeDots — the active spot is a bar, the rest are dots"
+            importPath="components/ui/SwipeDots"
+            on={["NOW"]}
+          >
+            <SwipeDots count={4} index={dot} onSelect={setDot} />
+          </Row>
+
+          <Row
+            label="DayTrack — a day on the 07–22 clock. Thin on a forecast row, tall in the week strip"
+            importPath="components/ui/DayTrack"
+            on={["NEXT", "SPOT"]}
+            full
+          >
+            <div className="flex flex-col gap-3 max-w-[520px]">
+              <DayTrack
+                windows={SPOT_DAY.windows}
+                dayStart={T0}
+                firstHour={CHART.firstHour}
+                lastHour={CHART.lastHour}
+                nowMs={CHART_NOW}
+              />
+              <DayTrack
+                windows={SPOT_DAY.windows}
+                dayStart={T0}
+                firstHour={CHART.firstHour}
+                lastHour={CHART.lastHour}
+                nowMs={CHART_NOW}
+                height={5}
+                radius={3}
+              />
+              <DayTrack
+                windows={[]}
+                dayStart={T0}
+                firstHour={CHART.firstHour}
+                lastHour={CHART.lastHour}
+                nowMs={CHART_NOW}
+                showNow={false}
+              />
             </div>
           </Row>
 
@@ -646,16 +767,33 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="SpotPicker — inline in a title, dotted underline + chevron"
-            importPath="components/next/SpotPicker"
-            on={["NEXT", "CAMS"]}
+            label="SportSegmented — the same choice at desktop width, filling one 34px pill"
+            importPath="components/sport/SportSegmented"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+          >
+            <SportSegmented />
+          </Row>
+
+          <Row
+            label="SpotTitle + SpotPickerSheet — the screen title IS the picker"
+            importPath="components/spot/SpotPickerSheet"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+            note="carries each spot's score and live wind, so the choice is not made blind"
             full
           >
-            <h4 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink">
-              Next windows
-              <span className="text-faded-ink font-normal mx-[0.28em]">at</span>
-              <SpotPicker spots={SPOTS} value={scope} onChange={setScope} hasFavorites />
-            </h4>
+            <div className="relative max-w-[420px]">
+              <SpotTitle open={sheetOpen} onClick={() => setSheetOpen((v) => !v)}>
+                Lagoa da Albufeira
+              </SpotTitle>
+              <SpotPickerSheet
+                open={sheetOpen}
+                onClose={() => setSheetOpen(false)}
+                spots={[PACK, { ...PACK, spot: SPOTS[1], score: 88 }, PACK_NO_STATION]}
+                value={PACK.spot._id}
+                onChange={() => {}}
+                sport="wingfoil"
+              />
+            </div>
           </Row>
 
           <Row
@@ -686,86 +824,122 @@ export default function UIKitPage() {
           id="composites"
           title="Composites"
           blurb="Whole answers rather than parts. These own their own layout and are the
-          reason the screens are thin — Now is a VerdictCard, three WindowCards and an
-          evidence stack; Next is three WindowCards and a WeekStrip."
+          reason the screens are thin — Now is a cam, a verdict and a DayChartPanel; Next is
+          three WindowCards and a WeekStrip; Live is a grid of LiveCards."
         >
           <Row
-            label="VerdictCard — GO"
-            importPath="components/now/VerdictCard"
-            on={["NOW"]}
+            label="SpotRow — the one list row: score, name, reading"
+            importPath="components/spot/SpotRow"
+            on={["NOW", "LIVE", "SPOT"]}
+            note='dialSide="trailing" on a card, where the picture leads'
             full
           >
-            <VerdictCard
-              verdict={VERDICT.GO}
-              sport="wingfoil"
-              spotName="Praia do Guincho"
-              score={92}
-              metric={primaryMetric(slot(0, 15, 92), "wingfoil")}
-              reason="Holding until about 18:00."
-            />
-          </Row>
-          <Row label="VerdictCard — MAYBE" full>
-            <VerdictCard
-              verdict={VERDICT.MARGINAL}
-              sport="wingfoil"
-              spotName="Marina de Cascais"
-              score={58}
-              metric={primaryMetric(slot(0, 15, 58, { speed: 11, gust: 14 }), "wingfoil")}
-              reason="Light, but clean."
-            />
-          </Row>
-          <Row label="VerdictCard — NO GO, and the surf variant (swell leads, wind is context)" full>
-            {/* min-w-0 on the tracks: grid items default to min-width:auto, so
-                a single-column track at phone width is sized by the card's
-                min-content and pushes the page sideways. */}
-            <div className="grid gap-3 md:grid-cols-2 [&>*]:min-w-0">
-              <VerdictCard
-                verdict={VERDICT.NO}
+            <div className="max-w-[420px] rounded-card-lg border border-card bg-surface divide-y divide-[color:var(--wm-border)]">
+              <SpotRow {...PACK} sport="wingfoil" size="sm" />
+              <SpotRow
+                {...PACK_NO_STATION}
                 sport="wingfoil"
-                spotName="Lagoa da Albufeira"
-                score={22}
-                metric={primaryMetric(slot(0, 15, 22, { speed: 4, gust: 6 }), "wingfoil")}
-                reason="Nothing on right now."
-              />
-              <VerdictCard
-                verdict={VERDICT.GO}
-                sport="surfing"
-                spotName="Carcavelos"
-                score={81}
-                metric={primaryMetric(slot(0, 9, 81, { speed: 6, waveHeight: 1.4 }), "surfing")}
-                reason="Offshore all morning."
+                size="sm"
+                dim
+                suffix="nothing today"
               />
             </div>
           </Row>
 
           <Row
-            label="WindowCard — three across on desktop, rows on mobile"
-            importPath="components/next/WindowCard"
-            on={["NOW", "NEXT"]}
-            note="showSpot={false} when the screen already names one spot"
+            label="WindBand — forecast as columns, the station as lines, clipped to now"
+            importPath="components/chart/WindBand"
+            on={["NOW", "LIVE", "SPOT"]}
+            note="past slots dim rather than vanish — the miss is the point"
             full
           >
-            <div className="grid gap-2 md:grid-cols-3">
-              {WINDOWS.map(({ spot, window }, i) => (
-                <WindowCard
-                  key={spot._id}
-                  spot={spot}
-                  window={window}
-                  sport="wingfoil"
-                  highlight={i === 0}
-                />
-              ))}
+            <div className="max-w-[520px]">
+              <BandHeader label="Wind" legend={WIND_LIVE_LEGEND} className="pb-[7px]" />
+              <WindBand chart={CHART} station={STATION_TRAIL} height={88} />
+              <TimeAxis chart={CHART} className="mt-2 pt-2 border-t border-rule" />
             </div>
           </Row>
-          <Row label="WindowCard — scoped to one spot" full>
-            <div className="grid gap-2 md:grid-cols-3">
+
+          <Row
+            label="WaveTideBand — a muted solid for swell, a dashed accent for tide"
+            importPath="components/chart/WaveTideBand"
+            on={["NOW", "SPOT"]}
+            note="renders nothing at all when the spot has neither"
+            full
+          >
+            <div className="max-w-[520px]">
+              <BandHeader
+                label={waveTideLabel(waveTidePresence(CHART, TIDES))}
+                legend={waveTideLegend(waveTidePresence(CHART, TIDES))}
+                className="pb-[7px]"
+              />
+              <WaveTideBand chart={CHART} tides={TIDES} height={56} nowMs={CHART_NOW} />
+            </div>
+          </Row>
+
+          <Row
+            label="ScoreBand — the number is printed, not hidden behind a hover"
+            importPath="components/chart/ScoreBand"
+            on={["NOW", "SPOT"]}
+            full
+          >
+            <div className="max-w-[520px]">
+              <BandHeader label="Score" className="pb-[7px]" />
+              <ScoreBand chart={CHART} height={50} />
+            </div>
+          </Row>
+
+          <Row
+            label="DayChartPanel — the three bands, one axis, one now line"
+            importPath="components/chart/DayChartPanel"
+            on={["NOW", "SPOT"]}
+            note="no card chrome: it is one chart of a day, not three charts near each other"
+            full
+          >
+            <div className="max-w-[520px]">
+              <DayChartPanel
+                chart={CHART}
+                sport="wingfoil"
+                station={STATION_TRAIL}
+                tides={TIDES}
+                nowMs={CHART_NOW}
+              />
+            </div>
+          </Row>
+
+          <Row
+            label="DayChartPanel — forecast only (Spot forecast): no station, no wash, no now rule"
+            full
+          >
+            <div className="max-w-[520px]">
+              <DayChartPanel
+                chart={CHART}
+                sport="wingfoil"
+                station={null}
+                tides={TIDES}
+                nowMs={CHART_NOW}
+                showWash={false}
+                showNow={false}
+                bandHeights={{ wind: 66, waves: 46, score: 44 }}
+              />
+            </div>
+          </Row>
+
+          <Row
+            label="WindowCard — rows on a phone, cards with a still at width"
+            importPath="components/next/WindowCard"
+            on={["NEXT"]}
+            full
+          >
+            <div className="flex flex-col gap-[9px] max-w-[420px]">
               {WINDOWS.map(({ spot, window }, i) => (
                 <WindowCard
                   key={spot._id}
                   spot={spot}
                   window={window}
                   sport="wingfoil"
-                  showSpot={false}
+                  dayLabel={["TODAY", "SATURDAY", "SUNDAY"][i]}
+                  isToday={i === 0}
                   highlight={i === 0}
                 />
               ))}
@@ -773,13 +947,65 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="WeekStrip — six days, shaded good → great → epic across slots"
+            label="SpotDayRow — collapsed to a line, expanded to the chart"
+            importPath="components/spot/SpotDayRow"
+            on={["SPOT"]}
+            full
+          >
+            <div className="flex flex-col gap-[5px] max-w-[520px]">
+              <SpotDayRow
+                day={SPOT_DAY}
+                sport="wingfoil"
+                chart={CHART}
+                tides={TIDES}
+                nowMs={CHART_NOW}
+                open={dayOpen}
+                onToggle={() => setDayOpen((v) => !v)}
+                onLive={() => {}}
+              />
+              <SpotDayRow
+                day={{ ...SPOT_DAY, label: "Saturday", windows: [], peak: 41 }}
+                sport="wingfoil"
+                chart={CHART}
+                tides={TIDES}
+                nowMs={CHART_NOW}
+                open={false}
+                onToggle={() => {}}
+              />
+            </div>
+          </Row>
+
+          <Row
+            label="LiveCard — identity above the cam so a half-scrolled card is still named"
+            importPath="components/live/LiveCard"
+            on={["LIVE"]}
+            full
+          >
+            <div className="flex flex-col gap-[7px] max-w-[420px]">
+              <LiveCard
+                pack={PACK}
+                sport="wingfoil"
+                chart={CHART}
+                highlight
+                onOpenCam={() => {}}
+              />
+              <LiveCard pack={PACK_NO_STATION} sport="wingfoil" chart={CHART} />
+            </div>
+          </Row>
+
+          <Row
+            label="WeekStrip — six days on one clock, the selected day open"
             importPath="components/next/WeekStrip"
             on={["NEXT"]}
-            note="hover a band for wind, gust and direction"
             full
           >
-            <WeekStrip days={WEEK} sport="wingfoil" title="The week" />
+            <WeekStrip
+              days={WEEK_DAYS}
+              selectedDay={WEEK_DAYS[0].dayStart}
+              onSelectDay={() => {}}
+              chart={WEEK_CHART}
+              nowMs={CHART_NOW}
+            />
           </Row>
 
           <Row
@@ -821,6 +1047,32 @@ export default function UIKitPage() {
                 reasoning="Steady 18–21 kn NNW through the afternoon."
               />
             </div>
+          </Row>
+
+          <Row
+            label="ScreenError / ScreenEmpty — the two states that are not the same state"
+            importPath="components/common/ScreenState"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+            note="a broken fetch must never look like a flat coast"
+            full
+          >
+            <div className="max-w-md flex flex-col gap-4">
+              <ScreenError onRetry={() => {}} />
+              <ScreenEmpty
+                title="Nothing here for this sport"
+                body="None of your spots do this sport. Pick another sport, or add a spot that does."
+                actionLabel="CHOOSE YOUR SPOTS"
+                onAction={() => {}}
+              />
+            </div>
+          </Row>
+
+          <Row
+            label="LiveLegend — once in the page header, never per card"
+            importPath="components/live/LiveCard"
+            on={["LIVE"]}
+          >
+            <LiveLegend />
           </Row>
 
           <Row
@@ -887,28 +1139,58 @@ export default function UIKitPage() {
             on={["ALL"]}
           >
             One width for every page: <code className="font-data text-[11px] text-ink">
-            max-w-[1200px]</code> with <code className="font-data text-[11px] text-ink">px-[18px]
-            md:px-8</code>, which is exactly what TopNav uses. There is no{" "}
+            max-w-[1440px]</code> with <code className="font-data text-[11px] text-ink">px-5
+            md:px-10</code>, which is exactly what TopNav uses. It also owns the 96px tail every
+            scroll container has to reserve for the floating bottom nav — forgetting that is
+            invisible until someone scrolls to the end. There is no{" "}
             <code className="font-data text-[11px] text-ink">wide</code> prop — a body narrower
             than the bar above it reads as a misalignment, not as a deliberate measure.
           </Documented>
 
+          <Documented
+            name="ScreenHeader"
+            importPath="components/layout/ScreenHeader"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+          >
+            The top line of all four screens: title left, sport right, in the same place every
+            time. The title IS the spot picker where there is one — the chevron beside it is the
+            affordance — because on Now, Live and Spot forecast the title already names the
+            current spot, and a separate control for changing it would sit next to a heading
+            saying the same thing. Anchors the picker sheet, so the sheet stays attached to its
+            title rather than to the viewport.
+          </Documented>
+
           <Documented name="TopNav" importPath="components/layout/TopNav" on={["ALL", "md+"]}>
             Sticky, blurred, <code className="font-data text-[11px] text-ink">hidden md:block</code>.
-            Carries the wordmark, the four primary tabs, share and the user menu. Hidden on a
-            handful of paths (auth, admin).
+            Wordmark, the four primary tabs, a <code className="font-data text-[11px] text-ink">
+            tools</code> slot (TV mode on Live), the sport segmented control and the account
+            chip. Every control in it is a 34px pill with matching radius; mixed heights made
+            the sport selector read as a fifth tab.
           </Documented>
 
           <Documented name="BottomNav" importPath="components/layout/BottomNav" on={["ALL", "mobile"]}>
-            The mobile counterpart: Now · Next · Cams · More, from the same{" "}
-            <code className="font-data text-[11px] text-ink">navTabs</code> source as TopNav so the
-            two can never disagree about what the primary destinations are.
+            The mobile counterpart: a 56px floating pill, inset 14px, Now · Next · Live · More,
+            from the same <code className="font-data text-[11px] text-ink">navTabs</code> source
+            as TopNav so the two can never disagree about what the primary destinations are.
+          </Documented>
+
+          <Documented
+            name="CamFrame / CamThumb / CamOffline"
+            importPath="components/ui/CamFrame"
+            on={["NOW", "NEXT", "LIVE"]}
+          >
+            The cam, in a box: 16:9, no overlay chrome except the fullscreen affordance.
+            Documented rather than rendered because it opens a live HLS stream. The offline
+            plate is the part worth knowing: it distinguishes a cam that broke this morning
+            (&ldquo;CAM OFFLINE SINCE 08:20&rdquo;) from a spot that never had one (&ldquo;No cam
+            at this spot&rdquo;) — Praia do CDS and Fonte da Telha are the second case, and a
+            black rectangle would have said neither.
           </Documented>
 
           <Documented
             name="WebcamCard / WebcamFullscreen / TvMode / LiveCam"
             importPath="components/webcam/*, components/now/LiveCam"
-            on={["NOW", "CAMS"]}
+            on={["NOW", "LIVE"]}
           >
             Live HLS video, so they are documented rather than rendered — a kit page that
             opens a dozen streams is a kit page nobody loads. WebcamCard fills its grid cell
@@ -932,19 +1214,48 @@ export default function UIKitPage() {
           </Documented>
 
           <Documented
-            name="useNowData"
-            importPath="components/now/useNowData"
-            on={["NOW"]}
+            name="StationWindChart / WaveTideChart / WindReading / LiveEvidencePanel"
+            importPath="components/now/*, components/confidence/LiveEvidencePanel"
+            on={["WINDOW"]}
           >
-            Not a component — the hook that answers Now. Takes{" "}
-            <code className="font-data text-[11px] text-ink">(sport, favoriteIds)</code> and
-            returns the chosen spot, its current slot, three upcoming windows, station and
-            model agreement, plus the two states that are not failures:{" "}
-            <code className="font-data text-[11px] text-ink">needsFavorites</code> (no spots
-            chosen yet) and <code className="font-data text-[11px] text-ink">noSpotForSport</code>{" "}
-            (favourites exist but none do this sport). Slots are filtered through{" "}
-            <code className="font-data text-[11px] text-ink">isChartedSlot</code> so Now and the
-            week strip can never disagree about which hours exist.
+            The Recharts-based hero charts and the big wind readout, now used only by the
+            window confidence screen. The four redesigned screens draw their charts from{" "}
+            <code className="font-data text-[11px] text-ink">components/chart/*</code> instead:
+            those are laid out in percentages on the shared{" "}
+            <code className="font-data text-[11px] text-ink">dayChart</code> geometry, which is
+            what lets three bands share one axis and one now rule. Do not reach for these in new
+            work.
+          </Documented>
+
+          <Documented
+            name="useCoastData"
+            importPath="components/data/useCoastData"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+          >
+            Not a component — the one hook all four screens read. Takes a sport and returns a
+            pack per spot: the current slot and its score, the live station (or null when the
+            sensor is dead, with{" "}
+            <code className="font-data text-[11px] text-ink">hasStationUrl</code> to tell
+            &ldquo;broken&rdquo; from &ldquo;never had one&rdquo;), tides, and six days of
+            slots, windows and peaks. Four fetch paths guaranteed the screens would disagree
+            about the same beach; one guarantees they cannot. In development only, an{" "}
+            <code className="font-data text-[11px] text-ink">?at=</code> query parameter moves
+            the clock so the interesting states are reviewable at any hour.
+          </Documented>
+
+          <Documented
+            name="lib/dayChart"
+            importPath="lib/dayChart"
+            on={["NOW", "NEXT", "LIVE", "SPOT"]}
+          >
+            The shared geometry. One function,{" "}
+            <code className="font-data text-[11px] text-ink">buildDayChart</code>, turns a
+            spot&rsquo;s slots and a day into six columns, the axis marks, and where the now
+            rule falls on the continuous time scale. Derived from the forecast&rsquo;s real
+            timestamps rather than hardcoded, because the grid is UTC and lands an hour earlier
+            in winter — a fixed 07/10/13 axis was wrong for half the year. Also owns the score
+            bands and the wind/wave scales, so a dial, a bar and a ring can never disagree
+            about what 74 means.
           </Documented>
 
           <Documented

@@ -23,11 +23,16 @@
   --wm-page: 10 20 32; /* #0A1420 */
   --wm-ink: 234 244 246; /* #EAF4F6 */
   --wm-accent: 110 231 240; /* #6EE7F0 */
-  --wm-marginal: 255 93 143; /* #FF5D8F */
+  /* Marginal and the now marker are the SAME orange in the final handoff. The
+     magenta that used to sit here read as an error state next to the cyan; the
+     orange reads as "borderline / look closer", which is what a sub-60 score
+     means. Position (now) and judgement (marginal) sharing a hue is deliberate:
+     they never overlap in one mark. */
+  --wm-marginal: 245 144 66; /* #F59042 */
 
   /* -- Composite values -- */
   --wm-surface: rgba(234, 244, 246, 0.05);
-  --wm-border: rgba(234, 244, 246, 0.09);
+  --wm-border: rgba(234, 244, 246, 0.1);
   --wm-rule: rgba(234, 244, 246, 0.14);
   --wm-btn-border: rgba(234, 244, 246, 0.2);
   --wm-hover: rgba(234, 244, 246, 0.09);
@@ -37,17 +42,24 @@
 
   --wm-accent-tint-nav: rgba(110, 231, 240, 0.14);
   --wm-accent-tint-card: rgba(110, 231, 240, 0.09);
+  /* The wash the chart lays over "from now on", so the future half of a band
+     is visibly the forecast half. Lighter than the card tint on purpose — it
+     sits behind data, not behind text. */
+  --wm-accent-wash: rgba(110, 231, 240, 0.07);
   --wm-accent-border: rgba(110, 231, 240, 0.28);
   --wm-accent-mid: rgba(110, 231, 240, 0.5);
   --wm-accent-low: rgba(110, 231, 240, 0.22);
-  --wm-accent-faint: rgba(110, 231, 240, 0.3);
+  --wm-accent-faint: rgba(110, 231, 240, 0.45);
 
-  --wm-marginal-low: rgba(255, 93, 143, 0.35);
+  --wm-marginal-low: rgba(245, 144, 66, 0.16);
 
-  --wm-track: rgba(234, 244, 246, 0.12);
-  --wm-nav-bg: rgba(18, 33, 48, 0.86);
+  --wm-track: rgba(234, 244, 246, 0.09);
+  /* Inactive swipe dots sit ON the page rather than inside a filled track, so
+     they need more contrast than `track`. */
+  --wm-track-strong: rgba(234, 244, 246, 0.3);
+  --wm-nav-bg: rgba(18, 33, 48, 0.9);
   --wm-nav-border: rgba(234, 244, 246, 0.14);
-  --wm-offline-bg: rgba(234, 244, 246, 0.04);
+  --wm-offline-bg: rgba(234, 244, 246, 0.05);
   --wm-knob: #0a1420;
 
   /* The filled sport pill was the one component that broke when both themes
@@ -55,26 +67,16 @@
   --wm-sport-pill-bg: rgba(110, 231, 240, 0.14);
   --wm-sport-pill-text: #6ee7f0;
 
-  /* "You are here". Deliberately outside the accent/marginal pair, because it
-     is a position marker rather than a judgement — reusing either would collide
-     with the score semantics the strip already encodes. */
-  --wm-now: #ff9d42;
+  /* "You are here". Shares the marginal orange on purpose — the two never
+     appear as the same mark (marginal is a fill, this is a 2px rule), and the
+     accent is what must stay unambiguous, because that one means "go". */
+  --wm-now: #f59042;
   /* Channel triple, not a hex: the verdict card uses bg-caution/10 and
      border-caution/30, and Tailwind opacity modifiers only work against
      `rgb(var(--x) / <alpha-value>)`. As a composite var those classes emitted
      invalid CSS and the border fell back to currentColor — which is what put a
      white outline around MAYBE and the direction ring. */
-  --wm-caution: 255 157 66;
-  /* Near-black, not white: white on this orange is 2.07:1 and fails AA
-     outright, where near-black clears 10:1. */
-  --wm-now-text: #0a1420;
-
-  /* The score dial's inner disc must be OPAQUE or the conic-gradient ring shows
-     straight through it. On a tinted card that means page composited with
-     accent-tint-card, precomputed — a translucent surface token does not work
-     here. */
-  --wm-dial-inner-card: #132733;
-
+  --wm-caution: 245 144 66;
   /* Cards carry no shadow in either theme — separation is by border and fill.
      The bottom nav is the exception: a shadow in Dayglass, a border at night. */
   --wm-shadow-nav: none;
@@ -87,11 +89,13 @@
   --wm-page: 241 244 244; /* #F1F4F4 */
   --wm-ink: 10 20 32; /* #0A1420 */
   --wm-accent: 14 122 133; /* #0E7A85 */
-  --wm-marginal: 201 54 107; /* #C9366B */
+  /* Same role change as Nightglass: marginal is the caution orange, darkened
+     for a light page. Identical to --wm-now, by design. */
+  --wm-marginal: 194 96 15; /* #C2600F */
 
   /* -- Composite values -- */
   --wm-surface: #ffffff;
-  --wm-border: rgba(10, 20, 32, 0.1);
+  --wm-border: rgba(10, 20, 32, 0.11);
   --wm-rule: rgba(10, 20, 32, 0.16);
   --wm-btn-border: rgba(10, 20, 32, 0.22);
   --wm-hover: rgba(10, 20, 32, 0.06);
@@ -101,17 +105,19 @@
 
   --wm-accent-tint-nav: rgba(14, 122, 133, 0.12);
   --wm-accent-tint-card: rgba(14, 122, 133, 0.09);
-  --wm-accent-border: rgba(14, 122, 133, 0.35);
+  --wm-accent-wash: rgba(14, 122, 133, 0.07);
+  --wm-accent-border: rgba(14, 122, 133, 0.32);
   --wm-accent-mid: rgba(14, 122, 133, 0.5);
-  --wm-accent-low: rgba(14, 122, 133, 0.22);
-  --wm-accent-faint: rgba(14, 122, 133, 0.28);
+  --wm-accent-low: rgba(14, 122, 133, 0.2);
+  --wm-accent-faint: rgba(14, 122, 133, 0.45);
 
-  --wm-marginal-low: rgba(201, 54, 107, 0.3);
+  --wm-marginal-low: rgba(194, 96, 15, 0.14);
 
-  --wm-track: rgba(10, 20, 32, 0.13);
+  --wm-track: rgba(10, 20, 32, 0.1);
+  --wm-track-strong: rgba(10, 20, 32, 0.25);
   --wm-nav-bg: #ffffff;
   --wm-nav-border: rgba(10, 20, 32, 0.12);
-  --wm-offline-bg: #e8ecec;
+  --wm-offline-bg: #e5eaea;
   --wm-knob: #ffffff;
 
   --wm-sport-pill-bg: #0e7a85;
@@ -121,12 +127,8 @@
   /* Lifted from #c4610b so the pill's own label clears AA (4.97:1) while the
      rule still holds 3.37:1 against the light page. Both thresholds matter:
      one is text, the other a graphic. */
-  --wm-now: #cc6a10;
-  --wm-caution: 204 106 16;
-  --wm-now-text: #0a1420;
-
-  /* See the Nightglass note — page composited with accent-tint-card. */
-  --wm-dial-inner-card: #dde9ea;
+  --wm-now: #c2600f;
+  --wm-caution: 194 96 15;
 
   --wm-shadow-nav: 0 4px 24px rgba(10, 20, 32, 0.14);
 

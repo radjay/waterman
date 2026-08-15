@@ -18,7 +18,20 @@ const ROOT = join(import.meta.dirname, "..", "..", "..");
 const KIT = readFileSync(join(ROOT, "app", "ui-kit", "page.js"), "utf8");
 
 /** Directories whose contents are shared vocabulary rather than one screen's internals. */
-const SHARED_DIRS = ["ui", "now", "next", "confidence", "wind", "sport", "webcam", "common"];
+const SHARED_DIRS = [
+  "ui",
+  "chart",
+  "spot",
+  "live",
+  "now",
+  "next",
+  "confidence",
+  "wind",
+  "sport",
+  "webcam",
+  "common",
+  "data",
+];
 
 const componentsIn = (dir) =>
   readdirSync(join(ROOT, "components", dir), { withFileTypes: true })

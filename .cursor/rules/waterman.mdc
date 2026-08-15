@@ -2,6 +2,7 @@
 alwaysApply: true
 ---
 
+- **Design system first.** We strive to use and re-use as many components as possible from our ui-kit (`components/ui/`, `components/chart/`, `components/spot/`, `components/layout/`, browsable at `/ui-kit`). Look in the kit before writing UI; extend an existing component with a prop or variant rather than adding a near-duplicate; if nothing fits, add the new primitive to the kit (plus `app/ui-kit/page.js` and its fixtures) rather than to the screen. Screens compose kit components — bare Tailwind card/chrome styling in a page file is a smell. Never hard-code a colour: every value is a theme token from `app/theme.css` so both Nightglass and Dayglass stay correct. Every number a user reads is `font-data`. See CLAUDE.md for the full rule.
 - Always consult planning/PLANNING.md as the source of truth for TODOs, bugs, and upcoming work. Update this file whenever needed to accurately reflect the state of the repo. For detailed architecture, see planning/architecture.md.
 - When running the dev server (`npm run dev`), always use `required_permissions: ['all']` to bypass sandbox restrictions that prevent binding to network ports.
 - When implementing a feature, change or bug, you should always test in the browser tool if its working correctly before concluding it's working! Use URL routes like `/wing/all` or `/surf/best` when testing to override browser localStorage state and ensure consistent results.

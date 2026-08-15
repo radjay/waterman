@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-08-15]
+
+### Changed
+- Now answers one spot at a time. Swipe or tap to change the spot.
+- Next shows the next windows first, then the rest of the week.
+- Live puts the cam and the station line on the same card.
+- Spot forecast uses the same numbers as Now, Next, and Live.
+- The score on Now and Live is the score for this hour.
+- The score on Next is the peak of a window.
+
+### Added
+- The four main screens share the selected spot.
+
+---
+
 ## [2026-03-01]
 
 ### Added

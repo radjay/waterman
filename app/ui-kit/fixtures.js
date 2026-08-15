@@ -1,4 +1,5 @@
 import { detectWindows } from "../../lib/windows";
+import { buildDayChart } from "../../lib/dayChart";
 
 /**
  * Fixtures for the UI kit.
@@ -101,3 +102,112 @@ export const MODEL_COLUMNS = [
   { timestamp: T0 + 15 * HOUR, label: "15:00" },
   { timestamp: T0 + 18 * HOUR, label: "18:00" },
 ];
+
+/* ---------------------------------------------------------- the day chart */
+
+/**
+ * A full day on the shared clock: six 3-hour slots from 07:00, wind building
+ * through the afternoon and dying at dusk, with the pretend "now" at 14:20 so
+ * the past/present/future treatments are all visible at once.
+ *
+ * Built through `buildDayChart` rather than hand-authored, for the same reason
+ * the windows are built through `detectWindows`: the kit has to receive the
+ * exact shape the screens receive or it documents a contract nothing uses.
+ */
+const DAY_SHAPE = [
+  [7, 55, 9, 13, 1.1],
+  [10, 70, 12, 17, 1.05],
+  [13, 72, 15, 20, 0.98],
+  [16, 88, 19, 24, 0.92],
+  [19, 68, 16, 21, 0.85],
+  [22, 34, 9, 12, 0.8],
+];
+
+export const CHART_SLOTS = DAY_SHAPE.map(([hour, score, speed, gust, waveHeight]) =>
+  slot(0, hour, score, { speed, gust, waveHeight })
+);
+
+export const CHART_NOW = T0 + 14 * HOUR + 20 * 60 * 1000;
+
+export const CHART = buildDayChart({
+  slots: CHART_SLOTS,
+  dayStart: T0,
+  nowMs: CHART_NOW,
+});
+
+/** Two highs and a low, so the tide line has a real shape to draw. */
+export const TIDES = [
+  { time: T0 + 4 * HOUR, height: 1.9, type: "high" },
+  { time: T0 + 10.5 * HOUR, height: 0.4, type: "low" },
+  { time: T0 + 16.5 * HOUR, height: 2.1, type: "high" },
+  { time: T0 + 23 * HOUR, height: 0.5, type: "low" },
+];
+
+/** A live station trail up to "now" — solid base, dashed gust. */
+export const STATION_TRAIL = {
+  speed: 15.6,
+  gust: 20.2,
+  directionLabel: "NW",
+  delta: 1.4,
+  agoLabel: "4 MIN AGO",
+  caption: "THE SPOT",
+  history: Array.from({ length: 45 }, (_, i) => {
+    const time = T0 + 7 * HOUR + i * 10 * 60 * 1000;
+    const t = i / 44;
+    return {
+      time,
+      speed: 9 + t * 7 + Math.sin(i / 3) * 0.9,
+      gust: 13 + t * 8 + Math.sin(i / 2) * 1.4,
+    };
+  }),
+};
+
+/** The per-spot shape `useCoastData` returns, for the row/card components. */
+export const PACK = {
+  spot: SPOTS[0],
+  score: 72,
+  slot: CHART_SLOTS[2],
+  station: STATION_TRAIL,
+  hasStationUrl: true,
+  charted: CHART_SLOTS,
+  tides: TIDES,
+  days: [{ dayStart: T0, slots: CHART_SLOTS, windows: detectWindows(CHART_SLOTS), peak: 88 }],
+};
+
+export const PACK_NO_STATION = {
+  ...PACK,
+  spot: { _id: "spot_cds", name: "Praia do CDS", liveReportUrl: null },
+  score: null,
+  station: null,
+  hasStationUrl: false,
+};
+
+/** A day in the shape SpotDayRow takes. */
+export const SPOT_DAY = {
+  dayStart: T0,
+  label: "Today",
+  slots: CHART_SLOTS,
+  scored: CHART_SLOTS,
+  windows: detectWindows(CHART_SLOTS),
+  peak: 88,
+};
+
+/** The week strip's shared clock, derived from the first day's own slots. */
+export const WEEK_CHART = buildDayChart({
+  slots: WEEK[0].slots,
+  dayStart: T0,
+  nowMs: CHART_NOW,
+});
+
+/** Six days for the new week strip, shaped as NextContent builds them. */
+export const WEEK_DAYS = WEEK.map((day, i) => ({
+  ...day,
+  isToday: i === 0,
+  peak: day.bestScore,
+  best: [...day.slots]
+    .filter((s) => s.score !== null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map((s) => ({ ...s, spotName: SPOTS[i % SPOTS.length].name })),
+}));

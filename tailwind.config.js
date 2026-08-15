@@ -50,6 +50,7 @@ export default {
 
         "accent-tint": "var(--wm-accent-tint-nav)",
         "accent-tint-card": "var(--wm-accent-tint-card)",
+        "accent-wash": "var(--wm-accent-wash)",
         "accent-border": "var(--wm-accent-border)",
         "accent-mid": "var(--wm-accent-mid)",
         "accent-low": "var(--wm-accent-low)",
@@ -57,12 +58,12 @@ export default {
         "marginal-low": "var(--wm-marginal-low)",
 
         track: "var(--wm-track)",
+        "track-strong": "var(--wm-track-strong)",
         "nav-bg": "var(--wm-nav-bg)",
         "nav-border": "var(--wm-nav-border)",
         "offline-bg": "var(--wm-offline-bg)",
         knob: "var(--wm-knob)",
         now: "var(--wm-now)",
-        "now-text": "var(--wm-now-text)",
         caution: channel("--wm-caution"),
         "sport-pill": "var(--wm-sport-pill-bg)",
         "sport-pill-text": "var(--wm-sport-pill-text)",

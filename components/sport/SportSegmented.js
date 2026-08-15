@@ -4,12 +4,16 @@ import { SPORTS, useSport } from "./SportProvider";
 import { SportBadge } from "../ui/SportBadge";
 
 /**
- * The three-segment sport selector from the Now header.
+ * The desktop sport selector: one 34px pill, three segments filling its height.
  *
- * Uses the dedicated sport-pill token pair rather than the generic accent-tint
- * treatment. That pairing was the one component that broke when both themes
- * shared accent-on-tint: tinted with accent text at night, solid accent with
- * white text in day.
+ * Every control in the desktop header is a 34px pill with matching radius, and
+ * the segmented group is the one that has to fill rather than sit inside — a
+ * group with padding around its segments reads as three buttons in a box
+ * instead of one control with three states.
+ *
+ * Active is the accent tint, not the solid fill: this sits next to the nav
+ * tabs, which use the same tint for "you are here", and two different accent
+ * treatments in one bar made the sport look like a fifth tab.
  */
 export function SportSegmented({ className = "" }) {
   const { sport, setSport } = useSport();
@@ -18,7 +22,7 @@ export function SportSegmented({ className = "" }) {
     <div
       role="tablist"
       aria-label="Sport"
-      className={`flex rounded-pill overflow-hidden border border-nav-border ${className}`}
+      className={`flex h-[34px] rounded-pill overflow-hidden border border-nav-border ${className}`}
     >
       {SPORTS.map((option) => {
         const active = option.id === sport;
@@ -28,19 +32,11 @@ export function SportSegmented({ className = "" }) {
             role="tab"
             aria-selected={active}
             onClick={() => setSport(option.id)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 font-data text-[10px] tracking-[0.08em] transition-colors duration-fast ease-smooth focus-ring ${
-              active
-                ? "bg-sport-pill text-sport-pill-text"
-                : "text-dim hover:text-faded-ink"
+            className={`flex items-center gap-1.5 h-full px-[15px] font-data text-[10.5px] tracking-[0.1em] transition-colors duration-fast ease-smooth focus-ring ${
+              active ? "bg-accent-tint text-accent" : "text-dim hover:text-faded-ink"
             }`}
           >
-            <SportBadge
-              sport={option.id}
-              size={13}
-              // Inherit the segment's colour; SportBadge defaults to ink/30,
-              // which would wash the icon out inside the filled pill.
-              className={active ? "text-sport-pill-text" : "text-dim"}
-            />
+            <SportBadge sport={option.id} size={15} className="text-current" />
             {option.label}
           </button>
         );

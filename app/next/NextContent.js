@@ -1,377 +1,242 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePersistedState } from "../../lib/hooks/usePersistedState";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight } from "lucide-react";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../convex/_generated/api";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MainLayout } from "../../components/layout/MainLayout";
-import { PageHeader } from "../../components/layout/PageHeader";
-import { SportFilterChip } from "../../components/sport/SportFilterChip";
+import { ScreenHeader } from "../../components/layout/ScreenHeader";
 import { useSport } from "../../components/sport/SportProvider";
-import { WeekStrip } from "../../components/next/WeekStrip";
-import { ALL_SPOTS, FAVORITES, SpotPicker } from "../../components/next/SpotPicker";
-import { useUser } from "../../components/auth/AuthProvider";
-import {
-  dayStartOf,
-  detectWindows,
-  isChartedSlot,
-  soonestWindow,
-  spotSummaries,
-  upcomingWindows,
-} from "../../lib/windows";
-import {
-  LiveWindIndicator,
-  extractWindguruStationId,
-} from "../../components/wind/LiveWindIndicator";
-import { spotsWithSlots } from "../../lib/reportData";
+import { useCoastData } from "../../components/data/useCoastData";
+import { useIsDesktop } from "../../lib/hooks/useMediaQuery";
+import { useSelectedSpot } from "../../lib/hooks/useSelectedSpot";
+import { ALL_SPOTS, SpotPickerSheet } from "../../components/spot/SpotPickerSheet";
 import { WindowCard } from "../../components/next/WindowCard";
+import { WeekStrip } from "../../components/next/WeekStrip";
+import { ScreenError, ScreenEmpty, ScreenSkeleton } from "../../components/common/ScreenState";
+import { MicroLabel } from "../../components/ui/MicroLabel";
+import { buildDayChart, DAY_MS, sameDay } from "../../lib/dayChart";
+import { detectWindows } from "../../lib/windows";
 import { dtf } from "../../lib/datetime";
-import { spotFromSlug, toSpotSlug } from "../../lib/spotSlug";
+import { toSpotSlug } from "../../lib/spotSlug";
 
-const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
 const TZ = "Europe/Lisbon";
-const DAY_MS = 24 * 60 * 60 * 1000;
-const NEXT_SPOT_STORAGE_KEY = "waterman_next_spot";
-
-const fmt = (ms, options) =>
-  dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
-
-/** Path for a Next scope — shareable for a named spot. */
-export function nextPathForScope(scope, spots = []) {
-  if (!scope || scope === FAVORITES || scope === ALL_SPOTS) return "/next";
-  const spot = spots.find((s) => s._id === scope);
-  if (!spot?.name) return "/next";
-  return `/next/${toSpotSlug(spot.name)}`;
-}
+const fmt = (ms, options) => dtf("en-GB", { timeZone: TZ, ...options }).format(new Date(ms));
 
 /**
- * @param {string|null} spotSlug - From `/next/[spot]`; null on bare `/next`.
+ * Next — if not now, when and where.
+ *
+ * Two answers on one screen, in the order a rider wants them: the three
+ * soonest windows as cards ("keep Saturday afternoon free"), then the whole
+ * week as one clock ("and here is everything else").
+ *
+ * Scores here are the PEAK of a window; Now and Live show the score right now.
+ * That divergence is deliberate and the screen says so, because a window's peak
+ * is what you plan around and the current number is what you act on. The two
+ * must still agree about the same figure: a spot's best-this-week number is the
+ * same value in a card and in its week row, because both come from the same
+ * per-day peak.
+ *
+ * There is no "models split" concept here. It was removed on purpose.
  */
 export function NextContent({ spotSlug = null }) {
   const router = useRouter();
-  const { sport, meta } = useSport();
-  // Persisted for favorites/all and as a fallback when landing on bare /next.
-  // A path slug always wins — that is the shareable address of a spot week.
-  const [scope, setScope] = usePersistedState(
-    NEXT_SPOT_STORAGE_KEY,
-    FAVORITES,
-    (v) => typeof v === "string"
-  );
+  const { sport } = useSport();
+  const isDesktop = useIsDesktop();
+  const { loading, error, mySpots, now, today } = useCoastData(sport);
+  const [, setSelectedSpot] = useSelectedSpot();
+  const [openDay, setOpenDay] = useState(today);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const search = useSearchParams();
-  // Legacy `?spot=<convexId>` links (Now handoff before path routes). Upgrade
-  // them to `/next/<slug>` once spots are loaded so the URL stays shareable.
-  const legacySpotId = search.get("spot");
-
-  const user = useUser();
-  const favoriteIds = user?.favoriteSpots ?? [];
-  const [state, setState] = useState({ loading: true, error: null, bySpot: null });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setState((s) => ({ ...s, loading: true, error: null }));
-      try {
-        const report = await client.query(api.spots.getReportData, { sports: [sport] });
-        if (cancelled) return;
-        const bySpot = spotsWithSlots(report, sport).map(({ spot, slots }) => ({
-          spot,
-          slots,
-          windows: detectWindows(slots),
-        }));
-        setState({ loading: false, error: null, bySpot });
-      } catch (error) {
-        if (cancelled) return;
-        setState({ loading: false, error, bySpot: null });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [sport]);
-
-  const { loading, error, bySpot } = state;
+  // Scoped to one spot when the path names one, otherwise across my spots.
+  const scoped = useMemo(() => {
+    if (!spotSlug) return mySpots;
+    const match = mySpots.find((p) => toSpotSlug(p.spot.name) === spotSlug);
+    return match ? [match] : mySpots;
+  }, [mySpots, spotSlug]);
 
   const view = useMemo(() => {
-    if (!bySpot) return null;
-    const now = Date.now();
+    if (!scoped.length) return null;
 
-    // "Best spot" reads across the coast; a named spot reads only itself.
-    // Aggregating hides a spot's own week — a Thursday window looks identical
-    // to no window at all when a better spot covers the same hours.
-    // A stored spot can outlive the spot itself, or stop supporting the
-    // selected sport. Falling back to the whole coast beats rendering an empty
-    // week with no explanation.
-    const isSpot = scope && scope !== FAVORITES && scope !== ALL_SPOTS;
-    const known = isSpot && bySpot.some((s) => s.spot._id === scope) ? scope : null;
+    const dayCount = scoped[0].days.length;
 
-    const usingFavorites =
-      scope === FAVORITES && bySpot.some(({ spot }) => favoriteIds.includes(spot._id));
-
-    const scoped = known
-      ? bySpot.filter((s) => s.spot._id === known)
-      : usingFavorites
-        ? bySpot.filter(({ spot }) => favoriteIds.includes(spot._id))
-        : bySpot;
-    const soonest = soonestWindow(scoped, now);
-    // Three, not one. A single window answers "when" but not "or else what".
-    // Scoped to one spot the question is "when here", so the same beach may
-    // legitimately fill all three rows.
-    const upcoming = upcomingWindows(scoped, now, 3, { uniqueSpots: !known });
-
-    const today = dayStartOf(now);
-    const days = Array.from({ length: 6 }, (_, i) => {
+    const days = Array.from({ length: dayCount }, (_, i) => {
       const dayStart = today + i * DAY_MS;
-      const dayEnd = dayStart + DAY_MS;
 
-      // One readout per timestamp. In "best spot" mode that is the best-scoring
-      // spot at that hour, named — otherwise the tooltip would show a number
-      // from a beach the band does not represent.
-      const byTimestamp = new Map();
-      for (const { spot, slots } of scoped) {
-        for (const slot of slots) {
-          if (slot.timestamp < dayStart || slot.timestamp >= dayEnd) continue;
-          // Windows must not extend into hours the chart never draws.
-          if (!isChartedSlot(slot.timestamp)) continue;
-          const existing = byTimestamp.get(slot.timestamp);
+      // One reading per timestamp — the best spot at that hour, named. Drawing
+      // every spot's band on top of each other left seams at every boundary
+      // that read as dividers rather than as two beaches overlapping.
+      const byTime = new Map();
+      for (const pack of scoped) {
+        for (const slot of pack.days[i]?.scored ?? []) {
+          const existing = byTime.get(slot.timestamp);
           if (!existing || (slot.score ?? -1) > (existing.score ?? -1)) {
-            byTimestamp.set(slot.timestamp, {
-              ...slot,
-              spotName: known ? null : spot.name,
-            });
+            byTime.set(slot.timestamp, { ...slot, spotName: pack.spot.name, pack });
           }
         }
       }
 
-      // Unscored slots are dropped rather than drawn empty. The scorer skips
-      // hours outside daylight, so the 22:00 block (which runs to 01:00) has no
-      // score and nothing to say — it was stretching the axis three hours past
-      // the last real reading and leaving dead track on the right.
-      const daySlots = [...byTimestamp.values()]
-        .filter((slot) => slot.score !== null && slot.score !== undefined)
-        .sort((a, b) => a.timestamp - b.timestamp);
-
-      // Bands are derived from the day's own resolved slots rather than from
-      // each spot's windows. In best-spot mode those overlap — several spots
-      // cover the same hours — and drawing them on top of each other left
-      // seams at every boundary that looked like arbitrary dividers.
-      // One slot per timestamp means one continuous band.
-      const windows = detectWindows(daySlots);
-
-      const bestScore = windows.reduce(
-        (best, w) => (w.score !== null && w.score > (best ?? -1) ? w.score : best),
+      const slots = [...byTime.values()].sort((a, b) => a.timestamp - b.timestamp);
+      const windows = detectWindows(slots);
+      const peak = slots.reduce(
+        (best, s) => (best === null || s.score > best ? s.score : best),
         null
       );
+      const best = [...slots]
+        .filter((s) => s.score !== null)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .sort((a, b) => a.timestamp - b.timestamp);
 
       return {
         dayStart,
         label: fmt(dayStart, { weekday: "short" }).toUpperCase(),
+        long: sameDay(dayStart, now) ? "TODAY" : fmt(dayStart, { weekday: "long" }).toUpperCase(),
+        isToday: sameDay(dayStart, now),
+        slots,
         windows,
-        bestScore,
-        slots: daySlots,
+        peak,
+        best,
+        hasWindow: windows.length > 0,
       };
     });
 
-    // The list underneath is for the spots the strip is NOT showing — it is a
-    // way to switch to them, not a second copy of what is already on screen.
-    const featuredId = known ?? soonest?.spot?._id ?? null;
-    const others = spotSummaries(
-      bySpot.filter(({ spot }) => spot._id !== featuredId),
-      now
-    );
-
-    return { soonest, upcoming, days, others, featuredId, known, usingFavorites };
-  }, [bySpot, scope, favoriteIds.join(",")]);
-
-  const spots = useMemo(() => (bySpot ?? []).map((s) => s.spot), [bySpot]);
-
-  // Path slug → scope. Unknown slug falls back to the coast-wide list.
-  useEffect(() => {
-    if (!spotSlug || !bySpot) return;
-    const match = spotFromSlug(spots, spotSlug);
-    if (match) {
-      if (scope !== match._id) setScope(match._id);
-    } else {
-      router.replace("/next", { scroll: false });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to path + data
-  }, [spotSlug, bySpot, spots]);
-
-  // Legacy ?spot=<id> → /next/<slug>
-  useEffect(() => {
-    if (!legacySpotId || !bySpot) return;
-    const spot = spots.find((s) => s._id === legacySpotId);
-    if (spot) {
-      router.replace(nextPathForScope(spot._id, spots), { scroll: false });
-    } else {
-      router.replace("/next", { scroll: false });
-    }
-  }, [legacySpotId, bySpot, spots, router]);
-
-  // Bare /next with a remembered spot: put the slug in the bar so copy-paste works.
-  useEffect(() => {
-    if (spotSlug || legacySpotId || !bySpot) return;
-    if (!scope || scope === FAVORITES || scope === ALL_SPOTS) return;
-    const path = nextPathForScope(scope, spots);
-    if (path !== "/next") router.replace(path, { scroll: false });
-  }, [spotSlug, legacySpotId, bySpot, scope, spots, router]);
-
-  // Persist + keep the address bar honest so a friend can open the same week.
-  const selectScope = useCallback(
-    (id) => {
-      setScope(id);
-      const path = nextPathForScope(id, spots);
-      const current =
-        typeof window !== "undefined" ? window.location.pathname : "";
-      if (current !== path) {
-        router.push(path, { scroll: false });
+    // The three cards: the best window on each of the next days that has one.
+    // One per day rather than three windows overall, because three slices of
+    // the same afternoon at the same beach is one answer written out three
+    // times.
+    const cards = [];
+    for (const day of days) {
+      if (cards.length === 3) break;
+      let best = null;
+      for (const pack of scoped) {
+        const dayIndex = days.indexOf(day);
+        for (const win of pack.days[dayIndex]?.windows ?? []) {
+          if (win.end <= now) continue;
+          if (!best || (win.score ?? -1) > (best.window.score ?? -1)) {
+            best = { spot: pack.spot, window: win, pack };
+          }
+        }
       }
-    },
-    [setScope, spots, router]
+      if (best) cards.push({ ...best, day });
+    }
+
+    return { days, cards };
+  }, [scoped, today, now]);
+
+  // The shared clock. Derived from today's slots so the axis follows the
+  // forecast grid through a DST change rather than being labelled an hour off
+  // for half the year.
+  const chart = useMemo(
+    () => buildDayChart({ slots: scoped[0]?.charted ?? [], dayStart: today, nowMs: now }),
+    [scoped, today, now]
   );
+
+  const openSpot = (spot) => {
+    setSelectedSpot(spot._id);
+    router.push(`/report/${toSpotSlug(spot.name)}`);
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <ScreenSkeleton variant="cards" />
+      </MainLayout>
+    );
+  }
+  if (error) {
+    return (
+      <MainLayout>
+        <ScreenError body="This is a connection problem, not an empty week." />
+      </MainLayout>
+    );
+  }
+  if (!view) {
+    return (
+      <MainLayout>
+        <ScreenEmpty
+          title="Nothing here for this sport"
+          body="None of your spots do this sport. Pick another sport, or add a spot that does."
+          actionLabel="CHOOSE YOUR SPOTS"
+          onAction={() => router.push("/settings")}
+        />
+      </MainLayout>
+    );
+  }
+
+  const scopedToSpot = Boolean(spotSlug) && scoped.length === 1;
+  const title = scopedToSpot ? scoped[0].spot.name : "My spots";
 
   return (
     <MainLayout>
-      <PageHeader
-        subtitle="Upcoming windows, then the week at a glance."
-        tools={
-          <>
-            {/* Only when the screen names one spot. Across favourites there is no
-                single station the reading could honestly belong to. */}
-            {view?.known && (
-              <LiveWindIndicator
-                stationId={extractWindguruStationId(
-                  spots.find((s) => s._id === view.known)?.liveReportUrl
-                )}
-                label="LIVE"
-              />
-            )}
-            <SportFilterChip />
-          </>
+      <ScreenHeader
+        title={title}
+        pickerOpen={pickerOpen}
+        onTogglePicker={() => setPickerOpen((v) => !v)}
+        sheet={
+          <SpotPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            spots={mySpots}
+            value={scopedToSpot ? scoped[0].spot._id : ALL_SPOTS}
+            allOption
+            onChange={(id) => {
+              if (id === ALL_SPOTS) {
+                router.push("/next");
+                return;
+              }
+              const next = mySpots.find((p) => p.spot._id === id);
+              if (next) router.push(`/next/${toSpotSlug(next.spot.name)}`);
+            }}
+            sport={sport}
+          />
         }
-      >
-        When&rsquo;s next
-        <span className="text-faded-ink font-normal mx-[0.28em]">at</span>
-        <SpotPicker
-          spots={spots}
-          value={scope}
-          onChange={selectScope}
-          hasFavorites={favoriteIds.length > 0}
-        />
-      </PageHeader>
+      />
 
-      {loading && (
-        <div className="animate-pulse" aria-hidden="true">
-          <div className="rounded-card-lg bg-surface border border-card h-[150px]" />
-          <div className="rounded-card bg-surface border border-card h-[220px] mt-6" />
+      {view.cards.length > 0 ? (
+        <div
+          className={
+            isDesktop ? "grid grid-cols-3 gap-3.5 mt-6" : "flex flex-col gap-[9px] mt-4"
+          }
+        >
+          {view.cards.map((card, i) => (
+            <WindowCard
+              key={`${card.spot._id}-${card.window.start}`}
+              spot={card.spot}
+              window={card.window}
+              sport={sport}
+              dayLabel={card.day.long}
+              isToday={card.day.isToday}
+              highlight={i === 0}
+              withStill={isDesktop}
+              onClick={() => openSpot(card.spot)}
+            />
+          ))}
         </div>
-      )}
-
-      {!loading && error && (
-        <div className="rounded-card-lg border border-marginal/30 bg-marginal/10 p-4">
-          <div className="font-data text-[10px] tracking-label text-marginal mb-1.5">
-            CANNOT REACH THE FORECAST
-          </div>
-          <p className="text-[13px] text-faded-ink leading-[1.45]">
-            This is a connection problem, not an empty week.
+      ) : (
+        <div className="rounded-card-lg border border-card bg-surface p-5 text-center mt-4">
+          <p className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-[1.1]">
+            Nothing on this week
+          </p>
+          <p className="text-[14px] text-faded-ink mt-2.5">
+            Nothing at your spots clears 60 in the next six days. The week below still
+            shows how close it gets.
           </p>
         </div>
       )}
 
-      {!loading && !error && view && (
-        <>
-          {view.upcoming.length > 0 ? (
-            <div className="grid gap-2 md:grid-cols-3">
-              {view.upcoming.map(({ spot, window }, i) => (
-                <WindowCard
-                  key={`${spot._id}-${window.start}`}
-                  spot={spot}
-                  window={window}
-                  sport={sport}
-                  // Naming the spot on every card is noise once the title
-                  // already says which spot the screen is about.
-                  showSpot={!view.known}
-                  highlight={i === 0}
-                  onClick={() =>
-                    router.push(
-                      `/window/${dayStartOf(window.start)}/${window.start}?spot=${spot._id}`
-                    )
-                  }
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-card-lg border border-card bg-surface p-5 text-center">
-              <p className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-[1.1]">
-                Nothing on this week
-              </p>
-              <p className="text-[14px] text-faded-ink mt-2.5">
-                No {meta.label.toLowerCase()} windows clear 60
-                {view.known || view.usingFavorites ? " here" : ""} in the next six days.
-              </p>
-            </div>
-          )}
+      <WeekStrip
+        days={view.days}
+        selectedDay={openDay}
+        onSelectDay={setOpenDay}
+        onSelectSlot={(_day, slot) => openSpot(slot.pack.spot)}
+        chart={chart}
+        nowMs={now}
+        desktop={isDesktop}
+        className="pt-[18px] md:pt-6"
+      />
 
-          <WeekStrip
-            days={view.days}
-            sport={sport}
-            title="This week"
-            onSelectWindow={(day, window) => {
-              // In best-spot mode a band can be built from several spots, so
-              // the peak slot's own spot is the honest owner of the window.
-              const spotId = view.known ?? window.peak?.spotId ?? "";
-              router.push(
-                `/window/${day.dayStart}/${window.start}${spotId ? `?spot=${spotId}` : ""}`
-              );
-            }}
-          />
-
-          {view.others.length > 0 && (
-            <section className="pt-[22px]">
-              <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink mb-3">
-                {view.known ? "At other spots" : "Elsewhere, this week"}
-              </h2>
-              <div className="flex flex-col gap-[7px]">
-                {view.others.map(({ spot, windowCount, soonest }) => (
-                  <button
-                    key={spot._id}
-                    onClick={() => selectScope(spot._id)}
-                    aria-label={`Show the week for ${spot.name}`}
-                    className={`w-full text-left flex items-center gap-[11px] rounded-card-sm border px-[13px] py-[11px] focus-ring transition-colors duration-fast ease-smooth ${
-                      windowCount === 0
-                        ? "border-card opacity-55 hover:opacity-80"
-                        : "bg-surface border-card hover:bg-ink-hover"
-                    }`}
-                  >
-                    <span className="flex-1 min-w-0">
-                      <span className="block font-headline font-bold text-[15px] tracking-display text-ink truncate">
-                        {spot.name}
-                      </span>
-                      <span className="flex items-center gap-2 font-data text-[10px] text-faded-ink mt-0.5">
-                        {windowCount === 0
-                          ? "Nothing this week"
-                          : `${windowCount} window${windowCount === 1 ? "" : "s"}`}
-                      </span>
-                    </span>
-                    {soonest && (
-                      <span className="font-data text-[10px] text-accent uppercase flex-none">
-                        {dayStartOf(soonest) === dayStartOf(Date.now())
-                          ? "TODAY"
-                          : fmt(soonest, { weekday: "short" })}
-                      </span>
-                    )}
-                    <ChevronRight size={16} className="text-dim flex-none" />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Scope changes live in the title SpotPicker — no second back link. */}
-        </>
-      )}
+      {/* Said out loud because Now and Live show the CURRENT score for the same
+          beach, and two different numbers with no explanation reads as a bug. */}
+      <MicroLabel className="pt-4">Scores here are each window&rsquo;s peak</MicroLabel>
     </MainLayout>
   );
 }

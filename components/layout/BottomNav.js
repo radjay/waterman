@@ -65,18 +65,18 @@ export function BottomNav() {
   return (
     <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-[14px]"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 18px)" }}
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
       >
         <div
           className="absolute inset-x-0 bottom-0 pointer-events-none"
           style={{
-            height: 96,
-            background: "linear-gradient(to top, rgb(var(--wm-page)) 48%, transparent)",
+            height: 92,
+            background: "linear-gradient(to top, rgb(var(--wm-page)) 50%, transparent)",
           }}
         />
         <div
           ref={barRef}
-          className="relative flex items-center p-[5px] bg-nav-bg border border-nav-border rounded-pill shadow-nav backdrop-blur-md"
+          className="relative flex items-center h-[56px] p-[5px] bg-nav-bg border border-nav-border rounded-pill shadow-nav backdrop-blur-md"
         >
           {/* Always-rendered pill */}
           <div
@@ -88,15 +88,15 @@ export function BottomNav() {
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const inner = (
-              <span className="relative z-10 flex flex-col items-center gap-0.5">
+              <span className="relative z-10 flex flex-col items-center gap-[3px]">
                 <tab.icon
                   size={17}
                   strokeWidth={isActive ? 2.5 : 2}
-                  className={isActive ? "text-accent" : "text-faded-ink"}
+                  className={isActive ? "text-accent" : "text-dim"}
                 />
                 <span
-                  className={`font-data text-[0.47rem] uppercase tracking-[0.1em] leading-none ${
-                    isActive ? "text-accent" : "text-faded-ink"
+                  className={`font-data text-[7.5px] uppercase tracking-[0.1em] leading-none ${
+                    isActive ? "text-accent" : "text-dim"
                   }`}
                 >
                   {tab.label}
@@ -105,7 +105,7 @@ export function BottomNav() {
             );
 
             const sharedClass =
-              "relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors duration-fast ease-smooth";
+              "relative flex-1 flex flex-col items-center justify-center h-full gap-[3px] rounded-full transition-colors duration-fast ease-smooth";
 
             return (
                 <Link

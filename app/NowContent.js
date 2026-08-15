@@ -1,243 +1,287 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { CalendarClock, MapPin } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MainLayout } from "../components/layout/MainLayout";
+import { ScreenHeader } from "../components/layout/ScreenHeader";
 import { useSport } from "../components/sport/SportProvider";
-import { useUser } from "../components/auth/AuthProvider";
-import { useFlag } from "../components/flags/FlagProvider";
-import { VerdictCard } from "../components/now/VerdictCard";
-import { InTheWaterCard, ModelAgreementCard } from "../components/now/EvidenceStack";
-import { LabsSection } from "../components/ui/LabsSection";
-import { agreementSentence, BANDS } from "../lib/agreement";
-import { LiveCam, streamUrlFor } from "../components/now/LiveCam";
+import { useCoastData } from "../components/data/useCoastData";
+import { useSelectedSpot } from "../lib/hooks/useSelectedSpot";
+import { useIsDesktop } from "../lib/hooks/useMediaQuery";
+import { SpotPickerSheet } from "../components/spot/SpotPickerSheet";
+import { SpotRow } from "../components/spot/SpotRow";
+import { CamFrame, CamThumb } from "../components/ui/CamFrame";
+import { SwipeDots } from "../components/ui/SwipeDots";
+import { ScoreDial } from "../components/ui/ScoreDial";
+import { DayChartPanel } from "../components/chart/DayChartPanel";
 import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
-import { useNowData } from "../components/now/useNowData";
-import { WindowCard } from "../components/next/WindowCard";
-import { riderCount as fixtureRiderCount } from "../lib/fixtures/riderCounts";
-import { primaryMetric } from "../lib/conditions";
-import { dayStartOf } from "../lib/windows";
+import { ScreenError, ScreenSkeleton, ScreenEmpty } from "../components/common/ScreenState";
+import { buildDayChart } from "../lib/dayChart";
+import { VERDICT, VERDICT_TONE, VERDICT_WORD, deriveVerdict } from "../lib/verdict";
 import { toSpotSlug } from "../lib/spotSlug";
-import { VERDICT } from "../lib/verdict";
 
+const TONE_TEXT = { accent: "text-accent", caution: "text-caution", dim: "text-dim" };
+
+/**
+ * Now — can I go, right now, at the spot the app is recommending.
+ *
+ * One spot at a time. The previous screen stacked a card per spot, which
+ * answered "here is everything" rather than "can I go": two verdicts on one
+ * screen is a comparison, and a comparison is what Next is for. So the choice
+ * is made for the rider (best score now), the answer is a single word, and the
+ * other spots are one swipe or one tap away.
+ *
+ * The dial is the score RIGHT NOW, never today's peak — the whole screen is
+ * about this hour, and a peak here would quietly promise the afternoon. The
+ * afternoon is what GO LATER and the score band are for.
+ *
+ * Mobile and desktop are branched in JS rather than with `hidden md:block`,
+ * because both halves contain a live cam: rendering the tree twice meant two
+ * HLS players pulling the same stream, one of them into a zero-height box.
+ */
 export function NowContent() {
   const router = useRouter();
-  const { sport, meta } = useSport();
-  const showRiderCounts = useFlag("riderCounts");
-  const showStation = useFlag("stationEvidence");
-  const showModels = useFlag("modelConfidence");
-  const user = useUser();
-  const favoriteIds = user?.favoriteSpots ?? [];
-  const { loading, error, data } = useNowData(sport, favoriteIds);
-  // Which cam is open (spot id) — two verdict cards may each have a stream.
-  const [camSpotId, setCamSpotId] = useState(null);
+  const search = useSearchParams();
+  const { sport } = useSport();
+  const isDesktop = useIsDesktop();
+  const { loading, error, mySpots, spots, now, today } = useCoastData(sport);
 
-  const verdicts = data?.verdicts ?? [];
-  const primary = verdicts[0] ?? null;
+  const [selectedId, setSelectedId] = useSelectedSpot();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [camOpen, setCamOpen] = useState(false);
+
+  // A ?spot= slug is how Spot forecast's LIVE button lands here on the right
+  // beach. It is consumed once and folded into the persisted choice, so a
+  // refresh does not keep overriding a later pick.
+  const spotParam = search.get("spot");
+  useEffect(() => {
+    if (!spotParam || !spots.length) return;
+    const match = spots.find((p) => toSpotSlug(p.spot.name) === spotParam);
+    if (match) setSelectedId(match.spot._id);
+    router.replace("/", { scroll: false });
+  }, [spotParam, spots.length]);
+
+  // Ranked by score, so "no choice made yet" still lands on the best answer.
+  const ranked = useMemo(
+    () => [...mySpots].sort((a, b) => (b.score ?? -1) - (a.score ?? -1)),
+    [mySpots]
+  );
+
+  const found = ranked.findIndex((p) => p.spot._id === selectedId);
+  const index = found === -1 ? 0 : found;
+  const pack = ranked[index] ?? null;
+  const others = ranked.filter((p) => p.spot._id !== pack?.spot?._id).slice(0, 3);
+
+  const chart = useMemo(
+    () => (pack ? buildDayChart({ slots: pack.charted, dayStart: today, nowMs: now }) : null),
+    [pack, today, now]
+  );
+
+  const verdict = useMemo(() => {
+    if (!pack) return VERDICT.NO;
+    const laterPeak = (chart?.columns ?? [])
+      .filter((c) => !c.isPast && !c.isCurrent)
+      .reduce((best, c) => {
+        const s = c.slot?.score;
+        return s !== null && s !== undefined && s > best ? s : best;
+      }, -1);
+    return deriveVerdict({
+      score: pack.score,
+      agreement: null,
+      stationDelta: pack.station?.delta ?? null,
+      laterPeak: laterPeak >= 0 ? laterPeak : null,
+    });
+  }, [pack, chart]);
+
+  const swipe = useSwipe((dir) => {
+    if (ranked.length < 2) return;
+    const next = (index + (dir === "left" ? 1 : -1) + ranked.length) % ranked.length;
+    setSelectedId(ranked[next].spot._id);
+  });
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <ScreenSkeleton variant="now" />
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <ScreenError onRetry={() => router.refresh()} />
+      </MainLayout>
+    );
+  }
+
+  if (!pack) {
+    return (
+      <MainLayout>
+        <ScreenEmpty
+          title="Nothing here for this sport"
+          body="None of your spots do this sport. Pick another sport, or add a spot that does."
+          actionLabel="CHOOSE YOUR SPOTS"
+          onAction={() => router.push("/settings")}
+        />
+      </MainLayout>
+    );
+  }
+
+  const dial = (size, ring, value) => (
+    <ScoreDial score={pack.score} size={size} ring={ring} value={value} showAll />
+  );
 
   return (
     <MainLayout>
-      {loading && <NowSkeleton />}
+      <ScreenHeader
+        title={pack.spot.name}
+        pickerOpen={pickerOpen}
+        onTogglePicker={() => setPickerOpen((v) => !v)}
+        sheet={
+          <SpotPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            spots={ranked}
+            value={pack.spot._id}
+            onChange={setSelectedId}
+            sport={sport}
+          />
+        }
+        tools={
+          isDesktop ? (
+            <span className="flex items-center gap-[34px] pr-1">
+              <VerdictWord verdict={verdict} size={44} />
+              {dial(84, 9, 30)}
+            </span>
+          ) : null
+        }
+      />
 
-      {!loading && error && (
-        <div className="rounded-card-lg border border-marginal/30 bg-marginal/10 p-4">
-          <div className="font-data text-[10px] tracking-label text-marginal mb-1.5">
-            CANNOT REACH THE FORECAST
-          </div>
-          <p className="text-[13px] text-faded-ink leading-[1.45]">
-            This is a connection problem, not a flat day. Try again in a moment.
-          </p>
-          <button
-            onClick={() => router.refresh()}
-            className="mt-3 font-data text-[11px] tracking-label text-accent focus-ring"
-          >
-            RETRY
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && data?.needsFavorites && (
-        <div className="rounded-card-xl border border-card bg-surface p-5 mt-1">
-          <h2 className="font-headline font-extrabold text-[25px] tracking-display-tight text-ink leading-[1.1]">
-            Which spots are yours?
-          </h2>
-          <p className="text-[14px] text-faded-ink mt-2.5 leading-[1.5]">
-            Now answers &ldquo;can I go&rdquo; for one spot. Tell us where you actually ride and
-            it will speak for those — otherwise it would rank the whole coast and could send
-            you an hour up the road without saying so.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-5">
-            <button
-              onClick={() => router.push("/settings")}
-              className="flex items-center gap-2 rounded-pill bg-accent text-page px-4 py-2.5 font-data text-[11px] font-bold tracking-[0.1em] focus-ring active:scale-[0.98] transition-transform duration-fast ease-smooth"
-            >
-              <MapPin size={14} />
-              CHOOSE YOUR SPOTS
-            </button>
-            <button
-              onClick={() => router.push("/next")}
-              className="flex items-center gap-2 rounded-pill border border-btn text-ink px-4 py-2.5 font-data text-[11px] tracking-[0.1em] focus-ring hover:bg-ink-hover transition-colors duration-fast ease-smooth"
-            >
-              <CalendarClock size={14} />
-              SEE NEXT WINDOWS
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && data && !data.needsFavorites && (
-        <>
-          <div className="flex flex-col gap-3">
-            {verdicts.map((pack, index) => {
-              const riderCount =
-                showRiderCounts && pack.spot
-                  ? fixtureRiderCount(pack.spot._id)
-                  : null;
-              return (
-                <VerdictCard
-                  key={pack.spot?._id ?? index}
-                  verdict={pack.verdict}
-                  sport={sport}
-                  spotName={pack.spot?.name}
-                  score={pack.slot?.score}
-                  metric={primaryMetric(pack.slot, sport)}
-                  liveReportUrl={pack.spot?.liveReportUrl}
-                  riderCount={riderCount}
-                  station={showStation ? pack.station : null}
-                  waves={pack.waves}
-                  trajectory={pack.trajectory}
-                  // Elsewhere only on the primary card when it is a flat day.
-                  elsewhereToday={
-                    index === 0 && pack.verdict === VERDICT.NO
-                      ? data.elsewhereToday
-                      : 0
-                  }
-                  onSeeElsewhere={() => router.push("/next")}
-                  camSlot={
-                    pack.spot && streamUrlFor(pack.spot) ? (
-                      <LiveCam spot={pack.spot} />
-                    ) : null
-                  }
-                  onOpenCam={() => setCamSpotId(pack.spot?._id ?? null)}
-                  onOpenSpot={
-                    pack.spot
-                      ? () => router.push(`/next/${toSpotSlug(pack.spot.name)}`)
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </div>
-
-          {camSpotId &&
-            (() => {
-              const pack = verdicts.find((v) => v.spot?._id === camSpotId);
-              if (!pack?.spot) return null;
-              return (
-                <WebcamFullscreen
-                  spot={pack.spot}
-                  score={pack.slot?.score}
-                  onClose={() => setCamSpotId(null)}
-                />
-              );
-            })()}
-
-          {data.nextWindows?.length > 0 && (
-            <section className="pt-4">
-              <div className="flex items-baseline justify-between gap-3 mb-2.5">
-                <h2 className="font-data text-[9px] tracking-label-wide text-dim">
-                  IF NOT NOW
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => router.push("/next")}
-                  className="font-data text-[10px] tracking-label text-accent focus-ring hover:underline"
-                >
-                  SEE THE WEEK →
-                </button>
-              </div>
-              <div className="grid gap-2 md:grid-cols-3">
-                {data.nextWindows.map(({ spot, window }, i) => (
-                  <WindowCard
-                    key={`${spot._id}-${window.start}`}
-                    spot={spot}
-                    window={window}
-                    sport={sport}
-                    highlight={i === 0}
-                    onClick={() =>
-                      router.push(
-                        `/window/${dayStartOf(window.start)}/${window.start}?spot=${spot._id}`
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Model agreement lives in Labs — same pattern as the window page.
-              It is a curiosity, not the reason for the verdict above. */}
-          {showModels &&
-            primary?.agreement &&
-            primary.agreement.band !== BANDS.UNKNOWN && (
-              <LabsSection
-                title="Model comparison"
-                caption={
-                  agreementSentence(primary.agreement) ??
-                  `${primary.agreement.agreed} of ${primary.agreement.total}`
-                }
-              >
-                <ModelAgreementCard agreement={primary.agreement} bare />
-              </LabsSection>
-            )}
-
-          {showRiderCounts && primary?.spot && fixtureRiderCount(primary.spot._id) && (
-            <LabsSection title="IN THE WATER" caption="Estimated from webcam footage">
-              <InTheWaterCard
-                reading={fixtureRiderCount(primary.spot._id)}
-                sportNoun={meta.noun}
-                bare
+      {isDesktop ? (
+        <div className="flex flex-col gap-5 mt-5">
+          {/* items-stretch, not a hard 463px: the cam's 16:9 sets the row
+              height and the panel fills it, so the two stay locked at any
+              window width rather than only at the one the design was drawn
+              at. */}
+          <div className="grid grid-cols-[1.62fr_1fr] gap-7 items-stretch">
+            <CamFrame
+              spot={pack.spot}
+              radius={18}
+              onFullscreen={() => setCamOpen(true)}
+              className="border border-card"
+            />
+            {chart && (
+              <DayChartPanel
+                chart={chart}
+                sport={sport}
+                station={pack.station}
+                tides={pack.tides}
+                nowMs={now}
+                variant="desktop"
+                fluid
+                className="h-full min-h-0 w-full"
               />
-            </LabsSection>
-          )}
+            )}
+          </div>
 
-          {verdicts.length === 0 && (
-            <div className="pt-10 text-center">
-              <p className="font-headline font-extrabold text-[27px] tracking-display-tight text-ink leading-[1.1]">
-                {data.noSpotForSport
-                  ? `None of your spots do ${meta.label.toLowerCase()}`
-                  : "Nothing on right now"}
-              </p>
-              <p className="text-[14px] text-faded-ink mt-3">
-                {data.noSpotForSport
-                  ? "Pick another sport, or add a spot that does."
-                  : `No conditions for ${meta.label.toLowerCase()} at your spots at the moment.`}
-              </p>
-              <button
-                onClick={() => router.push("/next")}
-                className="mt-5 font-data text-[11px] tracking-label text-accent focus-ring"
-              >
-                SEE NEXT WINDOWS →
-              </button>
+          {others.length > 0 && (
+            <div className="flex gap-3">
+              {others.map((other) => (
+                <SpotRow
+                  key={other.spot._id}
+                  spot={other.spot}
+                  score={other.score}
+                  slot={other.slot}
+                  station={other.station}
+                  sport={sport}
+                  suffix={other.days?.[0]?.peak === null ? "nothing today" : undefined}
+                  size="lg"
+                  dialSide="trailing"
+                  dim={other.score === null}
+                  leading={<CamThumb spot={other.spot} />}
+                  onClick={() => setSelectedId(other.spot._id)}
+                  className="flex-1 rounded-[15px] border border-card bg-surface px-[14px] py-3 hover:bg-ink-hover transition-colors duration-fast ease-smooth"
+                />
+              ))}
             </div>
           )}
-        </>
+        </div>
+      ) : (
+        <div {...swipe}>
+          {/* Full-bleed: a 16:9 frame inset by the page gutters reads as a
+              thumbnail, and this is the only live evidence on the screen. */}
+          <div className="-mx-5 mt-3">
+            <CamFrame spot={pack.spot} onFullscreen={() => setCamOpen(true)} />
+          </div>
+
+          <SwipeDots
+            count={ranked.length}
+            index={index}
+            onSelect={(i) => setSelectedId(ranked[i].spot._id)}
+            labels={ranked.map((p) => p.spot.name)}
+            className="pt-3"
+          />
+
+          <div className="flex items-center justify-between gap-[18px] pt-4">
+            <VerdictWord verdict={verdict} size={46} />
+            {dial(70, 9, 26)}
+          </div>
+
+          {chart && (
+            <DayChartPanel
+              chart={chart}
+              sport={sport}
+              station={pack.station}
+              tides={pack.tides}
+              nowMs={now}
+              className="pt-[18px]"
+            />
+          )}
+        </div>
+      )}
+
+      {camOpen && (
+        <WebcamFullscreen spot={pack.spot} score={pack.score} onClose={() => setCamOpen(false)} />
       )}
     </MainLayout>
   );
 }
 
-function NowSkeleton() {
+function VerdictWord({ verdict, size }) {
+  const tone = TONE_TEXT[VERDICT_TONE[verdict]] ?? "text-dim";
   return (
-    <div className="animate-pulse" aria-hidden="true">
-      <div className="rounded-card-xl bg-surface border border-card h-[260px]" />
-      <div className="h-3 w-28 bg-surface rounded mt-6 mb-3" />
-      <div className="flex flex-col gap-2">
-        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
-        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
-        <div className="rounded-[15px] bg-surface border border-card h-[68px]" />
-      </div>
-    </div>
+    <span
+      className={`font-headline font-extrabold leading-none tracking-display-tighter whitespace-nowrap ${tone}`}
+      style={{ fontSize: size }}
+    >
+      {VERDICT_WORD[verdict] ?? verdict}
+    </span>
   );
+}
+
+/**
+ * Swipe between spots.
+ *
+ * Touch only, and only past a real threshold — a 30px drag while scrolling the
+ * chart would otherwise change the spot out from under the rider. The dots do
+ * the same job for everyone else, so nothing is behind the gesture alone.
+ */
+function useSwipe(onSwipe, threshold = 60) {
+  const start = useRef(null);
+  return {
+    onTouchStart: (e) => {
+      const t = e.touches[0];
+      start.current = { x: t.clientX, y: t.clientY };
+    },
+    onTouchEnd: (e) => {
+      if (!start.current) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.current.x;
+      const dy = t.clientY - start.current.y;
+      start.current = null;
+      if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      onSwipe(dx < 0 ? "left" : "right");
+    },
+  };
 }
