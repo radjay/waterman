@@ -3,6 +3,8 @@
 ## [2026-08-15]
 
 ### Fixed
+- Lagoa da Albufeira (and other spots still missing morning marks) tide line on NOW now covers the full day after re-scrape; scraper still keeps earlier-today highs/lows.
+- Bottom nav highlight sits under one tab only — NOW, NEXT, LIVE, and MORE are four equal slots again.
 - Fullscreen cam RECORD / Stop label stays dark on the white pill in night theme (readable over video).
 - Fullscreen cam conditions stay a single thin bottom row in landscape on any width; portrait phone stack is tighter so the video stays visible.
 - NOW wind-chart hover marks the selected station/forecast points on the plot (not only the tip), and touch no longer leaves a sticky tooltip after a tap.

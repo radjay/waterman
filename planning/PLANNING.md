@@ -35,6 +35,7 @@
 
 ### Bugs
 
+- [x] **Lagoa tide + bottom nav (2026-08-15)** — re-scraped Lagoa/Bico/CDS/Fonte tides (morning marks); Cascais still intact; bottom nav pill measures one of four equal slots.
 - [x] **NOW redesign UX regressions (2026-08-15)** — webcam fullscreen on image click; live wind in chart header; column hover tooltip; y-axis label inset; tide scrape kept morning marks; score → `/report/[slug]?sport=`.
 - [x] **NOW chart follow-up UX (2026-08-15)** — tooltip below wind band; station-sample hover (e.g. 15:42) not snapped to 3h slot; LIVE badge with TO direction on cam (top-left); whole SCORE column clickable.
 - [x] **NOW chart hover marks + touch (2026-08-15)** — selected station/column points marked on the wind plot; mouse-only pointer hover so iOS tap does not stick a tip.
