@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PLOT_LABEL_INSET_PX } from "../../lib/dayChart";
+import { PLOT_LABEL_INSET_PX, topPct, windScale } from "../../lib/dayChart";
 import { resolveChartHover } from "./chartHover";
 
 /**
@@ -9,7 +9,12 @@ import { resolveChartHover } from "./chartHover";
  *
  * Hit-testing is continuous along x — a station reading at 15:42 wins over the
  * 3h column it sits in when the pointer is near that sample. The tip sits
- * BELOW the wind plot (not above) so it does not cover the wind line.
+ * BELOW the wind plot (not above) so it does not cover the wind line. Selected
+ * points are marked on the plot (same x as the tip, same y scale as WindBand).
+ *
+ * Desktop mouse only: pointer events with `pointerType === 'mouse'`. Touch and
+ * pen must not leave a sticky tip — iOS compatibility mouse events after a tap
+ * are ignored because we never listen for mouse* handlers.
  *
  * Reuses the same surface language as StationWindChart's tooltip (page fill,
  * card border, data font). Lives as a sibling overlay so WindBand stays a pure
@@ -25,20 +30,31 @@ export function ChartColumnHover({
   const [hover, setHover] = useState(null);
   if (!chart?.columns?.length) return null;
 
-  const onMove = (e) => {
+  const values = [
+    ...chart.columns.flatMap((c) => [c.slot?.speed, c.slot?.gust]),
+    ...(station?.history ?? []).flatMap((p) => [p.speed, p.gust]),
+  ];
+  const scale = windScale(values);
+
+  const onPointerMove = (e) => {
+    if (e.pointerType !== "mouse") return;
     const rect = e.currentTarget.getBoundingClientRect();
     if (rect.width <= 0) return;
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     setHover(resolveChartHover({ chart, station, xPct, nowMs }));
   };
 
+  const clearHover = () => setHover(null);
+
   return (
     <div
-      className={`absolute inset-0 z-[4] overflow-visible ${className}`}
+      className={`absolute inset-0 z-[4] overflow-visible touch-pan-y ${className}`}
       style={{ left: leftInset }}
-      onMouseMove={onMove}
-      onMouseLeave={() => setHover(null)}
+      onPointerMove={onPointerMove}
+      onPointerLeave={clearHover}
+      onPointerCancel={clearHover}
     >
+      {hover?.marks && <HoverMarks marks={hover.marks} scaleMax={scale.max} />}
       {hover && (
         <div
           role="tooltip"
@@ -49,5 +65,82 @@ export function ChartColumnHover({
         </div>
       )}
     </div>
+  );
+}
+
+/** Crosshair + value dots aligned to WindBand's track and y-scale. */
+function HoverMarks({ marks, scaleMax }) {
+  if (!marks || !Number.isFinite(scaleMax) || scaleMax <= 0) return null;
+
+  return (
+    <div className="absolute inset-0 z-[3] pointer-events-none" aria-hidden="true">
+      {marks.column && (
+        <div
+          className="absolute inset-y-0 bg-accent-wash border-x border-accent-border"
+          style={{ left: `${marks.column.left}%`, width: `${marks.column.width}%` }}
+        />
+      )}
+      <div
+        className="absolute inset-y-0 w-px bg-track-strong"
+        style={{ left: `${marks.xPct}%` }}
+      />
+      {marks.column && (
+        <>
+          <MarkDot
+            xPct={marks.xPct}
+            value={marks.column.speed}
+            scaleMax={scaleMax}
+            tone="accent"
+          />
+          {Number.isFinite(marks.column.gust) && (
+            <MarkDot
+              xPct={marks.xPct}
+              value={marks.column.gust}
+              scaleMax={scaleMax}
+              tone="accent"
+              hollow
+            />
+          )}
+        </>
+      )}
+      {marks.station && (
+        <>
+          <MarkDot
+            xPct={marks.station.xPct}
+            value={marks.station.speed}
+            scaleMax={scaleMax}
+            tone="ink"
+          />
+          {Number.isFinite(marks.station.gust) && (
+            <MarkDot
+              xPct={marks.station.xPct}
+              value={marks.station.gust}
+              scaleMax={scaleMax}
+              tone="ink"
+              hollow
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MarkDot({ xPct, value, scaleMax, tone = "ink", hollow = false }) {
+  if (!Number.isFinite(value) || !Number.isFinite(xPct)) return null;
+  const y = topPct(value, scaleMax);
+  const fill =
+    tone === "accent"
+      ? hollow
+        ? "bg-page border-2 border-accent"
+        : "bg-accent border-2 border-page"
+      : hollow
+        ? "bg-page border-2 border-ink"
+        : "bg-ink border-2 border-page";
+  return (
+    <span
+      className={`absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${fill}`}
+      style={{ left: `${xPct}%`, top: `${y}%` }}
+    />
   );
 }
