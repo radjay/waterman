@@ -37,12 +37,12 @@ export function BottomNav() {
     const pill = pillRef.current;
     if (!el || !bar || !pill) return;
 
-    const barRect = bar.getBoundingClientRect();
-    const tabRect = el.getBoundingClientRect();
-
+    // Measure the slot (grid cell), not getBoundingClientRect against the bar
+    // border box — that pairing could stretch the highlight across neighbouring
+    // tabs when padding/border and flex intrinsic widths disagreed.
     pill.style.transition = hasMounted.current ? PILL_TRANSITION : "none";
-    pill.style.left = `${tabRect.left - barRect.left}px`;
-    pill.style.width = `${tabRect.width}px`;
+    pill.style.left = `${el.offsetLeft}px`;
+    pill.style.width = `${el.offsetWidth}px`;
     pill.style.opacity = "1";
 
     if (!hasMounted.current) {
@@ -76,51 +76,46 @@ export function BottomNav() {
         />
         <div
           ref={barRef}
-          className="relative flex items-center h-[56px] p-[5px] bg-nav-bg border border-nav-border rounded-pill shadow-nav backdrop-blur-md"
+          className="relative grid grid-cols-4 items-center h-[56px] p-[5px] bg-nav-bg border border-nav-border rounded-pill shadow-nav backdrop-blur-md"
         >
-          {/* Always-rendered pill */}
+          {/* Always-rendered pill — one slot wide, slides under the active tab */}
           <div
             ref={pillRef}
-            className="absolute top-[5px] bottom-[5px] bg-accent-tint rounded-pill"
+            className="absolute top-[5px] bottom-[5px] bg-accent-tint rounded-pill pointer-events-none"
             style={{ opacity: 0 }}
           />
 
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            const inner = (
-              <span className="relative z-10 flex flex-col items-center gap-[3px]">
-                <tab.icon
-                  size={17}
-                  strokeWidth={isActive ? 2.5 : 2}
-                  className={isActive ? "text-accent" : "text-dim"}
-                />
-                <span
-                  className={`font-data text-[7.5px] uppercase tracking-[0.1em] leading-none ${
-                    isActive ? "text-accent" : "text-dim"
-                  }`}
-                >
-                  {tab.label}
-                </span>
-              </span>
-            );
-
-            const sharedClass =
-              "relative flex-1 flex flex-col items-center justify-center h-full gap-[3px] rounded-full transition-colors duration-fast ease-smooth";
 
             return (
+              <div
+                key={tab.id}
+                ref={(el) => { tabRefs.current[tab.id] = el; }}
+                className="relative z-10 min-w-0 h-full"
+              >
                 <Link
-                  key={tab.id}
-                  ref={(el) => { tabRefs.current[tab.id] = el; }}
                   href={tab.path}
                   onClick={() => setOptimisticTab(tab.id)}
-                  className={sharedClass}
+                  className="flex h-full w-full flex-col items-center justify-center gap-[3px] rounded-full transition-colors duration-fast ease-smooth"
                   aria-label={tab.label}
                   aria-current={isActive ? "page" : undefined}
                 >
-                {inner}
-              </Link>
+                  <tab.icon
+                    size={17}
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className={isActive ? "text-accent" : "text-dim"}
+                  />
+                  <span
+                    className={`font-data text-[7.5px] uppercase tracking-[0.1em] leading-none ${
+                      isActive ? "text-accent" : "text-dim"
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
+                </Link>
+              </div>
             );
-
           })}
         </div>
     </nav>
