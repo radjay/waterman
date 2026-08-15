@@ -81,7 +81,7 @@ function HoverMarks({ marks, scaleMax }) {
         />
       )}
       <div
-        className="absolute inset-y-0 w-px bg-track-strong"
+        className="absolute inset-y-0 w-px bg-ink/40"
         style={{ left: `${marks.xPct}%` }}
       />
       {marks.column && (
@@ -129,17 +129,17 @@ function HoverMarks({ marks, scaleMax }) {
 function MarkDot({ xPct, value, scaleMax, tone = "ink", hollow = false }) {
   if (!Number.isFinite(value) || !Number.isFinite(xPct)) return null;
   const y = topPct(value, scaleMax);
-  const fill =
-    tone === "accent"
-      ? hollow
-        ? "bg-page border-2 border-accent"
-        : "bg-accent border-2 border-page"
-      : hollow
-        ? "bg-page border-2 border-ink"
-        : "bg-ink border-2 border-page";
+  // Ink outer ring so accent dots stay visible on the forecast wash/cap.
+  const fill = hollow
+    ? tone === "accent"
+      ? "bg-page border-2 border-accent ring-1 ring-ink"
+      : "bg-page border-2 border-ink"
+    : tone === "accent"
+      ? "bg-accent border-2 border-page ring-1 ring-ink"
+      : "bg-ink border-2 border-page";
   return (
     <span
-      className={`absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${fill}`}
+      className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ${fill}`}
       style={{ left: `${xPct}%`, top: `${y}%` }}
     />
   );
