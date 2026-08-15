@@ -13,7 +13,6 @@ import { SpotRow } from "../components/spot/SpotRow";
 import { CamFrame, CamThumb } from "../components/ui/CamFrame";
 import { SwipeDots } from "../components/ui/SwipeDots";
 import { ScoreDial } from "../components/ui/ScoreDial";
-import { LiveStationBadge } from "../components/ui/LiveStationBadge";
 import { DayChartPanel } from "../components/chart/DayChartPanel";
 import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
 import { ScreenError, ScreenSkeleton, ScreenEmpty } from "../components/common/ScreenState";
@@ -137,11 +136,9 @@ export function NowContent() {
 
   const reportHref = `/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`;
   const camList = ranked.map((p) => p.spot);
-  // Same pack.station the wind chart uses — one number, display (TO) direction.
-  const liveBadge =
-    isWindSport(sport) && pack.station ? (
-      <LiveStationBadge station={pack.station} />
-    ) : null;
+  // Same pack.station the wind chart uses — CamFrame overlays LiveStationBadge
+  // top-left. Surfing has no station traces; dead sensors stay null.
+  const camStation = isWindSport(sport) ? pack.station : null;
 
   return (
     <MainLayout>
@@ -162,13 +159,10 @@ export function NowContent() {
         tools={
           isDesktop ? (
             <span className="flex items-center gap-[34px] pr-1">
-              {liveBadge}
               <VerdictWord verdict={verdict} size={44} />
               {dial(84, 9, 30)}
             </span>
-          ) : (
-            liveBadge
-          )
+          ) : null
         }
       />
 
@@ -181,6 +175,7 @@ export function NowContent() {
           <div className="grid grid-cols-[1.62fr_1fr] gap-7 items-stretch">
             <CamFrame
               spot={pack.spot}
+              station={camStation}
               radius={18}
               onFullscreen={() => setCamSpot(pack.spot)}
               className="border border-card"
@@ -232,7 +227,11 @@ export function NowContent() {
           {/* Full-bleed: a 16:9 frame inset by the page gutters reads as a
               thumbnail, and this is the only live evidence on the screen. */}
           <div className="-mx-5 mt-3">
-            <CamFrame spot={pack.spot} onFullscreen={() => setCamSpot(pack.spot)} />
+            <CamFrame
+              spot={pack.spot}
+              station={camStation}
+              onFullscreen={() => setCamSpot(pack.spot)}
+            />
           </div>
 
           <SwipeDots

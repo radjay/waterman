@@ -2,8 +2,8 @@ import { Badge } from "./Badge";
 import { getDisplayWindDirection } from "../../lib/utils";
 
 /**
- * LIVE station reading as a pronounced badge — the number a rider should see
- * immediately on NOW when a station is alive.
+ * LIVE station reading as a pronounced badge — overlays the cam top-left when
+ * a station is alive (CamFrame passes the same pack.station as the wind chart).
  *
  * Wind direction is always the display (TO) bearing: prefer
  * `station.directionLabel` from buildStationCard, otherwise convert a raw
