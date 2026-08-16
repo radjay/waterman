@@ -25,13 +25,13 @@ import { dtf } from "../../lib/datetime";
  * Pass the same `pack.station` the wind chart uses — LiveStationBadge returns
  * null when there is no reading, so spots without a station stay clean.
  *
- * `showExternalLinks` (LIVE) puts Windguru + Windy icons top-right, left of
- * Maximize, with the same over-video scrim. Clicks stopPropagation so they do
- * not open fullscreen.
+ * `showExternalLinks` (NOW / LIVE) puts Windguru + Windy icons top-right, left
+ * of Maximize, with the same over-video scrim. Clicks stopPropagation so they
+ * do not open fullscreen.
  *
  * @param {object} spot
  * @param {object|null} [station] pack.station — LIVE badge top-left when present
- * @param {boolean} [showExternalLinks] Windguru/Windy overlays (LIVE)
+ * @param {boolean} [showExternalLinks] Windguru/Windy overlays (NOW / LIVE)
  * @param {boolean} [rounded]   corner radius token, 0 for the full-bleed hero
  * @param {Function} [onFullscreen]
  * @param {number|null} [offlineSince] ms — renders the offline plate

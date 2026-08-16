@@ -137,7 +137,8 @@ export function NowContent() {
   const reportHref = `/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`;
   const camList = ranked.map((p) => p.spot);
   // Same pack.station the wind chart uses — CamFrame overlays LiveStationBadge
-  // top-left. Surfing has no station traces; dead sensors stay null.
+  // top-left. Windguru + Windy top-right (same as LIVE) when the spot has URLs.
+  // Surfing has no station traces; dead sensors stay null.
   const camStation = isWindSport(sport) ? pack.station : null;
 
   return (
@@ -176,6 +177,7 @@ export function NowContent() {
             <CamFrame
               spot={pack.spot}
               station={camStation}
+              showExternalLinks
               radius={18}
               onFullscreen={() => setCamSpot(pack.spot)}
               className="border border-card"
@@ -230,6 +232,7 @@ export function NowContent() {
             <CamFrame
               spot={pack.spot}
               station={camStation}
+              showExternalLinks
               onFullscreen={() => setCamSpot(pack.spot)}
             />
           </div>
@@ -270,6 +273,7 @@ export function NowContent() {
               ? (ranked.find((p) => p.spot._id === camSpot._id)?.station ?? null)
               : null
           }
+          showExternalLinks
           onClose={() => setCamSpot(null)}
           allWebcams={camList}
           onNavigate={setCamSpot}
