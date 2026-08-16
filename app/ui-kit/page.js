@@ -864,10 +864,10 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="WindBand — stacked bars: grey forecast, accent live on top"
+            label="WindBand — grey forecast stacks, accent station lines on top"
             importPath="components/chart/WindBand"
             on={["NOW", "LIVE", "SPOT"]}
-            note="live is a narrower primary stack over the muted forecast; past slots stay so the miss is readable"
+            note="live is solid + dashed accent lines clipped to now; past forecast bars stay so the miss is readable"
             full
           >
             <div className="max-w-[520px]">
