@@ -2,14 +2,15 @@ import { SLOT_MS, TZ, columnAtPct, timePctOnChart } from "../../lib/dayChart";
 import { dtf } from "../../lib/datetime";
 
 /**
- * Hover copy for the NOW wind band.
+ * Hover tip for the NOW / spot-forecast wind band.
  *
  * Two hit targets share one overlay:
- *   - a forecast 3h column → `1pm forecast: 12kt (16*)  station: 6kt (9*)`
- *   - a station wind reading → `15:42 station: 6kt (9*)  forecast: 12kt (16*)`
+ *   - a forecast 3h column
+ *   - a station wind reading (wins when the pointer is close to a plotted sample)
  *
- * Station hits win when the pointer is close to a plotted reading, so a 15:42
- * sample does not collapse to the 1pm slot label.
+ * The tip is a stacked card (time + one row per series), rendered by
+ * ChartColumnHover — not a dense one-liner. Station hits keep the sample's
+ * wall clock so a 15:42 reading does not collapse to the 1pm slot label.
  */
 
 /** How close (track %) the pointer must be to prefer a station sample. */
@@ -33,10 +34,49 @@ export function clockLabel(ms, timeZone = TZ) {
   }).format(new Date(ms));
 }
 
-function knotsPair(speed, gust) {
-  if (!Number.isFinite(speed)) return null;
-  const base = `${Math.round(speed)}kt`;
-  return Number.isFinite(gust) ? `${base} (${Math.round(gust)}*)` : base;
+function kt(n) {
+  return `${Math.round(n)} kt`;
+}
+
+/**
+ * Build the tip card rows from the numbers we have.
+ *
+ * Series match the wind legend: station (ink), gusts (muted — live dashed),
+ * forecast (accent). Forecast gust is its own row so every number stays;
+ * labelled "gusts" when there is no live gust row, else "forecast gusts".
+ */
+export function windHoverRows({
+  stationSpeed = null,
+  stationGust = null,
+  forecastSpeed = null,
+  forecastGust = null,
+} = {}) {
+  const rows = [];
+  if (Number.isFinite(stationSpeed)) {
+    rows.push({ key: "station", label: "station", value: kt(stationSpeed), tone: "ink" });
+  }
+  if (Number.isFinite(stationGust)) {
+    rows.push({ key: "gusts", label: "gusts", value: kt(stationGust), tone: "muted" });
+  }
+  if (Number.isFinite(forecastSpeed)) {
+    rows.push({ key: "forecast", label: "forecast", value: kt(forecastSpeed), tone: "accent" });
+  }
+  if (Number.isFinite(forecastGust)) {
+    rows.push({
+      key: "forecastGusts",
+      label: Number.isFinite(stationGust) ? "forecast gusts" : "gusts",
+      value: kt(forecastGust),
+      tone: "accent",
+      dim: true,
+    });
+  }
+  return rows;
+}
+
+/** Plain-text fallback / aria summary of a hover card. */
+export function hoverCardText(card) {
+  if (!card?.time || !card.rows?.length) return null;
+  return [card.time, ...card.rows.map((r) => `${r.label} ${r.value}`)].join(" · ");
 }
 
 /** Latest station sample that falls inside the slot and at or before now. */
@@ -53,18 +93,22 @@ export function stationInSlot(history, slotTs, nowMs = Date.now()) {
   return best;
 }
 
-export function columnHoverText(column, station = null, nowMs = Date.now()) {
-  if (!column?.slot) return null;
-  const forecast = knotsPair(column.slot.speed, column.slot.gust);
-  if (!forecast) return null;
-
-  const parts = [`${slotHourLabel(column.hour)} forecast: ${forecast}`];
+export function columnHoverCard(column, station = null, nowMs = Date.now()) {
+  if (!column?.slot || !Number.isFinite(column.slot.speed)) return null;
   const live = stationInSlot(station?.history, column.slot.timestamp, nowMs);
-  if (live) {
-    const reading = knotsPair(live.speed, live.gust);
-    if (reading) parts.push(`station: ${reading}`);
-  }
-  return parts.join("  ");
+  const rows = windHoverRows({
+    stationSpeed: live?.speed,
+    stationGust: live?.gust,
+    forecastSpeed: column.slot.speed,
+    forecastGust: column.slot.gust,
+  });
+  if (!rows.length) return null;
+  return { time: slotHourLabel(column.hour), rows };
+}
+
+/** @deprecated Prefer columnHoverCard — kept for callers/tests expecting a string. */
+export function columnHoverText(column, station = null, nowMs = Date.now()) {
+  return hoverCardText(columnHoverCard(column, station, nowMs));
 }
 
 /**
@@ -73,27 +117,37 @@ export function columnHoverText(column, station = null, nowMs = Date.now()) {
  * `point.forecast` / `forecastGust` come from attachForecast on the station
  * card; otherwise the covering column's slot is used.
  */
-export function stationHoverText(point, chart = null) {
-  if (!point || !Number.isFinite(point.time)) return null;
-  const reading = knotsPair(point.speed, point.gust);
-  if (!reading) return null;
-
+export function stationHoverCard(point, chart = null) {
+  if (!point || !Number.isFinite(point.time) || !Number.isFinite(point.speed)) return null;
   const clock = clockLabel(point.time);
   if (!clock) return null;
 
-  const parts = [`${clock} station: ${reading}`];
-
-  let forecast = knotsPair(point.forecast, point.forecastGust);
-  if (!forecast && chart?.columns?.length) {
+  let forecastSpeed = Number.isFinite(point.forecast) ? point.forecast : null;
+  let forecastGust = Number.isFinite(point.forecastGust) ? point.forecastGust : null;
+  if (forecastSpeed == null && chart?.columns?.length) {
     const covering = chart.columns.find(
       (c) =>
         c.slot?.timestamp <= point.time && point.time < c.slot.timestamp + SLOT_MS
     );
-    forecast = covering ? knotsPair(covering.slot.speed, covering.slot.gust) : null;
+    if (covering?.slot) {
+      forecastSpeed = covering.slot.speed;
+      forecastGust = covering.slot.gust;
+    }
   }
-  if (forecast) parts.push(`forecast: ${forecast}`);
 
-  return parts.join("  ");
+  const rows = windHoverRows({
+    stationSpeed: point.speed,
+    stationGust: point.gust,
+    forecastSpeed,
+    forecastGust,
+  });
+  if (!rows.length) return null;
+  return { time: clock, rows };
+}
+
+/** @deprecated Prefer stationHoverCard — kept for callers/tests expecting a string. */
+export function stationHoverText(point, chart = null) {
+  return hoverCardText(stationHoverCard(point, chart));
 }
 
 /**
@@ -141,7 +195,7 @@ export function hoverMarks({ kind, xPct, point = null, column = null, stationPoi
 /**
  * Resolve what the pointer is on: a station sample, or a forecast column.
  *
- * @returns {{ kind: 'station'|'column', xPct: number, text: string, marks: object } | null}
+ * @returns {{ kind: 'station'|'column', xPct: number, card: object, text: string, marks: object } | null}
  */
 export function resolveChartHover({
   chart,
@@ -171,12 +225,13 @@ export function resolveChartHover({
   }
 
   if (nearest && nearestDist <= stationHitPct) {
-    const text = stationHoverText(nearest, chart);
-    if (text) {
+    const card = stationHoverCard(nearest, chart);
+    if (card) {
       return {
         kind: "station",
         xPct: nearestPct,
-        text,
+        card,
+        text: hoverCardText(card),
         marks: hoverMarks({ kind: "station", xPct: nearestPct, point: nearest }),
       };
     }
@@ -184,14 +239,15 @@ export function resolveChartHover({
 
   const column = columnAtPct(chart, xPct);
   if (!column) return null;
-  const text = columnHoverText(column, station, nowMs);
-  if (!text) return null;
+  const card = columnHoverCard(column, station, nowMs);
+  if (!card) return null;
   const tipX = column.left + column.width / 2;
   const live = stationInSlot(station?.history, column.slot.timestamp, nowMs);
   return {
     kind: "column",
     xPct: tipX,
-    text,
+    card,
+    text: hoverCardText(card),
     marks: hoverMarks({
       kind: "column",
       xPct: tipX,

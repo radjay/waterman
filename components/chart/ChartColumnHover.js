@@ -23,18 +23,16 @@ function hoverAtEvent(e, { chart, station, nowMs }) {
  * Hover overlay for the wind band: forecast columns and station samples.
  *
  * Hit-testing is continuous along x — a station reading at 15:42 wins over the
- * 3h column it sits in when the pointer is near that sample. The tip sits
- * BELOW the wind plot (not above) so it does not cover the wind line. Selected
- * points are marked on the plot (same x as the tip, same y scale as WindBand).
+ * 3h column it sits in when the pointer is near that sample. The tip is a
+ * stacked card BELOW the wind plot (time + station / gusts / forecast rows) so
+ * it does not cover the hover marks. Selected points are marked on the plot.
  *
  * Mouse: move shows tip, leave clears. Touch/pen: a tap (not a pan/scroll)
  * shows the same tip + marks; tap the same point again or tap outside dismisses;
  * tap a different x moves the tip. Pointer events only — no mouse* handlers
  * (iOS compatibility mouse after a tap must not fight the sticky tip).
  *
- * Reuses the same surface language as StationWindChart's tooltip (page fill,
- * card border, data font). Lives as a sibling overlay so WindBand stays a pure
- * plot.
+ * Lives as a sibling overlay so WindBand stays a pure plot.
  */
 export function ChartColumnHover({
   chart,
@@ -137,17 +135,49 @@ export function ChartColumnHover({
       onPointerCancel={onPointerCancel}
     >
       {hover?.marks && <HoverMarks marks={hover.marks} scaleMax={scale.max} />}
-      {hover && (
-        <div
-          role="tooltip"
-          className="absolute top-full z-[5] mt-1.5 -translate-x-1/2 pointer-events-none rounded-ui border border-card bg-page px-2.5 py-1.5 shadow-nav whitespace-nowrap"
-          style={{ left: `${hover.xPct}%` }}
-        >
-          <span className="font-data text-[11px] text-ink tabular-nums">{hover.text}</span>
-        </div>
+      {hover?.card && (
+        <HoverTipCard card={hover.card} xPct={hover.xPct} />
       )}
     </div>
   );
+}
+
+/**
+ * Stacked tip below the wind band — time first, then one row per series.
+ *
+ * Colours match BandHeader's wind legend (station ink, gusts muted, forecast
+ * accent). Stays under the plot so it does not cover the hover marks.
+ */
+function HoverTipCard({ card, xPct }) {
+  return (
+    <div
+      role="tooltip"
+      className="absolute top-full z-[5] mt-2 -translate-x-1/2 pointer-events-none rounded-[10px] border border-card bg-page px-3 py-2.5 shadow-nav min-w-[8.5rem]"
+      style={{ left: `${xPct}%` }}
+    >
+      <div className="font-data text-[13px] font-bold text-ink tabular-nums tracking-tight">
+        {card.time}
+      </div>
+      <div className="mt-1.5 flex flex-col gap-[5px]">
+        {card.rows.map((row) => (
+          <div
+            key={row.key}
+            className={`flex items-baseline justify-between gap-3.5 font-data text-[12px] tabular-nums ${rowToneClass(row)}`}
+            style={row.dim ? { opacity: 0.7 } : undefined}
+          >
+            <span className="text-[11px] tracking-wide">{row.label}</span>
+            <span className="font-bold text-[12.5px]">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function rowToneClass(row) {
+  if (row.tone === "accent") return "text-accent";
+  if (row.tone === "muted") return "text-faded-ink";
+  return "text-ink";
 }
 
 /** Crosshair + value dots aligned to WindBand's track and y-scale. */

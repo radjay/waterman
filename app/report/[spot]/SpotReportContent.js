@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout } from "../../../components/layout/MainLayout";
 import { ScreenHeader } from "../../../components/layout/ScreenHeader";
-import { useSport } from "../../../components/sport/SportProvider";
+import { useSport, isWindSport } from "../../../components/sport/SportProvider";
 import { useCoastData } from "../../../components/data/useCoastData";
 import { useIsDesktop } from "../../../lib/hooks/useMediaQuery";
 import { useSelectedSpot } from "../../../lib/hooks/useSelectedSpot";
 import { SpotPickerSheet } from "../../../components/spot/SpotPickerSheet";
 import { SpotDayRow } from "../../../components/spot/SpotDayRow";
+import { WebcamFullscreen } from "../../../components/webcam/WebcamFullscreen";
 import {
   ScreenError,
   ScreenEmpty,
@@ -23,13 +24,13 @@ const TZ = "Europe/Lisbon";
 const weekday = (ms) => dtf("en-GB", { weekday: "long", timeZone: TZ }).format(new Date(ms));
 
 /**
- * Spot forecast — one beach across the coming days.
+ * Spot forecast — one beach across the coming days (reached from Next).
  *
  * Deliberately not a second Now. Now is about this hour at whichever spot is
- * best; this is about one beach over a week, and the difference shows in what
- * is missing: no cam, no live station traces, no verdict word. Live data is one
- * tap away behind the LIVE button on each day, which switches to Now scoped to
- * this spot.
+ * best; this is about one beach over a week. Future days stay forecast-only.
+ * Today reuses Now's live station wind on the WIND band, hover/tap tips, and
+ * (on desktop) the spot cam beside the chart stack. The LIVE button still jumps
+ * to Now for the full live reading.
  *
  * Today is expanded by default because that is the day someone landing here is
  * usually asking about, and one row open at a time keeps the list scannable —
@@ -44,6 +45,8 @@ export default function SpotReportContent({ slug }) {
   const [, setSelectedSpot] = useSelectedSpot();
   const [openDay, setOpenDay] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** Spot whose cam is open in WebcamFullscreen (null = closed). */
+  const [camSpot, setCamSpot] = useState(null);
 
   const pack = useMemo(
     () => spots.find((p) => toSpotSlug(p.spot.name) === slug) ?? null,
@@ -120,26 +123,44 @@ export default function SpotReportContent({ slug }) {
       />
 
       <div className="flex flex-col gap-[5px] mt-2.5 md:gap-2 md:mt-3">
-        {days.map((day) => (
-          <SpotDayRow
-            key={day.dayStart}
-            day={day}
-            sport={sport}
-            chart={day.chart}
-            tides={pack.tides}
-            nowMs={now}
-            desktop={isDesktop}
-            open={openDay === day.dayStart}
-            onToggle={() => setOpenDay(openDay === day.dayStart ? null : day.dayStart)}
-            reportHref={`/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`}
-            onLive={
-              sameDay(day.dayStart, now)
-                ? () => router.push(`/?spot=${toSpotSlug(pack.spot.name)}`)
-                : undefined
-            }
-          />
-        ))}
+        {days.map((day) => {
+          const todayRow = sameDay(day.dayStart, now);
+          return (
+            <SpotDayRow
+              key={day.dayStart}
+              day={day}
+              sport={sport}
+              chart={day.chart}
+              tides={pack.tides}
+              nowMs={now}
+              desktop={isDesktop}
+              open={openDay === day.dayStart}
+              onToggle={() => setOpenDay(openDay === day.dayStart ? null : day.dayStart)}
+              reportHref={`/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`}
+              isToday={todayRow}
+              spot={todayRow ? pack.spot : null}
+              station={todayRow ? pack.station : null}
+              onOpenCam={todayRow ? setCamSpot : null}
+              onLive={
+                todayRow
+                  ? () => router.push(`/?spot=${toSpotSlug(pack.spot.name)}`)
+                  : undefined
+              }
+            />
+          );
+        })}
       </div>
+
+      {camSpot && (
+        <WebcamFullscreen
+          spot={camSpot}
+          score={pack.score ?? pack.days?.[0]?.peak ?? null}
+          station={isWindSport(sport) ? pack.station : null}
+          onClose={() => setCamSpot(null)}
+          allWebcams={[pack.spot]}
+          onNavigate={setCamSpot}
+        />
+      )}
     </MainLayout>
   );
 }
