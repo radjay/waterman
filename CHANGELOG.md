@@ -3,6 +3,8 @@
 ## [2026-08-16]
 
 ### Fixed
+- Spot forecast SCORE slots no longer reopen the same Report page — hover or tap a score to see that timeslot’s AI verdict tip instead.
+- Settings page is one consistent kit layout: shared rows and ALL CAPS section labels for Appearance, sports, spots, and personalization; Save Changes sits in the page flow so it no longer covers the last rows.
 - Verdict, score ring, score-bar fill, and the number on the bar now share one colour band: GO (≥75) accent, MAYBE (60–74) caution, below that marginal — so a MAYBE 60 can no longer sit beside a teal ring or on a teal bar.
 - After sunset (and the whole pre-dawn window before sunrise) the Now verdict is always NO for every sport, even when the score is high — using each spot’s real sunrise/sunset.
 - LIVE camera badge wind direction is always the TO bearing (same flip as the rest of the app), even if a stale FROM label is present.
