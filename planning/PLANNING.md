@@ -35,6 +35,9 @@
 
 ### Bugs
 
+- [x] **Verdict / score ring / score-bar colours aligned (2026-08-16)** — GO / MAYBE / NO share one band across label, dial ring, bar fill, and bar number (`scoreColor` / `SCORE_FILL` / `scoreTextClass`).
+- [x] **Night verdict always NO (2026-08-16)** — after sunset or before sunrise at the spot (`isDarkForSession`), Now forces NO for all three sports.
+- [x] **LIVE cam badge TO wind direction (2026-08-16)** — LiveStationBadge recomputes TO from raw FROM degrees via `getDisplayWindDirection`.
 - [x] **QA layout batch (2026-08-16)** — Spot picker header removed; Next day badge centred; week slot spacing + right-align under score; Report desktop cam removed + score-row max-width; Report score bar collapsed-only; short chart Y ticks via `maxLines`; Live cams match video aspect; Live page legend removed; All spots includes webcam-only cam cards.
 - [x] **WIND band forecast stacks + live lines (2026-08-16)** — forecast = muted grey stacked bars; live station = solid accent line + dashed gusts on top (not bars); legend + tip tones match LIVE badge.
 - [x] **Spot forecast Today desktop cam + live wind + tips (2026-08-16)** — Today live wind + tips; desktop Report no longer shows cam beside charts (mobile keeps cam); score rows capped width.

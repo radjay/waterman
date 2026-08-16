@@ -1,6 +1,11 @@
 "use client";
 
-import { PLOT_LABEL_INSET_PX, SCORE_FILL, scoreBand } from "../../lib/dayChart";
+import {
+  PLOT_LABEL_INSET_PX,
+  SCORE_FILL,
+  scoreBand,
+  scoreTextClass,
+} from "../../lib/dayChart";
 
 /**
  * The score, per slot, across the day.
@@ -13,9 +18,9 @@ import { PLOT_LABEL_INSET_PX, SCORE_FILL, scoreBand } from "../../lib/dayChart";
  * that spot's report for today (`/report/[slug]`), so keyboard focus and
  * open-in-new-tab work — not only the digits.
  *
- * The bar for the slot covering now takes the now hue on its number only, not
- * its fill: the fill encodes quality and the hue encodes position, and painting
- * a current slot orange would say "marginal" about a 90.
+ * Number and bar fill share `scoreBand` / `scoreTextClass` so a MAYBE 60 cannot
+ * sit orange on a teal bar (or the reverse). The now-line elsewhere marks
+ * "you are here"; the score colour stays quality, not position.
  *
  * Bars occupy roughly half the band height so the numbers have room. That ratio
  * is a layout constant rather than a scale — the printed number is the value,
@@ -44,11 +49,7 @@ export function ScoreBand({
           const score = col.slot?.score;
           if (score === null || score === undefined) return null;
           const fill = SCORE_FILL[scoreBand(score)];
-          const numberClass = col.isCurrent
-            ? "text-now"
-            : score < 60
-              ? "text-marginal"
-              : "text-faded-ink";
+          const numberClass = scoreTextClass(score);
           const rounded = Math.round(score);
           const shellClass = `absolute inset-y-0 flex flex-col justify-end ${
             reportHref

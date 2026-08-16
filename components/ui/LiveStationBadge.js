@@ -5,10 +5,11 @@ import { getDisplayWindDirection } from "../../lib/utils";
  * LIVE station reading as a pronounced badge — overlays the cam top-left when
  * a station is alive (CamFrame passes the same pack.station as the wind chart).
  *
- * Wind direction is always the display (TO) bearing: prefer
- * `station.directionLabel` from buildStationCard, otherwise convert a raw
- * FROM degrees via getDisplayWindDirection. Never print getCardinalDirection
- * of the stored bearing.
+ * Wind direction is always the display (TO) bearing. Prefer recomputing from
+ * the raw FROM degrees via getDisplayWindDirection so a stale or unflipped
+ * `directionLabel` cannot slip onto the cam. Fall back to directionLabel only
+ * when degrees are missing. Never print getCardinalDirection of the stored
+ * bearing.
  *
  * One source of truth: pass the same `pack.station` used by the wind chart so
  * this cannot disagree with the station line.
@@ -18,11 +19,11 @@ export function LiveStationBadge({ station, className = "", ...props }) {
 
   const speed = Math.round(station.speed);
   const gust = Number.isFinite(station.gust) ? Math.round(station.gust) : null;
-  const direction =
-    station.directionLabel ??
-    (Number.isFinite(station.direction)
-      ? getDisplayWindDirection(station.direction)
-      : null);
+  // Raw FROM degrees win: always flip to TO. directionLabel is only a fallback
+  // for cards that somehow lack degrees (must already be the TO label).
+  const direction = Number.isFinite(station.direction)
+    ? getDisplayWindDirection(station.direction)
+    : station.directionLabel ?? null;
 
   const titleParts = [
     `Live station ${speed} kn`,
