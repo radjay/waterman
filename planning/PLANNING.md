@@ -44,6 +44,7 @@
 - [x] **NOW chart follow-up UX (2026-08-15)** — tooltip below wind band; station-sample hover (e.g. 15:42) not snapped to 3h slot; LIVE badge with TO direction on cam (top-left); whole SCORE column clickable.
 - [x] **NOW chart hover marks + touch (2026-08-15)** — selected station/column points marked on the wind plot; mouse hover + touch tap (not pan) to inspect; tap again/outside dismisses.
 - [x] **LIVE cam overlays + All spots (2026-08-15)** — LiveStationBadge on every cam with a reading (fullscreen, TV); Windguru/Windy on LIVE cams; SpotPicker “All spots” (full coast) + scrollable desktop grid.
+- [x] **NOW cam Windguru/Windy (2026-08-16)** — same CamFrame `showExternalLinks` overlays as LIVE (top-right, left of Maximize); fullscreen too.
 
 ### Near Term (This Week)
 
