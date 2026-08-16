@@ -37,13 +37,14 @@
 
 - [x] **Spot forecast Today desktop cam + live wind + tips (2026-08-16)** — expanded Today: cam beside charts on desktop; live station wind + NOW-style hover/tap tooltips on Today only.
 - [x] **Denser day-chart y-axis ticks (2026-08-16)** — WIND at 5 kt steps; WAVES & TIDE at 0.5 m steps (shared `windScale` / `waveScale`), thinned when crowded.
-- [x] **Chart hover tip readability (2026-08-16)** — stacked card (time + series rows, legend colours, spelled-out gusts); mouse + tap-to-inspect unchanged.
+- [x] **Chart hover tip readability (2026-08-16)** — stacked card: time + `Live Nkt (G*)` / `Forecast Nkt (G*)`; mouse + tap-to-inspect unchanged.
 - [x] **WebcamFullscreen iOS landscape viewport (2026-08-15)** — overlay sized to `visualViewport` + scroll reset on open/rotate; pinch blocked only inside the shell; top chrome uses safe-area.
 - [x] **Lagoa tide + bottom nav (2026-08-15)** — re-scraped Lagoa/Bico/CDS/Fonte tides (morning marks); Cascais still intact; bottom nav pill measures one of four equal slots.
 - [x] **NOW redesign UX regressions (2026-08-15)** — webcam fullscreen on image click; live wind in chart header; column hover tooltip; y-axis label inset; tide scrape kept morning marks; score → `/report/[slug]?sport=`.
 - [x] **NOW chart follow-up UX (2026-08-15)** — tooltip below wind band; station-sample hover (e.g. 15:42) not snapped to 3h slot; LIVE badge with TO direction on cam (top-left); whole SCORE column clickable.
 - [x] **NOW chart hover marks + touch (2026-08-15)** — selected station/column points marked on the wind plot; mouse hover + touch tap (not pan) to inspect; tap again/outside dismisses.
 - [x] **LIVE cam overlays + All spots (2026-08-15)** — LiveStationBadge on every cam with a reading (fullscreen, TV); Windguru/Windy on LIVE cams; SpotPicker “All spots” (full coast) + scrollable desktop grid.
+- [x] **NOW cam Windguru/Windy (2026-08-16)** — same CamFrame `showExternalLinks` overlays as LIVE (top-right, left of Maximize); fullscreen too.
 
 ### Near Term (This Week)
 

@@ -6,12 +6,13 @@
 - Spot forecast Today (from Next): desktop places the webcam beside the WIND / WAVES & TIDE / SCORE stack so the charts are no longer a full-width empty column; mobile keeps a stacked layout with the cam above the charts.
 - Spot forecast Today’s WIND band plots live station wind the same way NOW does (dots / line over the forecast).
 - Spot forecast Today charts support hover and tap-to-inspect tooltips like NOW (mouse + touch; station samples hit-test at the real reading time).
+- NOW webcam shows Windguru and Windy shortcuts top-right (same as LIVE cams), left of fullscreen, without stealing the tap that opens the cam.
 
 ### Changed
 - Future days on the spot forecast stay forecast-only; only Today gets the cam, live wind, and chart tips.
 - Day-chart WIND y-axis uses 5 kt steps (e.g. 5 / 10 / 15 / 20 / 25), thinning when a denser set would crowd the band.
 - Day-chart WAVES & TIDE y-axis uses 0.5 m steps (e.g. 0.5 / 1 / 1.5) instead of a single mid-scale tick.
-- Chart hover tip is a stacked card (time, then station / gusts / forecast rows in legend colours) instead of a dense one-liner — same mouse hover and tap-to-inspect behaviour.
+- Chart hover tip is a stacked card with time, then `Live {speed}kt ({gust}*)` and `Forecast {speed}kt ({gust}*)` (two data lines; omit Live or Forecast when missing) — same mouse hover and tap-to-inspect behaviour.
 
 ## [2026-08-15]
 

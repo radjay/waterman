@@ -24,8 +24,8 @@ function hoverAtEvent(e, { chart, station, nowMs }) {
  *
  * Hit-testing is continuous along x — a station reading at 15:42 wins over the
  * 3h column it sits in when the pointer is near that sample. The tip is a
- * stacked card BELOW the wind plot (time + station / gusts / forecast rows) so
- * it does not cover the hover marks. Selected points are marked on the plot.
+ * stacked card BELOW the wind plot (time + Live / Forecast lines) so it does
+ * not cover the hover marks. Selected points are marked on the plot.
  *
  * Mouse: move shows tip, leave clears. Touch/pen: a tap (not a pan/scroll)
  * shows the same tip + marks; tap the same point again or tap outside dismisses;
@@ -143,10 +143,10 @@ export function ChartColumnHover({
 }
 
 /**
- * Stacked tip below the wind band — time first, then one row per series.
+ * Stacked tip below the wind band — time, then Live / Forecast lines.
  *
- * Colours match BandHeader's wind legend (station ink, gusts muted, forecast
- * accent). Stays under the plot so it does not cover the hover marks.
+ * Live uses ink, Forecast accent (same as the wind legend). Stays under the
+ * plot so it does not cover the hover marks.
  */
 function HoverTipCard({ card, xPct }) {
   return (
@@ -162,22 +162,16 @@ function HoverTipCard({ card, xPct }) {
         {card.rows.map((row) => (
           <div
             key={row.key}
-            className={`flex items-baseline justify-between gap-3.5 font-data text-[12px] tabular-nums ${rowToneClass(row)}`}
-            style={row.dim ? { opacity: 0.7 } : undefined}
+            className={`font-data text-[12px] font-bold tabular-nums tracking-tight whitespace-nowrap ${
+              row.tone === "accent" ? "text-accent" : "text-ink"
+            }`}
           >
-            <span className="text-[11px] tracking-wide">{row.label}</span>
-            <span className="font-bold text-[12.5px]">{row.value}</span>
+            {row.text}
           </div>
         ))}
       </div>
     </div>
   );
-}
-
-function rowToneClass(row) {
-  if (row.tone === "accent") return "text-accent";
-  if (row.tone === "muted") return "text-faded-ink";
-  return "text-ink";
 }
 
 /** Crosshair + value dots aligned to WindBand's track and y-scale. */

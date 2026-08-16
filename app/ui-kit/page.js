@@ -934,7 +934,7 @@ export default function UIKitPage() {
             <p className="text-[13px] text-faded-ink max-w-[70ch]">
               Wired inside DayChartPanel when <code className="font-data text-[11px] text-ink">showHover</code>{" "}
               is on. Hover (desktop) or tap (phone) the wind band above — a stacked tip sits below the
-              plot (time, then station / gusts / forecast in legend colours). Near a station sample the
+              plot (time, then Live / Forecast lines). Near a station sample the
               clock is that sample&apos;s time (
               <code className="font-data text-[11px] text-ink">chartHover</code>). Scroll/drag does
               not select; tap again or outside dismisses.
@@ -1220,7 +1220,7 @@ export default function UIKitPage() {
             spot has a live reading a{" "}
             <code className="font-data text-[11px] text-ink">LiveStationBadge</code>{" "}
             overlays top-left (same <code className="font-data text-[11px] text-ink">pack.station</code>{" "}
-            as the wind chart). LIVE also overlays Windguru + Windy links (same
+            as the wind chart). NOW and LIVE also overlay Windguru + Windy links (same
             over-video scrim as Maximize) to the left of the fullscreen control.
             Documented rather than rendered because it opens a live HLS stream.
             The offline plate is the part worth knowing: it distinguishes a cam

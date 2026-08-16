@@ -27,7 +27,7 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
  *   rider is here to confirm.
  * @param {object|null} station - Same pack.station as CamFrame / wind chart.
  *   LiveStationBadge top-left when present; surfing callers pass null.
- * @param {boolean} [showExternalLinks] Windguru + Windy (LIVE) left of close.
+ * @param {boolean} [showExternalLinks] Windguru + Windy (NOW / LIVE) left of close.
  * @param {Function} onClose - Callback to close the modal
  * @param {Array} allWebcams - Array of all available webcams for navigation
  * @param {Function} onNavigate - Callback to navigate to a different webcam
