@@ -864,15 +864,15 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="WindBand — forecast as columns, the station as lines, clipped to now"
+            label="WindBand — stacked bars: grey forecast, accent live on top"
             importPath="components/chart/WindBand"
             on={["NOW", "LIVE", "SPOT"]}
-            note="past slots dim rather than vanish — the miss is the point"
+            note="live is a narrower primary stack over the muted forecast; past slots stay so the miss is readable"
             full
           >
             <div className="max-w-[520px]">
               <BandHeader label="Wind" legend={WIND_LIVE_LEGEND} className="pb-[7px]" />
-              <WindBand chart={CHART} station={STATION_TRAIL} height={88} />
+              <WindBand chart={CHART} station={STATION_TRAIL} height={88} nowMs={CHART_NOW} />
               <TimeAxis chart={CHART} className="mt-2 pt-2 border-t border-rule" />
             </div>
           </Row>

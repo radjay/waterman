@@ -26,7 +26,7 @@ import { WindBand } from "./WindBand";
  * keeps its own header so the legend for a band is next to that band.
  *
  * What is drawn depends on what exists, not on a layout:
- *   - no station (or a surf view) → no live traces, and the wind legend
+ *   - no station (or a surf view) → no live bars, and the wind legend
  *     switches to base/gusts, because there is nothing live to contrast with.
  *   - no wave and no tide data → the middle band is dropped entirely rather
  *     than drawn empty. A flat line at zero is a claim about the sea.
@@ -115,6 +115,7 @@ export function DayChartPanel({
           gutter={desktop ? 3 : 2}
           radius={desktop ? 4 : 3}
           height={fluid ? undefined : h.wind}
+          nowMs={nowMs}
           className={fluid ? "h-full min-h-0" : ""}
         />
         {showHover && <ChartColumnHover chart={chart} station={live} nowMs={nowMs} />}
@@ -180,7 +181,7 @@ export function DayChartPanel({
 
 /**
  * The compact single-band version used on the Live cards: wind only, with the
- * station traces and its own axis. Live answers "what is happening", so waves,
+ * station bars and its own axis. Live answers "what is happening", so waves,
  * tide and score would be three more things between the rider and the answer.
  */
 export function WindOnlyChart({

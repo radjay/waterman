@@ -48,14 +48,17 @@ export function LegendKey({ mark, children, tone = "ink", dim = false }) {
   );
 }
 
-/** Legends, defined once so Now, Live and Spot forecast cannot disagree. */
+/** Legends, defined once so Now, Live and Spot forecast cannot disagree.
+ * Live (station) = accent/primary; forecast = muted grey — same as WindBand. */
 export const WIND_LIVE_LEGEND = (
   <>
-    <LegendKey mark="—">station</LegendKey>
-    <LegendKey mark="--" dim>
+    <LegendKey mark="▮" tone="accent">
+      station
+    </LegendKey>
+    <LegendKey mark="▮" tone="accent" dim>
       gusts
     </LegendKey>
-    <LegendKey mark="▮" tone="accent">
+    <LegendKey mark="▮" tone="muted">
       forecast
     </LegendKey>
   </>
@@ -63,12 +66,12 @@ export const WIND_LIVE_LEGEND = (
 
 export const WIND_FORECAST_LEGEND = (
   <>
-    <LegendKey mark="▮" tone="accent">
+    <LegendKey mark="▮" tone="muted">
       base
     </LegendKey>
-    <span className="text-accent" style={{ opacity: 0.55 }}>
-      ▮ gusts
-    </span>
+    <LegendKey mark="▮" tone="muted" dim>
+      gusts
+    </LegendKey>
   </>
 );
 
