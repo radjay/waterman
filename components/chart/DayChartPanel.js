@@ -51,8 +51,10 @@ export function DayChartPanel({
   showNow = true,
   /** Hover tooltips on the column tops (Now). Off on forecast-only panels. */
   showHover = true,
-  /** Real link target for SCORE numbers — `/report/[slug]?sport=…`. */
+  /** Real link target for SCORE numbers — `/report/[slug]?sport=…` (Now). */
   reportHref = null,
+  /** AI timeslot verdict tip on SCORE columns (Report) — no navigation. */
+  slotVerdict = false,
   bandHeights,
   /** Fewer y-axis ticks on short bands (Report). Tall Now keeps the default. */
   maxLines,
@@ -94,6 +96,7 @@ export function DayChartPanel({
       gutter={desktop ? 3 : 1.5}
       radius={desktop ? 4 : 3}
       reportHref={reportHref}
+      slotVerdict={slotVerdict}
       className={fluid ? "flex-1 min-h-0" : ""}
     />
   ) : null;

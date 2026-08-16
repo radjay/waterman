@@ -69,6 +69,9 @@ import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { PillToggle } from "../../components/ui/PillToggle";
 import { Tooltip } from "../../components/ui/Tooltip";
+import { SettingsRow } from "../../components/ui/SettingsRow";
+import { SettingsSection } from "../../components/ui/SettingsSection";
+import { Switch } from "../../components/ui/Switch";
 import { TideDisplay } from "../../components/tide/TideDisplay";
 
 import {
@@ -241,6 +244,8 @@ export default function UIKitPage() {
   const [dot, setDot] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(true);
+  const [settingsChoice, setSettingsChoice] = useState("auto");
+  const [settingsSwitch, setSettingsSwitch] = useState(true);
 
   const toggleSport = (id) =>
     setSports((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -895,14 +900,14 @@ export default function UIKitPage() {
           </Row>
 
           <Row
-            label="ScoreBand — the number is printed, not hidden behind a hover"
+            label="ScoreBand — printed scores; Report uses slotVerdict tip instead of a link"
             importPath="components/chart/ScoreBand"
             on={["NOW", "SPOT"]}
             full
           >
             <div className="max-w-[520px]">
               <BandHeader label="Score" className="pb-[7px]" />
-              <ScoreBand chart={CHART} height={50} />
+              <ScoreBand chart={CHART} height={50} slotVerdict />
             </div>
           </Row>
 
@@ -1421,13 +1426,73 @@ export default function UIKitPage() {
             label="Tooltip"
             importPath="components/ui/Tooltip"
             on={["REPORT", "SPOT"]}
-            note="→ WeekStrip carries its own; a shared one has not been needed since"
+            note="wide wraps AI timeslot verdicts; click/tap toggles on touch"
           >
             <Tooltip content="60–74 Good · 75–89 Great · 90+ Epic">
               <span className="font-body text-sm text-faded-ink underline decoration-dotted cursor-help">
                 Hover for the score scale
               </span>
             </Tooltip>
+            <Tooltip
+              wide
+              content="Peak window — steady 18–21 kn NNW through the afternoon with short chop."
+            >
+              <span className="font-data text-[12px] text-accent underline decoration-dotted cursor-help">
+                88
+              </span>
+            </Tooltip>
+          </Row>
+
+          <Row
+            label="SettingsSection + SettingsRow — preference lists on More → Settings"
+            importPath="components/ui/{SettingsSection,SettingsRow,Switch}"
+            on={["SETTINGS"]}
+            full
+          >
+            <div className="max-w-[420px] flex flex-col gap-6">
+              <SettingsSection label="Appearance">
+                <div className="flex flex-col gap-2">
+                  <SettingsRow
+                    title="Auto"
+                    hint="Follows local sunrise and sunset"
+                    selected={settingsChoice === "auto"}
+                    trailing="check"
+                    onClick={() => setSettingsChoice("auto")}
+                  />
+                  <SettingsRow
+                    title="Night"
+                    hint="Nightglass, always"
+                    selected={settingsChoice === "night"}
+                    trailing="check"
+                    onClick={() => setSettingsChoice("night")}
+                  />
+                </div>
+              </SettingsSection>
+              <SettingsSection label="Personalization">
+                <div className="flex flex-col gap-2">
+                  <SettingsRow
+                    title="Wingfoiling profile"
+                    hint="Intermediate · Has context"
+                    trailing="chevron"
+                    onClick={() => {}}
+                  />
+                  <SettingsRow
+                    title="Show personalized scores"
+                    hint="When off, you see the default system scores"
+                    role="switch"
+                    pressed={settingsSwitch}
+                    trailing={
+                      <Switch
+                        checked={settingsSwitch}
+                        onChange={setSettingsSwitch}
+                        ariaLabel="Show personalized scores"
+                      />
+                    }
+                    onClick={() => setSettingsSwitch((v) => !v)}
+                  />
+                </div>
+              </SettingsSection>
+            </div>
           </Row>
 
           <Row

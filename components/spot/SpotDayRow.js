@@ -35,6 +35,8 @@ export function SpotDayRow({
   onToggle,
   onLive,
   reportHref = null,
+  /** SCORE tip with AI timeslot verdict (Report expanded days). */
+  slotVerdict = false,
   nowMs = Date.now(),
   desktop = false,
   /** Today only — same pack.station Now's wind band uses. */
@@ -86,6 +88,7 @@ export function SpotDayRow({
       showNow={liveToday}
       showHover={liveToday}
       reportHref={reportHref}
+      slotVerdict={slotVerdict}
       // Short report bands — fewer y ticks than the tall Now chart.
       maxLines={3}
       bandHeights={

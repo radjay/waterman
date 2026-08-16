@@ -115,16 +115,17 @@ export const MODEL_COLUMNS = [
  * exact shape the screens receive or it documents a contract nothing uses.
  */
 const DAY_SHAPE = [
-  [7, 55, 9, 13, 1.1],
-  [10, 70, 12, 17, 1.05],
-  [13, 72, 15, 20, 0.98],
-  [16, 88, 19, 24, 0.92],
-  [19, 68, 16, 21, 0.85],
-  [22, 34, 9, 12, 0.8],
+  [7, 55, 9, 13, 1.1, "Light early — wait for the nortada."],
+  [10, 70, 12, 17, 1.05, "Building NNW; usable if you like light."],
+  [13, 72, 15, 20, 0.98, "Solid afternoon fill; chop picks up."],
+  [16, 88, 19, 24, 0.92, "Peak window — steady 18–21 kn NNW."],
+  [19, 68, 16, 21, 0.85, "Still good; easing after sunset."],
+  [22, 34, 9, 12, 0.8, "Too light and late."],
 ];
 
-export const CHART_SLOTS = DAY_SHAPE.map(([hour, score, speed, gust, waveHeight]) =>
-  slot(0, hour, score, { speed, gust, waveHeight })
+export const CHART_SLOTS = DAY_SHAPE.map(
+  ([hour, score, speed, gust, waveHeight, reasoning]) =>
+    slot(0, hour, score, { speed, gust, waveHeight, reasoning })
 );
 
 export const CHART_NOW = T0 + 14 * HOUR + 20 * 60 * 1000;

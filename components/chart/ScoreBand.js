@@ -6,6 +6,19 @@ import {
   scoreBand,
   scoreTextClass,
 } from "../../lib/dayChart";
+import { Tooltip } from "../ui/Tooltip";
+
+/**
+ * AI timeslot verdict for the SCORE tip — the scorer's own sentence when we
+ * have it, otherwise a short fallback so empty days still explain the click.
+ */
+export function slotVerdictText(slot) {
+  const reasoning = typeof slot?.reasoning === "string" ? slot.reasoning.trim() : "";
+  if (reasoning) return reasoning;
+  const score = slot?.score;
+  if (score === null || score === undefined) return "No verdict for this timeslot.";
+  return `Score ${Math.round(score)}. No AI verdict for this timeslot.`;
+}
 
 /**
  * The score, per slot, across the day.
@@ -14,9 +27,9 @@ import {
  * that answers "and when is it best" — a shape alone tells you there is a peak
  * but not whether the peak is a 90 or a 61, and those are different afternoons.
  *
- * When `reportHref` is set, each whole column (number + bar) is a real link to
- * that spot's report for today (`/report/[slug]`), so keyboard focus and
- * open-in-new-tab work — not only the digits.
+ * When `reportHref` is set (Now), each whole column is a real link to that
+ * spot's report. On the Report itself, pass `slotVerdict` instead — click/hover
+ * shows the AI timeslot verdict tip and does not navigate.
  *
  * Number and bar fill share `scoreBand` / `scoreTextClass` so a MAYBE 60 cannot
  * sit orange on a teal bar (or the reverse). The now-line elsewhere marks
@@ -34,6 +47,8 @@ export function ScoreBand({
   gutter = 1.5,
   radius = 3,
   reportHref = null,
+  /** Hover/click tip with the AI timeslot verdict — used on Report expanded days. */
+  slotVerdict = false,
   labelInset = PLOT_LABEL_INSET_PX,
   className = "",
 }) {
@@ -51,8 +66,9 @@ export function ScoreBand({
           const fill = SCORE_FILL[scoreBand(score)];
           const numberClass = scoreTextClass(score);
           const rounded = Math.round(score);
+          const interactive = Boolean(reportHref || slotVerdict);
           const shellClass = `absolute inset-y-0 flex flex-col justify-end ${
-            reportHref
+            interactive
               ? "focus-ring rounded-sm hover:opacity-90 transition-opacity duration-fast ease-smooth"
               : ""
           }`;
@@ -64,7 +80,7 @@ export function ScoreBand({
           const numberEl = (
             <div
               className={`font-data font-bold text-center tabular-nums leading-none mb-[3px] ${numberClass} ${
-                reportHref ? "underline-offset-2 group-hover:underline" : ""
+                interactive ? "underline-offset-2 group-hover:underline" : ""
               }`}
               style={{ fontSize: numberSize }}
             >
@@ -95,6 +111,29 @@ export function ScoreBand({
                 {numberEl}
                 {barEl}
               </a>
+            );
+          }
+
+          if (slotVerdict) {
+            const verdict = slotVerdictText(col.slot);
+            return (
+              <Tooltip
+                key={col.slot.timestamp}
+                content={verdict}
+                wide
+                position="top"
+                className={`${shellClass} group cursor-help`}
+                style={shellStyle}
+              >
+                <button
+                  type="button"
+                  aria-label={`Score ${rounded}: ${verdict}`}
+                  className="w-full h-full flex flex-col justify-end bg-transparent border-0 p-0 m-0 cursor-help"
+                >
+                  {numberEl}
+                  {barEl}
+                </button>
+              </Tooltip>
             );
           }
 

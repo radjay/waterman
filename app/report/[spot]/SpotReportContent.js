@@ -137,7 +137,7 @@ export default function SpotReportContent({ slug }) {
               desktop={isDesktop}
               open={openDay === day.dayStart}
               onToggle={() => setOpenDay(openDay === day.dayStart ? null : day.dayStart)}
-              reportHref={`/report/${toSpotSlug(pack.spot.name)}?sport=${sport}`}
+              slotVerdict
               isToday={todayRow}
               spot={todayRow ? pack.spot : null}
               station={todayRow ? pack.station : null}

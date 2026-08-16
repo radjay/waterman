@@ -8,12 +8,15 @@ import { useAuth, useUser } from "../../components/auth/AuthProvider";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
-import { Loader2, CheckCircle, User, ChevronRight, Sparkles, MapPin } from "lucide-react";
+import { Loader2, User, MapPin } from "lucide-react";
 import { Heading } from "../../components/ui/Heading";
 import { Text } from "../../components/ui/Text";
 import { Button } from "../../components/ui/Button";
 import { Divider } from "../../components/ui/Divider";
 import { SportBadge } from "../../components/ui/SportBadge";
+import { SettingsSection } from "../../components/ui/SettingsSection";
+import { SettingsRow } from "../../components/ui/SettingsRow";
+import { Switch } from "../../components/ui/Switch";
 import { useTheme } from "../../components/theme/ThemeProvider";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -33,52 +36,33 @@ function ThemeSetting() {
   const { theme, preference, setPreference } = useTheme();
 
   return (
-    <div>
-      <Text variant="label" as="label" className="block mb-3">
-        Appearance
-      </Text>
-      <div className="space-y-2">
+    <SettingsSection label="Appearance">
+      <div className="flex flex-col gap-2">
         {THEME_OPTIONS.map((option) => {
           const selected = preference === option.id;
+          const hint =
+            option.id === "auto" && selected
+              ? `${option.hint} · now ${theme}`
+              : option.hint;
           return (
-            <button
+            <SettingsRow
               key={option.id}
+              title={option.label}
+              hint={hint}
+              selected={selected}
+              trailing="check"
               onClick={() => setPreference(option.id)}
-              aria-pressed={selected}
-              className={`w-full p-4 rounded-card border transition-all duration-fast ease-smooth text-left focus-ring ${
-                selected
-                  ? "border-accent-border bg-accent-tint-card"
-                  : "border-card hover:bg-ink-hover"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div
-                    className={`font-body font-medium ${selected ? "text-accent" : "text-ink"}`}
-                  >
-                    {option.label}
-                  </div>
-                  <div className="font-data text-[0.7rem] text-faded-ink mt-0.5">
-                    {option.hint}
-                  </div>
-                </div>
-                {option.id === "auto" && selected && (
-                  <span className="font-data text-[0.65rem] uppercase tracking-label text-dim">
-                    now: {theme}
-                  </span>
-                )}
-              </div>
-            </button>
+            />
           );
         })}
       </div>
-    </div>
+    </SettingsSection>
   );
 }
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { sessionToken, logout: authLogout, refreshUser } = useAuth();
+  const { sessionToken, refreshUser } = useAuth();
   const user = useUser();
 
   const [name, setName] = useState("");
@@ -106,14 +90,12 @@ export default function ProfilePage() {
     expert: "Expert",
   };
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionToken) {
       router.push("/auth/login");
     }
   }, [sessionToken, router]);
 
-  // Load user data and spots
   useEffect(() => {
     if (user) {
       setName(user.name || "");
@@ -137,7 +119,6 @@ export default function ProfilePage() {
     fetchSpots();
   }, []);
 
-  // Load sport profiles and personalization settings
   useEffect(() => {
     if (!sessionToken) return;
 
@@ -185,7 +166,6 @@ export default function ProfilePage() {
     setSuccess("");
 
     try {
-      // Update user name if changed
       if (name !== (user?.name || "")) {
         await client.mutation(api.auth.updateUser, {
           sessionToken,
@@ -193,7 +173,6 @@ export default function ProfilePage() {
         });
       }
 
-      // Update preferences
       await client.mutation(api.auth.updatePreferences, {
         sessionToken,
         favoriteSports,
@@ -201,8 +180,6 @@ export default function ProfilePage() {
       });
 
       setSuccess("Profile updated successfully!");
-      
-      // Refresh user data
       window.location.reload();
     } catch (err) {
       console.error("Error saving profile:", err);
@@ -210,11 +187,6 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await authLogout();
-    router.push("/");
   };
 
   const handleTogglePersonalizedScores = async () => {
@@ -225,11 +197,9 @@ export default function ProfilePage() {
         sessionToken,
         showPersonalizedScores: newValue,
       });
-      // Refresh user data so HomeContent picks up the new setting
       await refreshUser();
     } catch (err) {
       console.error("Error updating setting:", err);
-      // Revert on error
       setShowPersonalizedScores(!newValue);
     }
   };
@@ -243,7 +213,7 @@ export default function ProfilePage() {
       <MainLayout>
         <Header />
         <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="w-8 h-8 text-ink/60 animate-spin" />
+          <Loader2 className="w-8 h-8 text-faded-ink animate-spin" />
         </div>
         <Footer />
       </MainLayout>
@@ -253,197 +223,160 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="pt-2 pb-24">
-        <Heading level={1} className="mb-8">Settings</Heading>
+      <div className="pt-2">
+        <Heading level={1} className="mb-8">
+          Settings
+        </Heading>
 
-        <div className="space-y-8">
-          {/* Appearance */}
+        <div className="flex flex-col gap-8">
           <ThemeSetting />
 
-          {/* Favorite Sports */}
-          <div>
-            <Text variant="label" as="label" className="block mb-3">Favorite Sports</Text>
-            <div className="space-y-2">
-              {sports.map((sport) => (
-                <button
-                  key={sport.id}
-                  onClick={() => toggleSport(sport.id)}
-                  className={`w-full p-4 rounded-md border-2 transition-all text-left ${
-                    favoriteSports.includes(sport.id)
-                      ? "border-ink bg-ink/5"
-                      : "border-ink/20 hover:border-ink/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 font-medium text-ink">
-                      <SportBadge sport={sport.id} size={18} className={favoriteSports.includes(sport.id) ? "!text-ink" : "!text-ink/40"} />
-                      {sport.label}
-                    </span>
-                    {favoriteSports.includes(sport.id) && (
-                      <CheckCircle className="w-5 h-5 text-ink" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Favorite Spots */}
-          <div>
-            <Text variant="label" as="label" className="block mb-3">Favorite Spots (optional)</Text>
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 text-ink/60 animate-spin" />
-              </div>
-            ) : (
-              <div className="max-h-80 overflow-y-auto space-y-2 border-2 border-ink/20 rounded-md p-3">
-                {spots.map((spot) => (
-                  <button
-                    key={spot._id}
-                    onClick={() => toggleSpot(spot._id)}
-                    className={`w-full p-3 rounded-md border-2 transition-all text-left ${
-                      favoriteSpots.includes(spot._id)
-                        ? "border-ink bg-ink/5"
-                        : "border-ink/20 hover:border-ink/30"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-ink">{spot.name}</p>
-                        {spot.country && (
-                          <p className="text-sm text-ink/60">{spot.country}</p>
-                        )}
-                      </div>
-                      {favoriteSpots.includes(spot._id) && (
-                        <CheckCircle className="w-5 h-5 text-ink" />
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Personalization Section */}
-          <div className="pt-8">
-            <Divider weight="medium" className="mb-8" />
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-ink" />
-              <Heading level={2}>Personalization</Heading>
-            </div>
-            <Text variant="muted" className="text-sm mb-6">
-              Set up sport profiles to get condition scores personalized for your skill level and preferences.
-            </Text>
-
-            {/* Sport Profiles */}
-            <div className="space-y-3 mb-6">
+          <SettingsSection label="Favorite sports">
+            <div className="flex flex-col gap-2">
               {sports.map((sport) => {
-                const profile = getSportProfile(sport.id);
+                const selected = favoriteSports.includes(sport.id);
                 return (
-                  <button
+                  <SettingsRow
                     key={sport.id}
-                    onClick={() => router.push(`/profile/sport/${sport.id}`)}
-                    className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          profile ? "bg-ink/10" : "bg-ink/5"
-                        }`}>
-                          <User className={`w-5 h-5 ${profile ? "text-ink" : "text-ink/40"}`} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-ink">{sport.fullLabel} Profile</p>
-                          {profile ? (
-                            <p className="text-sm text-ink/60">
-                              {SKILL_LEVEL_LABELS[profile.skillLevel]}
-                              {profile.context && " • Has context"}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-ink/40">Not set up yet</p>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-ink/40 group-hover:text-ink/60 transition-colors" />
-                    </div>
-                  </button>
+                    title={sport.label}
+                    selected={selected}
+                    trailing="check"
+                    leading={
+                      <SportBadge
+                        sport={sport.id}
+                        size={18}
+                        className={selected ? "!text-accent" : "!text-dim"}
+                      />
+                    }
+                    onClick={() => toggleSport(sport.id)}
+                  />
                 );
               })}
-
-              {/* Spot Notes */}
-              <button
-                onClick={() => router.push("/profile/spots")}
-                className="w-full p-4 rounded-md border-2 border-ink/20 hover:border-ink/30 transition-all text-left group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      spotContextCount > 0 ? "bg-ink/10" : "bg-ink/5"
-                    }`}>
-                      <MapPin className={`w-5 h-5 ${spotContextCount > 0 ? "text-ink" : "text-ink/40"}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-ink">Spot Notes</p>
-                      {spotContextCount > 0 ? (
-                        <p className="text-sm text-ink/60">
-                          {spotContextCount} spot{spotContextCount !== 1 ? "s" : ""} with notes
-                        </p>
-                      ) : (
-                        <p className="text-sm text-ink/40">Add notes about your favorite spots</p>
-                      )}
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-ink/40 group-hover:text-ink/60 transition-colors" />
-                </div>
-              </button>
             </div>
+          </SettingsSection>
 
-            {/* Show Personalized Scores Toggle */}
-            {sportProfiles.length > 0 && (
-              <div className="flex items-center justify-between p-4 rounded-md border-2 border-ink/20">
-                <div>
-                  <p className="font-medium text-ink">Show personalized scores</p>
-                  <p className="text-sm text-ink/60">
-                    When off, you'll see the default system scores instead
-                  </p>
-                </div>
-                <div
-                  role="switch"
-                  aria-checked={showPersonalizedScores}
-                  tabIndex={0}
-                  onClick={handleTogglePersonalizedScores}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleTogglePersonalizedScores();
-                    }
-                  }}
-                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
-                    showPersonalizedScores ? "bg-ink" : "bg-ink/20"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 w-5 h-5 rounded-full bg-surface shadow-md transition-all duration-200 ${
-                      showPersonalizedScores ? "left-6" : "left-1"
-                    }`}
-                  />
-                </div>
+          <SettingsSection label="Favorite spots">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-faded-ink animate-spin" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5">
+                {spots.map((spot) => {
+                  const selected = favoriteSpots.includes(spot._id);
+                  return (
+                    <SettingsRow
+                      key={spot._id}
+                      title={spot.name}
+                      hint={spot.country || undefined}
+                      selected={selected}
+                      trailing="check"
+                      onClick={() => toggleSpot(spot._id)}
+                    />
+                  );
+                })}
               </div>
             )}
+          </SettingsSection>
+
+          <div>
+            <Divider weight="medium" className="mb-8" />
+            <SettingsSection label="Personalization">
+              <Text variant="muted" className="text-sm mb-4 -mt-1">
+                Set up sport profiles to get condition scores personalized for your
+                skill level and preferences.
+              </Text>
+              <div className="flex flex-col gap-2">
+                {sports.map((sport) => {
+                  const profile = getSportProfile(sport.id);
+                  return (
+                    <SettingsRow
+                      key={sport.id}
+                      title={`${sport.fullLabel} profile`}
+                      hint={
+                        profile
+                          ? `${SKILL_LEVEL_LABELS[profile.skillLevel]}${
+                              profile.context ? " · Has context" : ""
+                            }`
+                          : "Not set up yet"
+                      }
+                      trailing="chevron"
+                      leading={
+                        <span
+                          className={`w-9 h-9 rounded-full flex items-center justify-center flex-none ${
+                            profile ? "bg-accent-tint" : "bg-track"
+                          }`}
+                        >
+                          <User
+                            size={16}
+                            className={profile ? "text-accent" : "text-dim"}
+                          />
+                        </span>
+                      }
+                      onClick={() => router.push(`/profile/sport/${sport.id}`)}
+                    />
+                  );
+                })}
+
+                <SettingsRow
+                  title="Spot notes"
+                  hint={
+                    spotContextCount > 0
+                      ? `${spotContextCount} spot${
+                          spotContextCount !== 1 ? "s" : ""
+                        } with notes`
+                      : "Add notes about your favorite spots"
+                  }
+                  trailing="chevron"
+                  leading={
+                    <span
+                      className={`w-9 h-9 rounded-full flex items-center justify-center flex-none ${
+                        spotContextCount > 0 ? "bg-accent-tint" : "bg-track"
+                      }`}
+                    >
+                      <MapPin
+                        size={16}
+                        className={spotContextCount > 0 ? "text-accent" : "text-dim"}
+                      />
+                    </span>
+                  }
+                  onClick={() => router.push("/profile/spots")}
+                />
+
+                {sportProfiles.length > 0 && (
+                  <SettingsRow
+                    title="Show personalized scores"
+                    hint="When off, you see the default system scores"
+                    role="switch"
+                    pressed={showPersonalizedScores}
+                    trailing={
+                      <Switch
+                        checked={showPersonalizedScores}
+                        onChange={handleTogglePersonalizedScores}
+                        ariaLabel="Show personalized scores"
+                      />
+                    }
+                    onClick={handleTogglePersonalizedScores}
+                  />
+                )}
+              </div>
+            </SettingsSection>
           </div>
 
-          {/* Error/Success Messages */}
           {error && <Text className="text-marginal text-sm">{error}</Text>}
           {success && <Text className="text-accent text-sm">{success}</Text>}
 
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={saving}
+            onClick={handleSave}
+            className="md:w-auto md:self-start md:px-8"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
-      </div>
-
-      {/* Floating Save Button — sits above the pill nav bar on mobile */}
-      <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-auto z-40 px-4 pt-3 pb-24 md:p-0 bg-newsprint md:bg-transparent border-t border-ink/10 md:border-0">
-        <Button variant="primary" size="lg" fullWidth className="md:w-auto md:px-8" loading={saving} onClick={handleSave}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
       </div>
       <Footer />
     </MainLayout>
