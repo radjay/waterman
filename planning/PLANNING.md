@@ -35,6 +35,7 @@
 
 ### Bugs
 
+- [x] **WIND band stacked bars + live/forecast colours (2026-08-16)** — forecast and live both stack main+gust from 0 kt; live = primary/accent, forecast = muted grey; legend + tip tones match LIVE badge.
 - [x] **Spot forecast Today desktop cam + live wind + tips (2026-08-16)** — expanded Today: cam beside charts on desktop; live station wind + NOW-style hover/tap tooltips on Today only.
 - [x] **Denser day-chart y-axis ticks (2026-08-16)** — WIND at 5 kt steps; WAVES & TIDE at 0.5 m steps (shared `windScale` / `waveScale`), thinned when crowded.
 - [x] **Chart hover tip readability (2026-08-16)** — stacked card: time + `Live Nkt (G*)` / `Forecast Nkt (G*)`; mouse + tap-to-inspect unchanged.

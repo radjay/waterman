@@ -145,8 +145,8 @@ export function ChartColumnHover({
 /**
  * Stacked tip below the wind band — time, then Live / Forecast lines.
  *
- * Live uses ink, Forecast accent (same as the wind legend). Stays under the
- * plot so it does not cover the hover marks.
+ * Live = accent/primary (same as LIVE badge + WindBand live bars); Forecast =
+ * muted grey. Stays under the plot so it does not cover the hover marks.
  */
 function HoverTipCard({ card, xPct }) {
   return (
@@ -163,7 +163,11 @@ function HoverTipCard({ card, xPct }) {
           <div
             key={row.key}
             className={`font-data text-[12px] font-bold tabular-nums tracking-tight whitespace-nowrap ${
-              row.tone === "accent" ? "text-accent" : "text-ink"
+              row.tone === "accent"
+                ? "text-accent"
+                : row.tone === "muted"
+                  ? "text-faded-ink"
+                  : "text-ink"
             }`}
           >
             {row.text}
@@ -182,7 +186,7 @@ function HoverMarks({ marks, scaleMax }) {
     <div className="absolute inset-0 z-[3] pointer-events-none" aria-hidden="true">
       {marks.column && (
         <div
-          className="absolute inset-y-0 bg-accent-wash border-x border-accent-border"
+          className="absolute inset-y-0 bg-ink/[0.06] border-x border-ink/15"
           style={{ left: `${marks.column.left}%`, width: `${marks.column.width}%` }}
         />
       )}
@@ -196,14 +200,14 @@ function HoverMarks({ marks, scaleMax }) {
             xPct={marks.xPct}
             value={marks.column.speed}
             scaleMax={scaleMax}
-            tone="accent"
+            tone="muted"
           />
           {Number.isFinite(marks.column.gust) && (
             <MarkDot
               xPct={marks.xPct}
               value={marks.column.gust}
               scaleMax={scaleMax}
-              tone="accent"
+              tone="muted"
               hollow
             />
           )}
@@ -215,14 +219,14 @@ function HoverMarks({ marks, scaleMax }) {
             xPct={marks.station.xPct}
             value={marks.station.speed}
             scaleMax={scaleMax}
-            tone="ink"
+            tone="accent"
           />
           {Number.isFinite(marks.station.gust) && (
             <MarkDot
               xPct={marks.station.xPct}
               value={marks.station.gust}
               scaleMax={scaleMax}
-              tone="ink"
+              tone="accent"
               hollow
             />
           )}
@@ -232,17 +236,17 @@ function HoverMarks({ marks, scaleMax }) {
   );
 }
 
-function MarkDot({ xPct, value, scaleMax, tone = "ink", hollow = false }) {
+function MarkDot({ xPct, value, scaleMax, tone = "accent", hollow = false }) {
   if (!Number.isFinite(value) || !Number.isFinite(xPct)) return null;
   const y = topPct(value, scaleMax);
-  // Ink outer ring so accent dots stay visible on the forecast wash/cap.
+  // Page ring keeps accent (live) dots readable on grey forecast bars.
   const fill = hollow
     ? tone === "accent"
-      ? "bg-page border-2 border-accent ring-1 ring-ink"
-      : "bg-page border-2 border-ink"
+      ? "bg-page border-2 border-accent"
+      : "bg-page border-2 border-ink/40"
     : tone === "accent"
-      ? "bg-accent border-2 border-page ring-1 ring-ink"
-      : "bg-ink border-2 border-page";
+      ? "bg-accent border-2 border-page"
+      : "bg-ink/40 border-2 border-page";
   return (
     <span
       className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ${fill}`}

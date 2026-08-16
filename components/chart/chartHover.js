@@ -46,8 +46,9 @@ function windLine(label, speed, gust) {
 /**
  * Build the tip card rows from the numbers we have.
  *
- * At most two data lines: Live (station ink) and Forecast (accent). Gusts fold
- * into the same line as `(N*)`; omit a line entirely when that series is absent.
+ * At most two data lines: Live (station accent/primary) and Forecast (muted
+ * grey). Gusts fold into the same line as `(N*)`; omit a line entirely when
+ * that series is absent. Matches WindBand + LIVE badge colour roles.
  */
 export function windHoverRows({
   stationSpeed = null,
@@ -60,14 +61,14 @@ export function windHoverRows({
     rows.push({
       key: "live",
       text: windLine("Live", stationSpeed, stationGust),
-      tone: "ink",
+      tone: "accent",
     });
   }
   if (Number.isFinite(forecastSpeed)) {
     rows.push({
       key: "forecast",
       text: windLine("Forecast", forecastSpeed, forecastGust),
-      tone: "accent",
+      tone: "muted",
     });
   }
   return rows;
