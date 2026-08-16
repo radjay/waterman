@@ -1,6 +1,7 @@
 "use client";
 
-import { PLOT_LABEL_INSET_PX, SLOT_MS, topPct, windScale } from "../../lib/dayChart";
+import { PLOT_LABEL_INSET_PX, topPct, windScale } from "../../lib/dayChart";
+import { stationInSlot } from "./chartHover";
 
 /**
  * Wind: forecast and live as stacked bars from the x-axis.
@@ -86,7 +87,7 @@ export function WindBand({
         {/* Live on top of forecast — same column clock, primary family. */}
         {history.length > 0 &&
           chart.columns.map((col) => {
-            const live = latestInSlot(history, col.slot?.timestamp, nowMs);
+            const live = stationInSlot(history, col.slot?.timestamp, nowMs);
             if (!live || !Number.isFinite(live.speed)) return null;
 
             return (
@@ -164,23 +165,6 @@ function StackedBar({
       )}
     </>
   );
-}
-
-/**
- * Latest station sample inside a 3h forecast slot, at or before now.
- * Same window as chartHover.stationInSlot — bar height matches the tip.
- */
-function latestInSlot(history, slotTs, nowMs) {
-  if (!history?.length || !Number.isFinite(slotTs)) return null;
-  const end = Math.min(slotTs + SLOT_MS, nowMs);
-  if (end <= slotTs) return null;
-  let best = null;
-  for (const p of history) {
-    if (!Number.isFinite(p?.time) || !Number.isFinite(p?.speed)) continue;
-    if (p.time < slotTs || p.time >= end) continue;
-    if (!best || p.time >= best.time) best = p;
-  }
-  return best;
 }
 
 /**
