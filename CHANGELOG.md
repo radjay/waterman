@@ -3,6 +3,9 @@
 ## [2026-08-16]
 
 ### Fixed
+- Verdict, score ring, score-bar fill, and the number on the bar now share one colour band: GO (≥75) accent, MAYBE (60–74) caution, below that marginal — so a MAYBE 60 can no longer sit beside a teal ring or on a teal bar.
+- After sunset (and the whole pre-dawn window before sunrise) the Now verdict is always NO for every sport, even when the score is high — using each spot’s real sunrise/sunset.
+- LIVE camera badge wind direction is always the TO bearing (same flip as the rest of the app), even if a stale FROM label is present.
 - Spot picker no longer shows a “MY SPOTS · WING” (or sport) header — spot rows and EDIT MY SPOTS stay.
 - Next webcam cards centre the day badge (TODAY / weekday) between live wind and action icons.
 - Next week time slots: even air above/below the slot row, and the last slot aligns under the day score.
@@ -12,6 +15,7 @@
 - Live cam cards size to each webcam’s video aspect ratio instead of a square-ish tile.
 - Live page no longer shows the station / gusts / forecast | now legend in the header.
 - Live All spots includes webcam-only beaches (e.g. Guincho N, Moitas) as cam-only cards — no forecast score or wind chart.
+- Spot forecast Today (from Next): desktop places the webcam beside the WIND / WAVES & TIDE / SCORE stack so the charts are no longer a full-width empty column; mobile keeps a stacked layout with the cam above the charts.
 - Spot forecast Today’s WIND band plots live station wind the same way NOW does (accent lines over grey forecast stacks).
 - Spot forecast Today charts support hover and tap-to-inspect tooltips like NOW (mouse + touch; station samples hit-test at the real reading time).
 - NOW webcam shows Windguru and Windy shortcuts top-right (same as LIVE cams), left of fullscreen, without stealing the tap that opens the cam.

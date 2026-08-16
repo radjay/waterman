@@ -82,11 +82,13 @@ describe("ScoreDial rendering", () => {
     expect(container.innerHTML).not.toContain("dial-inner-card");
   });
 
-  it("paints the ring marginal below the bar and accent at or above it", () => {
+  it("paints the ring by verdict band: marginal / caution / accent", () => {
     const { container: low } = render(<ScoreDial score={41} showAll />);
-    const { container: high } = render(<ScoreDial score={61} />);
+    const { container: maybe } = render(<ScoreDial score={60} />);
+    const { container: go } = render(<ScoreDial score={80} />);
     expect(valueArc(low).getAttribute("stroke")).toContain("--wm-marginal");
-    expect(valueArc(high).getAttribute("stroke")).toContain("--wm-accent");
+    expect(valueArc(maybe).getAttribute("stroke")).toContain("--wm-caution");
+    expect(valueArc(go).getAttribute("stroke")).toContain("--wm-accent");
   });
 
   it("never renders a real <button>, because it sits inside one", () => {

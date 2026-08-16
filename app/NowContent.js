@@ -18,6 +18,7 @@ import { WebcamFullscreen } from "../components/webcam/WebcamFullscreen";
 import { ScreenError, ScreenSkeleton, ScreenEmpty } from "../components/common/ScreenState";
 import { buildDayChart } from "../lib/dayChart";
 import { VERDICT, VERDICT_TONE, VERDICT_WORD, deriveVerdict } from "../lib/verdict";
+import { isDarkForSession } from "../lib/daylight";
 import { toSpotSlug } from "../lib/spotSlug";
 import { isWindSport } from "../components/sport/SportProvider";
 
@@ -92,8 +93,10 @@ export function NowContent() {
       agreement: null,
       stationDelta: pack.station?.delta ?? null,
       laterPeak: laterPeak >= 0 ? laterPeak : null,
+      // Real sunrise/sunset for this spot — dark ⇒ NO even on a high score.
+      isDark: isDarkForSession(pack.spot, now),
     });
-  }, [pack, chart]);
+  }, [pack, chart, now]);
 
   const swipe = useSwipe((dir) => {
     if (ranked.length < 2) return;
