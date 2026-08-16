@@ -145,7 +145,7 @@ export function ChartColumnHover({
 /**
  * Stacked tip below the wind band — time, then Live / Forecast lines.
  *
- * Live = accent/primary (same as LIVE badge + WindBand live bars); Forecast =
+ * Live = accent/primary (same as LIVE badge + WindBand station lines); Forecast =
  * muted grey. Stays under the plot so it does not cover the hover marks.
  */
 function HoverTipCard({ card, xPct }) {

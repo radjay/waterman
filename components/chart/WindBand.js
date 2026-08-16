@@ -1,31 +1,26 @@
 "use client";
 
+import { averageWindow } from "../../lib/station";
 import { PLOT_LABEL_INSET_PX, topPct, windScale } from "../../lib/dayChart";
-import { stationInSlot } from "./chartHover";
 
 /**
- * Wind: forecast and live as stacked bars from the x-axis.
+ * Wind: forecast as stacked grey bars, live station as accent lines.
  *
- * Both series use the same encoding — a rectangle from 0 kt up to the main
- * wind, with a different shade of the same family stacked above for gusts
- * (main → gust). Forecast is muted grey/ink; live (station) is accent/primary,
- * matching the LIVE cam badge. Live sits on a higher z-index and is drawn
- * slightly narrower so the grey forecast remains visible underneath.
+ * Forecast uses stacked bars from the x-axis — main wind `0 → speed`, optional
+ * gust cap `speed → gust` in a lighter shade of muted ink/grey. Past columns
+ * stay dimmed so you can still read "the model said 12 kn and the station
+ * read 9".
  *
- * Live is one stacked bar per 3h column that already has a station reading
- * (latest sample in that slot at or before now) — not a polyline. Future
- * columns stay forecast-only.
- *
- * Past forecast columns stay on the plot (dimmed) so you can still read
- * "the model said 12 kn and the station read 9".
+ * The station is continuous, so it is drawn as lines on top of the bars:
+ * solid accent for base, dashed accent for gust, clipped to now. Matching the
+ * LIVE cam badge colour keeps live readings obvious against the grey forecast.
+ * A live line past the now marker would be a prediction wearing a
+ * measurement's clothes.
  */
 const FORECAST = {
   past: { base: 0.22, gust: 0.12 },
   live: { base: 0.34, gust: 0.18 },
 };
-const LIVE_BAR = { base: 0.92, gust: 0.48 };
-/** Extra horizontal inset (px) so live reads on top of the wider forecast bar. */
-const LIVE_INSET = 4;
 
 export function WindBand({
   chart,
@@ -45,7 +40,8 @@ export function WindBand({
     ...(station?.history ?? []).flatMap((p) => [p.speed, p.gust]),
   ];
   const scale = given ?? windScale(values);
-  const history = station?.history ?? [];
+
+  const stationPaths = station ? stationLines(station, chart, scale, nowMs) : null;
 
   return (
     <div className={`relative ${className}`} style={{ height }}>
@@ -84,41 +80,46 @@ export function WindBand({
           );
         })}
 
-        {/* Live on top of forecast — same column clock, primary family. */}
-        {history.length > 0 &&
-          chart.columns.map((col) => {
-            const live = stationInSlot(history, col.slot?.timestamp, nowMs);
-            if (!live || !Number.isFinite(live.speed)) return null;
-
-            return (
-              <div
-                key={`live-${col.slot.timestamp}`}
-                className="absolute inset-y-0 z-[1]"
-                style={{ left: `${col.left}%`, width: `${col.width}%`, padding: `0 ${gutter}px` }}
-              >
-                <StackedBar
-                  speed={live.speed}
-                  gust={live.gust}
-                  scaleMax={scale.max}
-                  gutter={gutter + LIVE_INSET}
-                  radius={radius}
-                  baseClass="bg-accent"
-                  baseOpacity={LIVE_BAR.base}
-                  gustOpacity={LIVE_BAR.gust}
-                />
-              </div>
-            );
-          })}
+        {stationPaths && (
+          <svg
+            viewBox="0 0 300 100"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full z-[1]"
+            aria-hidden="true"
+          >
+            {stationPaths.gust && (
+              <path
+                d={stationPaths.gust}
+                fill="none"
+                stroke="rgb(var(--wm-accent))"
+                strokeWidth="1.6"
+                strokeDasharray="4 4"
+                opacity="0.7"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+            {stationPaths.speed && (
+              <path
+                d={stationPaths.speed}
+                fill="none"
+                stroke="rgb(var(--wm-accent))"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+          </svg>
+        )}
       </div>
 
-      {/* Gridlines sit ABOVE the bars so the reference lines stay readable. */}
+      {/* Gridlines sit ABOVE the bars and lines so reference marks stay readable. */}
       <GridLines lines={scale.lines} labelSize={labelSize} labelInset={labelInset} />
     </div>
   );
 }
 
 /**
- * Stacked wind bar: main fill from the x-axis (0 kt) up to `speed`, optional
+ * Stacked forecast bar: main fill from the x-axis (0 kt) up to `speed`, optional
  * gust cap from `speed` to `gust` in a lighter shade of the same family.
  */
 function StackedBar({
@@ -171,7 +172,7 @@ function StackedBar({
  * Reference lines with their labels.
  *
  * The label sits in the shared left inset; the dashed rule starts after it so
- * bars never paint under "25kt".
+ * bars and lines never paint under "25kt".
  */
 export function GridLines({ lines, labelSize = 8.5, labelInset = PLOT_LABEL_INSET_PX }) {
   return (
@@ -193,4 +194,45 @@ export function GridLines({ lines, labelSize = 8.5, labelInset = PLOT_LABEL_INSE
       ))}
     </div>
   );
+}
+
+/**
+ * Station history as two SVG paths in the 0-300 × 0-100 box, clipped to now.
+ *
+ * x is time between the chart's first and last hour, so the live line and the
+ * forecast columns share one clock. Points outside the drawn hours (or after
+ * now) are dropped rather than clamped — a flat run pinned to the left edge
+ * would read as an hour of dead calm that never happened.
+ */
+function stationLines(station, chart, scale, nowMs) {
+  const raw = (station.history ?? []).filter((p) => Number.isFinite(p?.speed));
+  // A whole day of 5-minute buckets squeezed into a few hundred pixels is a
+  // hairball — every gust becomes a spike a pixel wide, and the shape of the
+  // day (the thing this line is FOR) disappears under it. A ~25 minute rolling
+  // mean keeps the trend and the build without inventing anything: the points
+  // are still real readings, just averaged.
+  const points = averageWindow(raw, raw.length > 60 ? 5 : 3);
+  if (points.length < 2 || !chart.columns.length) return null;
+
+  const trackStart = chart.columns[0].slot.timestamp;
+  const lastCol = chart.columns[chart.columns.length - 1];
+  const trackEnd = lastCol.slot.timestamp;
+  const span = trackEnd - trackStart;
+  if (span <= 0) return null;
+
+  const clipEnd = Number.isFinite(nowMs) ? Math.min(trackEnd, nowMs) : trackEnd;
+  const x = (t) => ((t - trackStart) / span) * 300;
+  const y = (v) => topPct(v, scale.max);
+
+  const build = (key) => {
+    const usable = points.filter(
+      (p) => Number.isFinite(p[key]) && p.time >= trackStart && p.time <= clipEnd
+    );
+    if (usable.length < 2) return null;
+    return usable
+      .map((p, i) => `${i === 0 ? "M" : "L"}${x(p.time).toFixed(1)},${y(p[key]).toFixed(1)}`)
+      .join(" ");
+  };
+
+  return { speed: build("speed"), gust: build("gust") };
 }

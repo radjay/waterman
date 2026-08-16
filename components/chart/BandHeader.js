@@ -49,13 +49,13 @@ export function LegendKey({ mark, children, tone = "ink", dim = false }) {
 }
 
 /** Legends, defined once so Now, Live and Spot forecast cannot disagree.
- * Live (station) = accent/primary; forecast = muted grey — same as WindBand. */
+ * Live station = solid accent line; gusts = dashed accent; forecast = grey bar. */
 export const WIND_LIVE_LEGEND = (
   <>
-    <LegendKey mark="▮" tone="accent">
+    <LegendKey mark="—" tone="accent">
       station
     </LegendKey>
-    <LegendKey mark="▮" tone="accent" dim>
+    <LegendKey mark="--" tone="accent" dim>
       gusts
     </LegendKey>
     <LegendKey mark="▮" tone="muted">
