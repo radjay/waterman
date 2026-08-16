@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Zap } from "lucide-react";
 import { ScoreDial, ScoreDialEmpty } from "../ui/ScoreDial";
 import { DayTrack } from "../ui/DayTrack";
 import { DayChartPanel } from "../chart/DayChartPanel";
+import { CamFrame } from "../ui/CamFrame";
+import { isWindSport } from "../sport/SportProvider";
 import { primaryMetric } from "../../lib/conditions";
 import { dtf } from "../../lib/datetime";
 import { TZ } from "../../lib/dayChart";
@@ -16,11 +18,10 @@ import { TZ } from "../../lib/dayChart";
  * 12 kn N", with the bar showing where those hours sit against the whole day.
  * That is enough to decide whether to open it.
  *
- * Expanded, it becomes the same three-band chart as Now, minus the station.
- * This is a FORECAST screen; there is no live reading for Tuesday, and drawing
- * a station trace on today's row only would make today look like a different
- * kind of thing from the rest of the list. Live data is one tap away behind the
- * LIVE button, which is why that button exists.
+ * Expanded, it becomes the same three-band chart as Now. Future days stay
+ * forecast-only (no station, no hover). Today alone reuses Now's live station
+ * traces and column hover, and on desktop places the spot cam beside the chart
+ * stack so the bands are not a full-bleed empty column.
  */
 const clock = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
@@ -36,6 +37,12 @@ export function SpotDayRow({
   reportHref = null,
   nowMs = Date.now(),
   desktop = false,
+  /** Today only — same pack.station Now's wind band uses. */
+  station = null,
+  /** Spot for CamFrame / fullscreen (Today only). */
+  spot = null,
+  onOpenCam = null,
+  isToday = false,
   className = "",
 }) {
   const Chevron = open ? ChevronUp : ChevronDown;
@@ -58,6 +65,36 @@ export function SpotDayRow({
         day.windows.length > 1 ? ` +${day.windows.length - 1}` : ""
       }`
     : "no window";
+
+  // Live wind + hover only on Today — future days have nothing live to plot.
+  const liveToday = Boolean(isToday && open);
+  const liveStation = liveToday && isWindSport(sport) ? station : null;
+  const showCam = liveToday && spot;
+  const camStation = isWindSport(sport) ? station : null;
+
+  const chartPanel = chart.hasSlots ? (
+    <DayChartPanel
+      chart={chart}
+      sport={sport}
+      station={liveStation}
+      tides={tides}
+      nowMs={nowMs}
+      variant={desktop ? "desktop" : "mobile"}
+      showWash={liveToday}
+      showNow={liveToday}
+      showHover={liveToday}
+      reportHref={reportHref}
+      fluid={Boolean(showCam && desktop)}
+      bandHeights={
+        showCam && desktop
+          ? undefined
+          : desktop
+            ? { wind: 52, waves: 36, score: 40 }
+            : { wind: 66, waves: 46, score: 44 }
+      }
+      className={showCam && desktop ? "h-full min-h-0 w-full" : ""}
+    />
+  ) : null;
 
   return (
     <div
@@ -160,21 +197,33 @@ export function SpotDayRow({
 
       {open && chart.hasSlots && (
         <div className="border-t border-accent-border mt-[10px] pt-[11px] md:mt-3 md:pt-[13px]">
-          <DayChartPanel
-            chart={chart}
-            sport={sport}
-            station={null}
-            tides={tides}
-            nowMs={nowMs}
-            variant={desktop ? "desktop" : "mobile"}
-            showWash={false}
-            showNow={false}
-            showHover={false}
-            reportHref={reportHref}
-            bandHeights={
-              desktop ? { wind: 52, waves: 36, score: 40 } : { wind: 66, waves: 46, score: 44 }
-            }
-          />
+          {showCam && desktop ? (
+            // Same lock as Now: cam 16:9 sets row height; chart panel fills it.
+            <div className="grid grid-cols-[1.2fr_1fr] gap-5 items-stretch">
+              <CamFrame
+                spot={spot}
+                station={camStation}
+                radius={14}
+                onFullscreen={onOpenCam ? () => onOpenCam(spot) : undefined}
+                className="border border-card"
+              />
+              {chartPanel}
+            </div>
+          ) : showCam ? (
+            <div className="flex flex-col gap-3">
+              {/* Inset, not full-bleed — this is a day card, not the Now hero. */}
+              <CamFrame
+                spot={spot}
+                station={camStation}
+                radius={12}
+                onFullscreen={onOpenCam ? () => onOpenCam(spot) : undefined}
+                className="border border-card"
+              />
+              {chartPanel}
+            </div>
+          ) : (
+            chartPanel
+          )}
         </div>
       )}
     </div>

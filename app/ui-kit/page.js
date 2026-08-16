@@ -995,6 +995,9 @@ export default function UIKitPage() {
                 open={dayOpen}
                 onToggle={() => setDayOpen((v) => !v)}
                 onLive={() => {}}
+                isToday
+                spot={PACK.spot}
+                station={STATION_TRAIL}
               />
               <SpotDayRow
                 day={{ ...SPOT_DAY, label: "Saturday", windows: [], peak: 41 }}

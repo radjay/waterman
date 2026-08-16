@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-16]
+
+### Fixed
+- Spot forecast Today (from Next): desktop places the webcam beside the WIND / WAVES & TIDE / SCORE stack so the charts are no longer a full-width empty column; mobile keeps a stacked layout with the cam above the charts.
+- Spot forecast Today’s WIND band plots live station wind the same way NOW does (dots / line over the forecast).
+- Spot forecast Today charts support hover and tap-to-inspect tooltips like NOW (mouse + touch; station samples hit-test at the real reading time).
+
+### Changed
+- Future days on the spot forecast stay forecast-only; only Today gets the cam, live wind, and chart tips.
+
 ## [2026-08-15]
 
 ### Fixed
