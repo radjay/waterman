@@ -162,7 +162,7 @@ function HoverTipCard({ card, xPct }) {
         {card.rows.map((row) => (
           <div
             key={row.key}
-            className={`font-data text-[12px] font-bold tabular-nums tracking-tight ${
+            className={`font-data text-[12px] font-bold tabular-nums tracking-tight whitespace-nowrap ${
               row.tone === "accent" ? "text-accent" : "text-ink"
             }`}
           >
