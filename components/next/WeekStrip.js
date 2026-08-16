@@ -78,34 +78,38 @@ export function WeekStrip({
 
               {open && day.best.length > 0 && (
                 <div
-                  className={`flex gap-[7px] md:gap-2.5 pt-0.5 pb-1 ${
-                    desktop ? "pl-[50px]" : "pl-[38px]"
+                  className={`grid items-stretch pt-2.5 pb-2.5 ${
+                    desktop
+                      ? "grid-cols-[34px_1fr_34px] gap-x-4"
+                      : "grid-cols-[28px_1fr_26px] gap-x-2.5"
                   }`}
                 >
-                  {day.best.map((slot) => (
-                    <button
-                      key={slot.timestamp}
-                      type="button"
-                      onClick={() => onSelectSlot?.(day, slot)}
-                      className="flex-1 min-w-0 rounded-[10px] md:rounded-[12px] bg-surface border border-card px-[9px] py-2 md:px-3 md:py-2.5 text-left focus-ring hover:bg-ink-hover transition-colors duration-fast ease-smooth"
-                    >
-                      <span className="flex items-baseline justify-between gap-1">
-                        <span className="font-data text-[10px] md:text-[11px] text-faded-ink tabular-nums">
-                          {clock(slot.timestamp)}
+                  <div className="col-start-2 col-end-4 flex gap-[7px] md:gap-2.5 min-w-0">
+                    {day.best.map((slot) => (
+                      <button
+                        key={slot.timestamp}
+                        type="button"
+                        onClick={() => onSelectSlot?.(day, slot)}
+                        className="flex-1 min-w-0 rounded-[10px] md:rounded-[12px] bg-surface border border-card px-[9px] py-2 md:px-3 md:py-2.5 text-left focus-ring hover:bg-ink-hover transition-colors duration-fast ease-smooth"
+                      >
+                        <span className="flex items-baseline justify-between gap-1">
+                          <span className="font-data text-[10px] md:text-[11px] text-faded-ink tabular-nums">
+                            {clock(slot.timestamp)}
+                          </span>
+                          <span
+                            className={`font-data font-bold text-[13px] md:text-[16px] tabular-nums ${
+                              slot.score >= 60 ? "text-accent" : "text-marginal"
+                            }`}
+                          >
+                            {Math.round(slot.score)}
+                          </span>
                         </span>
-                        <span
-                          className={`font-data font-bold text-[13px] md:text-[16px] tabular-nums ${
-                            slot.score >= 60 ? "text-accent" : "text-marginal"
-                          }`}
-                        >
-                          {Math.round(slot.score)}
+                        <span className="block font-data text-[9.5px] md:text-[10.5px] text-dim mt-[3px] md:mt-[5px] truncate">
+                          {slot.spotName}
                         </span>
-                      </span>
-                      <span className="block font-data text-[9.5px] md:text-[10.5px] text-dim mt-[3px] md:mt-[5px] truncate">
-                        {slot.spotName}
-                      </span>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

@@ -54,6 +54,8 @@ export function DayChartPanel({
   /** Real link target for SCORE numbers — `/report/[slug]?sport=…`. */
   reportHref = null,
   bandHeights,
+  /** Fewer y-axis ticks on short bands (Report). Tall Now keeps the default. */
+  maxLines,
   className = "",
   nowMs = Date.now(),
 }) {
@@ -77,6 +79,7 @@ export function DayChartPanel({
         nowMs={nowMs}
         labelSize={labelSize}
         showWash={showWash}
+        maxLines={maxLines}
         height={fluid ? undefined : h.waves}
         className={fluid ? "flex-1 min-h-0" : ""}
       />
@@ -116,9 +119,12 @@ export function DayChartPanel({
           radius={desktop ? 4 : 3}
           height={fluid ? undefined : h.wind}
           nowMs={nowMs}
+          maxLines={maxLines}
           className={fluid ? "h-full min-h-0" : ""}
         />
-        {showHover && <ChartColumnHover chart={chart} station={live} nowMs={nowMs} />}
+        {showHover && (
+          <ChartColumnHover chart={chart} station={live} nowMs={nowMs} maxLines={maxLines} />
+        )}
       </div>
     </>
   );
@@ -205,6 +211,7 @@ export function WindOnlyChart({
           labelSize={labelSize}
           gutter={gutter}
           radius={3}
+          maxLines={3}
         />
         <NowLine chart={chart} z={2} />
       </div>

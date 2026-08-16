@@ -21,6 +21,8 @@ import { WindOnlyChart } from "../chart/DayChartPanel";
  * The wind chart is the point of the screen: the cam says what it looks like,
  * and the station line against the forecast columns says whether the model was
  * right. That contrast is the reason both are on the same card.
+ *
+ * Webcam-only spots (Guincho N, Moitas) have no forecast card — cam + name only.
  */
 export function LiveCard({
   pack,
@@ -33,51 +35,56 @@ export function LiveCard({
   className = "",
 }) {
   const { spot, score, station, slot } = pack;
+  const camOnly = Boolean(spot.webcamOnly);
 
   const identity = (
     <div className={`flex items-center ${desktop ? "gap-[14px]" : "gap-3"}`}>
-      {score === null ? (
-        <ScoreDialEmpty size={desktop ? 46 : 42} />
-      ) : (
-        <ScoreDial
-          score={score}
-          size={desktop ? 46 : 42}
-          ring={11}
-          value={desktop ? 16 : 14}
-          showAll
-        />
-      )}
+      {!camOnly &&
+        (score === null ? (
+          <ScoreDialEmpty size={desktop ? 46 : 42} />
+        ) : (
+          <ScoreDial
+            score={score}
+            size={desktop ? 46 : 42}
+            ring={11}
+            value={desktop ? 16 : 14}
+            showAll
+          />
+        ))}
       <div className="flex-1 min-w-0">
         <div
           className={`font-headline font-bold tracking-display truncate ${
-            score === null ? "text-faded-ink" : "text-ink"
+            camOnly || score !== null ? "text-ink" : "text-faded-ink"
           } ${desktop ? "text-[17px]" : "text-[16px]"}`}
         >
           {spot.name}
         </div>
-        <LiveReading
-          pack={pack}
-          sport={sport}
-          slot={slot}
-          station={station}
-          size={desktop ? 11.5 : 10.5}
-        />
+        {!camOnly && (
+          <LiveReading
+            pack={pack}
+            sport={sport}
+            slot={slot}
+            station={station}
+            size={desktop ? 11.5 : 10.5}
+          />
+        )}
       </div>
     </div>
   );
 
-  const wind = chart ? (
-    <WindOnlyChart
-      chart={chart}
-      sport={sport}
-      station={station}
-      height={desktop ? 44 : 38}
-      labelSize={desktop ? 9 : 8}
-      axisSize={desktop ? 9 : 8}
-      gutter={desktop ? 2 : 1.5}
-      className={desktop ? "mt-[11px]" : "mt-[7px]"}
-    />
-  ) : null;
+  const wind =
+    !camOnly && chart ? (
+      <WindOnlyChart
+        chart={chart}
+        sport={sport}
+        station={station}
+        height={desktop ? 44 : 38}
+        labelSize={desktop ? 9 : 8}
+        axisSize={desktop ? 9 : 8}
+        gutter={desktop ? 2 : 1.5}
+        className={desktop ? "mt-[11px]" : "mt-[7px]"}
+      />
+    ) : null;
 
   const shell = `rounded-card-lg border overflow-hidden ${
     highlight ? "border-accent-border bg-accent-tint-card" : "border-card bg-surface"
@@ -86,20 +93,19 @@ export function LiveCard({
   // Same pack.station as the wind chart — CamFrame overlays LiveStationBadge
   // top-left when there is a reading; surfing / dead stations stay blank.
   // Windguru + Windy sit top-right (LIVE only) left of Maximize.
-  const camStation = isWindSport(sport) ? station : null;
+  // Webcam-only spots have no station line to show.
+  const camStation = !camOnly && isWindSport(sport) ? station : null;
 
   if (desktop) {
     return (
-      <div className={`${shell} flex flex-col min-h-0`} onClick={onSelect}>
-        <div className="flex-1 min-h-0 relative">
-          <CamFrame
-            spot={spot}
-            station={camStation}
-            showExternalLinks
-            fill
-            onFullscreen={onOpenCam}
-          />
-        </div>
+      <div className={`${shell} flex flex-col`} onClick={onSelect}>
+        <CamFrame
+          spot={spot}
+          station={camStation}
+          showExternalLinks
+          matchVideoAspect
+          onFullscreen={onOpenCam}
+        />
         <div className="flex-none px-[14px] pt-[10px] pb-[11px]">
           {identity}
           {wind}
@@ -116,6 +122,7 @@ export function LiveCard({
           spot={spot}
           station={camStation}
           showExternalLinks
+          matchVideoAspect
           radius={11}
           onFullscreen={onOpenCam}
         />
@@ -164,7 +171,7 @@ function LiveReading({ pack, sport, slot, station: sensor, size }) {
   );
 }
 
-/** The legend, once, in the page header — not repeated on every card. */
+/** @deprecated Page-level LIVE legend removed — kept for ui-kit reference only. */
 export function LiveLegend({ live = true, className = "" }) {
   return (
     <div className={`flex gap-4 font-data text-[10px] ${className}`}>

@@ -29,7 +29,6 @@ export function SpotPickerSheet({
   value,
   onChange,
   sport,
-  title,
   /**
    * Adds an "All my spots" row at the top. Next and Live are lists rather than
    * single-spot views, so they need a way back out of a spot as well as into
@@ -67,10 +66,6 @@ export function SpotPickerSheet({
         aria-label="Spot"
         className="absolute left-0 right-0 top-full mt-3 z-50 rounded-card-xl bg-nav-bg border border-nav-border shadow-nav backdrop-blur-md overflow-hidden md:left-auto md:right-auto md:min-w-[360px]"
       >
-        <div className="px-4 pt-[13px] pb-[9px] font-data text-[9px] tracking-label-wide text-dim uppercase">
-          {title ?? "My spots"} · {sportMeta(sport).label}
-        </div>
-
         {allOption && (
           <button
             type="button"

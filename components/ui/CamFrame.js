@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { CameraOff, Maximize, CircleGauge, ChartNoAxesCombined } from "lucide-react";
 import { LiveCam, streamUrlFor } from "../now/LiveCam";
 import { LiveStationBadge } from "./LiveStationBadge";
@@ -8,10 +9,11 @@ import { dtf } from "../../lib/datetime";
 /**
  * The cam, in a box.
  *
- * Every screen shows the same picture at the same ratio, so the frame is one
- * component: 16:9, no overlay chrome except the fullscreen affordance and (when
- * the spot has a live reading) LiveStationBadge in the top-left, plus an
- * explicit offline state rather than a black rectangle.
+ * Default frame is 16:9. LIVE cards pass `matchVideoAspect` so the box follows
+ * the stream's native ratio once metadata loads — no crop into a square tile.
+ *
+ * Overlay chrome: LiveStationBadge top-left (when a reading exists), optional
+ * centred overlay (day badge on Next cards), Windguru/Windy + Maximize top-right.
  *
  * A dead cam is information. The card around it still carries the station
  * reading and the score, so the frame says WHEN it died — "CAM OFFLINE SINCE
@@ -32,7 +34,7 @@ import { dtf } from "../../lib/datetime";
  * @param {object} spot
  * @param {object|null} [station] pack.station — LIVE badge top-left when present
  * @param {boolean} [showExternalLinks] Windguru/Windy overlays (NOW / LIVE)
- * @param {boolean} [rounded]   corner radius token, 0 for the full-bleed hero
+ * @param {boolean} [matchVideoAspect] size the frame to the stream's ratio
  * @param {Function} [onFullscreen]
  * @param {number|null} [offlineSince] ms — renders the offline plate
  */
@@ -63,6 +65,7 @@ export function CamFrame({
   offlineSince = null,
   ratio = "16 / 9",
   fill = false,
+  matchVideoAspect = false,
   overlay = null,
   className = "",
 }) {
@@ -73,12 +76,23 @@ export function CamFrame({
   const hasLinks = Boolean(windguruUrl || windyUrl);
   const showTopRight = hasLinks || clickable;
 
+  const [videoRatio, setVideoRatio] = useState(null);
+  const onAspectRatio = useCallback((r) => {
+    if (Number.isFinite(r) && r > 0) setVideoRatio(r);
+  }, []);
+
+  const aspectStyle = fill
+    ? undefined
+    : matchVideoAspect
+      ? videoRatio ?? ratio
+      : ratio;
+
   return (
     <div
       className={`relative overflow-hidden bg-offline-bg ${fill ? "w-full h-full" : "w-full"} ${
         clickable ? "cursor-pointer focus-ring" : ""
       } ${className}`}
-      style={{ borderRadius: radius || undefined, aspectRatio: fill ? undefined : ratio }}
+      style={{ borderRadius: radius || undefined, aspectRatio: aspectStyle }}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       aria-label={clickable ? "Open the cam fullscreen" : undefined}
@@ -92,14 +106,22 @@ export function CamFrame({
       }
     >
       {hasStream ? (
-        <LiveCam spot={spot} />
+        <LiveCam
+          spot={spot}
+          onAspectRatio={matchVideoAspect ? onAspectRatio : undefined}
+        />
       ) : (
         <CamOffline since={offlineSince} never={!spot?.webcamUrl && !spot?.webcamStreamId} />
       )}
 
-      {(station || overlay) && (
-        <span className="absolute top-[11px] left-3 z-[1] pointer-events-none flex items-center gap-2">
-          {station && <LiveStationBadge station={station} />}
+      {station && (
+        <span className="absolute top-[11px] left-3 z-[1] pointer-events-none">
+          <LiveStationBadge station={station} />
+        </span>
+      )}
+
+      {overlay && (
+        <span className="absolute top-[11px] left-1/2 -translate-x-1/2 z-[1] pointer-events-none">
           {overlay}
         </span>
       )}

@@ -29,8 +29,9 @@ const weekday = (ms) => dtf("en-GB", { weekday: "long", timeZone: TZ }).format(n
  * Deliberately not a second Now. Now is about this hour at whichever spot is
  * best; this is about one beach over a week. Future days stay forecast-only.
  * Today reuses Now's live station wind on the WIND band, hover/tap tips, and
- * (on desktop) the spot cam beside the chart stack. The LIVE button still jumps
- * to Now for the full live reading.
+ * (on mobile) the spot cam above the charts. Desktop drops the cam so day rows
+ * stay a capped-width list. The LIVE button still jumps to Now for the full
+ * live reading.
  *
  * Today is expanded by default because that is the day someone landing here is
  * usually asking about, and one row open at a time keeps the list scannable —
@@ -122,7 +123,7 @@ export default function SpotReportContent({ slug }) {
         }
       />
 
-      <div className="flex flex-col gap-[5px] mt-2.5 md:gap-2 md:mt-3">
+      <div className="flex flex-col gap-[5px] mt-2.5 md:gap-2 md:mt-3 md:max-w-[720px]">
         {days.map((day) => {
           const todayRow = sameDay(day.dayStart, now);
           return (

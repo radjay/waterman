@@ -33,7 +33,7 @@ export function streamUrlFor(spot) {
  * @param {"cover"|"contain"} fit - cover fills the box (crops; Now card).
  *   contain shows the whole frame with letterboxing (confidence / live panel).
  */
-export function LiveCam({ spot, fit = "cover" }) {
+export function LiveCam({ spot, fit = "cover", onAspectRatio }) {
   const videoRef = useRef(null);
   const [failed, setFailed] = useState(false);
   const streamUrl = streamUrlFor(spot);
@@ -44,6 +44,13 @@ export function LiveCam({ spot, fit = "cover" }) {
 
     setFailed(false);
     let hls;
+
+    const reportAspect = () => {
+      if (!onAspectRatio) return;
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (w > 0 && h > 0) onAspectRatio(w / h);
+    };
 
     if (Hls.isSupported()) {
       hls = new Hls({ enableWorker: true, lowLatencyMode: true });
@@ -62,8 +69,16 @@ export function LiveCam({ spot, fit = "cover" }) {
       setFailed(true);
     }
 
-    return () => hls?.destroy();
-  }, [streamUrl]);
+    video.addEventListener("loadedmetadata", reportAspect);
+    // Some streams only expose dimensions after the first frame.
+    video.addEventListener("loadeddata", reportAspect);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", reportAspect);
+      video.removeEventListener("loadeddata", reportAspect);
+      hls?.destroy();
+    };
+  }, [streamUrl, onAspectRatio]);
 
   if (!streamUrl || failed) {
     return (
