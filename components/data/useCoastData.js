@@ -66,16 +66,47 @@ export function useCoastData(sport) {
         const now = Date.now() + clockOffset;
         const today = dayStartOf(now);
 
-        const withSlots = spotsWithSlots(report, sport)
+        // Webcam-only beaches (Guincho N, Moitas) are omitted from older
+        // getReportData deployments; merge listWebcams so Live All spots still
+        // shows their cams until the Convex query catches up.
+        let camOnlySpots = [];
+        try {
+          const cams = await client.query(api.spots.listWebcams, {});
+          camOnlySpots = (cams ?? []).filter((s) => s.webcamOnly);
+        } catch {
+          camOnlySpots = [];
+        }
+        if (cancelled) return;
+
+        const withSlots = spotsWithSlots(report, sport);
+        const seen = new Set(withSlots.map(({ spot }) => spot._id));
+        for (const spot of camOnlySpots) {
+          if (seen.has(spot._id)) continue;
+          withSlots.push({ spot, slots: [], config: null });
+          seen.add(spot._id);
+        }
+
+        const filtered = withSlots
           // A spot that does not do this sport has no answer for it. Showing it
           // with an empty dial would read as "flat here" rather than "not here".
-          .filter(({ spot }) => (spot.sports ?? []).includes(sport));
+          // Webcam-only cams with no sports list still belong on Live All spots.
+          .filter(({ spot }) => {
+            const sports = spot.sports ?? [];
+            if (spot.webcamOnly) {
+              const hasCam =
+                spot.webcamStreamId != null ||
+                (typeof spot.webcamUrl === "string" && spot.webcamUrl.trim() !== "");
+              if (!hasCam) return false;
+              return sports.length === 0 || sports.includes(sport);
+            }
+            return sports.includes(sport);
+          });
 
         // Stations are fetched per distinct sensor, not per spot: two spots
         // share 2329 and two share 3294, so per-spot would poll each twice.
         const stationIds = [
           ...new Set(
-            withSlots.map(({ spot }) => stationIdFromUrl(spot.liveReportUrl)).filter(Boolean)
+            filtered.map(({ spot }) => stationIdFromUrl(spot.liveReportUrl)).filter(Boolean)
           ),
         ];
         const readingsById = new Map();
@@ -99,7 +130,7 @@ export function useCoastData(sport) {
           loading: false,
           error: null,
           now,
-          raw: { report, withSlots, readingsById, today },
+          raw: { report, withSlots: filtered, readingsById, today },
         });
       } catch (error) {
         if (cancelled) return;

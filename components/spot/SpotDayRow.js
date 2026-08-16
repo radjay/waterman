@@ -20,8 +20,8 @@ import { TZ } from "../../lib/dayChart";
  *
  * Expanded, it becomes the same three-band chart as Now. Future days stay
  * forecast-only (no station, no hover). Today alone reuses Now's live station
- * traces and column hover, and on desktop places the spot cam beside the chart
- * stack so the bands are not a full-bleed empty column.
+ * traces and column hover. On mobile the spot cam sits above the charts; on
+ * desktop the cam is omitted so the score rows stay a capped column.
  */
 const clock = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
@@ -69,7 +69,9 @@ export function SpotDayRow({
   // Live wind + hover only on Today — future days have nothing live to plot.
   const liveToday = Boolean(isToday && open);
   const liveStation = liveToday && isWindSport(sport) ? station : null;
-  const showCam = liveToday && spot;
+  // Mobile Today keeps the cam above the charts; desktop drops it so the day
+  // rows stay a readable score column instead of stretching beside a video.
+  const showCam = liveToday && spot && !desktop;
   const camStation = isWindSport(sport) ? station : null;
 
   const chartPanel = chart.hasSlots ? (
@@ -84,15 +86,13 @@ export function SpotDayRow({
       showNow={liveToday}
       showHover={liveToday}
       reportHref={reportHref}
-      fluid={Boolean(showCam && desktop)}
+      // Short report bands — fewer y ticks than the tall Now chart.
+      maxLines={3}
       bandHeights={
-        showCam && desktop
-          ? undefined
-          : desktop
-            ? { wind: 52, waves: 36, score: 40 }
-            : { wind: 66, waves: 46, score: 44 }
+        desktop
+          ? { wind: 52, waves: 36, score: 40 }
+          : { wind: 66, waves: 46, score: 44 }
       }
-      className={showCam && desktop ? "h-full min-h-0 w-full" : ""}
     />
   ) : null;
 
@@ -184,32 +184,22 @@ export function SpotDayRow({
         />
       </button>
 
-      <DayTrack
-        windows={day.windows}
-        dayStart={day.dayStart}
-        firstHour={chart.firstHour}
-        lastHour={chart.lastHour}
-        nowMs={nowMs}
-        height={desktop ? 7 : 5}
-        radius={desktop ? 4 : 3}
-        className="mt-[6px]"
-      />
+      {!open && (
+        <DayTrack
+          windows={day.windows}
+          dayStart={day.dayStart}
+          firstHour={chart.firstHour}
+          lastHour={chart.lastHour}
+          nowMs={nowMs}
+          height={desktop ? 7 : 5}
+          radius={desktop ? 4 : 3}
+          className="mt-[6px]"
+        />
+      )}
 
       {open && chart.hasSlots && (
         <div className="border-t border-accent-border mt-[10px] pt-[11px] md:mt-3 md:pt-[13px]">
-          {showCam && desktop ? (
-            // Same lock as Now: cam 16:9 sets row height; chart panel fills it.
-            <div className="grid grid-cols-[1.2fr_1fr] gap-5 items-stretch">
-              <CamFrame
-                spot={spot}
-                station={camStation}
-                radius={14}
-                onFullscreen={onOpenCam ? () => onOpenCam(spot) : undefined}
-                className="border border-card"
-              />
-              {chartPanel}
-            </div>
-          ) : showCam ? (
+          {showCam ? (
             <div className="flex flex-col gap-3">
               {/* Inset, not full-bleed — this is a day card, not the Now hero. */}
               <CamFrame

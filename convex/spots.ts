@@ -2039,9 +2039,18 @@ export const getReportData = query({
         // Get spots filtered by sports
         const allSpots = await ctx.db.query("spots").collect();
         const filteredSpots = allSpots.filter((spot: any) => {
-            if (spot.webcamOnly) return false;
             const spotSports = spot.sports || [];
-            return args.sports.some((sport: string) => spotSports.includes(sport));
+            const matchesSport = args.sports.some((sport: string) => spotSports.includes(sport));
+            // Webcam-only spots (Guincho N, Moitas) have no forecast but must
+            // still appear in Live "All spots" as cam cards.
+            if (spot.webcamOnly) {
+                const hasCam =
+                    spot.webcamStreamId !== undefined ||
+                    (typeof spot.webcamUrl === "string" && spot.webcamUrl.trim() !== "");
+                if (!hasCam) return false;
+                return matchesSport || spotSports.length === 0;
+            }
+            return matchesSport;
         });
 
         // Fetch per-spot data and most recent scrape timestamp in parallel

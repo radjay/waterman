@@ -10,7 +10,7 @@ import { useCoastData } from "../../components/data/useCoastData";
 import { useIsDesktop } from "../../lib/hooks/useMediaQuery";
 import { useSelectedSpot } from "../../lib/hooks/useSelectedSpot";
 import { ALL_SPOTS, ALL_COAST_SPOTS, SpotPickerSheet } from "../../components/spot/SpotPickerSheet";
-import { LiveCard, LiveLegend } from "../../components/live/LiveCard";
+import { LiveCard } from "../../components/live/LiveCard";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { TvMode } from "../../components/webcam/TvMode";
 import { ScreenError, ScreenEmpty, ScreenSkeleton } from "../../components/common/ScreenState";
@@ -29,7 +29,7 @@ import { buildDayChart } from "../../lib/dayChart";
  *
  * Surfing gets no station traces anywhere: the sensors measure wind, and wind
  * is the quality note for surf rather than the answer. The cam is the only live
- * evidence, and the chart says so by dropping the live legend.
+ * evidence.
  */
 export default function LiveContent() {
   const router = useRouter();
@@ -141,20 +141,16 @@ export default function LiveContent() {
             sport={sport}
           />
         }
-        tools={isDesktop ? <LiveLegend live={isWindSport(sport)} /> : null}
+        tools={null}
       />
 
       {isDesktop ? (
         <div
-          className={`grid grid-cols-2 gap-4 mt-3.5 ${
-            onlyId === ALL_COAST_SPOTS ? "overflow-y-auto content-start" : ""
-          }`}
+          className="grid grid-cols-2 gap-4 mt-3.5 overflow-y-auto content-start"
           style={{
             height: "calc(100vh - 190px)",
             minHeight: 520,
-            ...(onlyId === ALL_COAST_SPOTS
-              ? { gridAutoRows: "minmax(280px, 42vh)" }
-              : null),
+            alignContent: "start",
           }}
         >
           {desktopCards.map((pack) => (

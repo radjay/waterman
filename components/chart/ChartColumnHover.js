@@ -39,6 +39,7 @@ export function ChartColumnHover({
   station = null,
   nowMs = Date.now(),
   leftInset = PLOT_LABEL_INSET_PX,
+  maxLines,
   className = "",
 }) {
   const [hover, setHover] = useState(null);
@@ -65,7 +66,7 @@ export function ChartColumnHover({
     ...chart.columns.flatMap((c) => [c.slot?.speed, c.slot?.gust]),
     ...(station?.history ?? []).flatMap((p) => [p.speed, p.gust]),
   ];
-  const scale = windScale(values);
+  const scale = windScale(values, maxLines != null ? { maxLines } : undefined);
 
   const onPointerDown = (e) => {
     if (e.pointerType === "mouse") return;

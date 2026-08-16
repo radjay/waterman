@@ -35,9 +35,10 @@
 
 ### Bugs
 
+- [x] **QA layout batch (2026-08-16)** — Spot picker header removed; Next day badge centred; week slot spacing + right-align under score; Report desktop cam removed + score-row max-width; Report score bar collapsed-only; short chart Y ticks via `maxLines`; Live cams match video aspect; Live page legend removed; All spots includes webcam-only cam cards.
 - [x] **WIND band forecast stacks + live lines (2026-08-16)** — forecast = muted grey stacked bars; live station = solid accent line + dashed gusts on top (not bars); legend + tip tones match LIVE badge.
-- [x] **Spot forecast Today desktop cam + live wind + tips (2026-08-16)** — expanded Today: cam beside charts on desktop; live station wind + NOW-style hover/tap tooltips on Today only.
-- [x] **Denser day-chart y-axis ticks (2026-08-16)** — WIND at 5 kt steps; WAVES & TIDE at 0.5 m steps (shared `windScale` / `waveScale`), thinned when crowded.
+- [x] **Spot forecast Today desktop cam + live wind + tips (2026-08-16)** — Today live wind + tips; desktop Report no longer shows cam beside charts (mobile keeps cam); score rows capped width.
+- [x] **Denser day-chart y-axis ticks (2026-08-16)** — WIND at 5 kt steps; WAVES & TIDE at 0.5 m steps (shared `windScale` / `waveScale`), thinned when crowded; short Report/Live bands use lower `maxLines`.
 - [x] **Chart hover tip readability (2026-08-16)** — stacked card: time + `Live Nkt (G*)` / `Forecast Nkt (G*)`; mouse + tap-to-inspect unchanged.
 - [x] **WebcamFullscreen iOS landscape viewport (2026-08-15)** — overlay sized to `visualViewport` + scroll reset on open/rotate; pinch blocked only inside the shell; top chrome uses safe-area.
 - [x] **Lagoa tide + bottom nav (2026-08-15)** — re-scraped Lagoa/Bico/CDS/Fonte tides (morning marks); Cascais still intact; bottom nav pill measures one of four equal slots.

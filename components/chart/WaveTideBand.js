@@ -43,6 +43,8 @@ export function WaveTideBand({
   showWash = true,
   nowMs = Date.now(),
   labelInset = PLOT_LABEL_INSET_PX,
+  /** Cap y-axis ticks on short bands (Report). */
+  maxLines,
   className = "",
 }) {
   const wavePoints = chart.columns
@@ -54,7 +56,10 @@ export function WaveTideBand({
 
   if (wavePoints.length < 2 && tidePoints.length < 2) return null;
 
-  const scale = waveScale(wavePoints.map((p) => p.height));
+  const scale = waveScale(
+    wavePoints.map((p) => p.height),
+    maxLines != null ? { maxLines } : undefined
+  );
 
   const x = (t) => (range ? ((t - range.start) / (range.end - range.start)) * 300 : 0);
 

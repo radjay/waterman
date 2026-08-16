@@ -33,13 +33,15 @@ export function WindBand({
   showWash = true,
   labelInset = PLOT_LABEL_INSET_PX,
   nowMs = Date.now(),
+  /** Cap y-axis ticks — short bands pass 3 so 5kt steps thin earlier. */
+  maxLines,
   className = "",
 }) {
   const values = [
     ...chart.columns.flatMap((c) => [c.slot?.speed, c.slot?.gust]),
     ...(station?.history ?? []).flatMap((p) => [p.speed, p.gust]),
   ];
-  const scale = given ?? windScale(values);
+  const scale = given ?? windScale(values, maxLines != null ? { maxLines } : undefined);
 
   const stationPaths = station ? stationLines(station, chart, scale, nowMs) : null;
 
