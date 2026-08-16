@@ -933,8 +933,9 @@ export default function UIKitPage() {
           >
             <p className="text-[13px] text-faded-ink max-w-[70ch]">
               Wired inside DayChartPanel when <code className="font-data text-[11px] text-ink">showHover</code>{" "}
-              is on. Hover (desktop) or tap (phone) the wind band above — tips sit below the plot,
-              and near a station sample the copy leads with that sample&apos;s clock (
+              is on. Hover (desktop) or tap (phone) the wind band above — a stacked tip sits below the
+              plot (time, then station / gusts / forecast in legend colours). Near a station sample the
+              clock is that sample&apos;s time (
               <code className="font-data text-[11px] text-ink">chartHover</code>). Scroll/drag does
               not select; tap again or outside dismisses.
             </p>
