@@ -11,7 +11,7 @@
 - Future days on the spot forecast stay forecast-only; only Today gets the cam, live wind, and chart tips.
 - Day-chart WIND y-axis uses 5 kt steps (e.g. 5 / 10 / 15 / 20 / 25), thinning when a denser set would crowd the band.
 - Day-chart WAVES & TIDE y-axis uses 0.5 m steps (e.g. 0.5 / 1 / 1.5) instead of a single mid-scale tick.
-- Chart hover tip is a stacked card (time, then station / gusts / forecast rows in legend colours) instead of a dense one-liner — same mouse hover and tap-to-inspect behaviour.
+- Chart hover tip is a stacked card with time, then `Live {speed}kt ({gust}*)` and `Forecast {speed}kt ({gust}*)` (two data lines; omit Live or Forecast when missing) — same mouse hover and tap-to-inspect behaviour.
 
 ## [2026-08-15]
 

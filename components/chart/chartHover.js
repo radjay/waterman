@@ -8,9 +8,11 @@ import { dtf } from "../../lib/datetime";
  *   - a forecast 3h column
  *   - a station wind reading (wins when the pointer is close to a plotted sample)
  *
- * The tip is a stacked card (time + one row per series), rendered by
- * ChartColumnHover — not a dense one-liner. Station hits keep the sample's
- * wall clock so a 15:42 reading does not collapse to the 1pm slot label.
+ * The tip is a stacked card — time, then up to two lines:
+ *   Live {speed}kt ({gust}*)
+ *   Forecast {speed}kt ({gust}*)
+ * rendered by ChartColumnHover. Station hits keep the sample's wall clock so a
+ * 15:42 reading does not collapse to the 1pm slot label.
  */
 
 /** How close (track %) the pointer must be to prefer a station sample. */
@@ -34,16 +36,18 @@ export function clockLabel(ms, timeZone = TZ) {
   }).format(new Date(ms));
 }
 
-function kt(n) {
-  return `${Math.round(n)} kt`;
+/** `1kt` or `1kt (3*)` — no space before kt; gust as parenthetical *. */
+function windLine(label, speed, gust) {
+  let text = `${label} ${Math.round(speed)}kt`;
+  if (Number.isFinite(gust)) text += ` (${Math.round(gust)}*)`;
+  return text;
 }
 
 /**
  * Build the tip card rows from the numbers we have.
  *
- * Series match the wind legend: station (ink), gusts (muted — live dashed),
- * forecast (accent). Forecast gust is its own row so every number stays;
- * labelled "gusts" when there is no live gust row, else "forecast gusts".
+ * At most two data lines: Live (station ink) and Forecast (accent). Gusts fold
+ * into the same line as `(N*)`; omit a line entirely when that series is absent.
  */
 export function windHoverRows({
   stationSpeed = null,
@@ -53,21 +57,17 @@ export function windHoverRows({
 } = {}) {
   const rows = [];
   if (Number.isFinite(stationSpeed)) {
-    rows.push({ key: "station", label: "station", value: kt(stationSpeed), tone: "ink" });
-  }
-  if (Number.isFinite(stationGust)) {
-    rows.push({ key: "gusts", label: "gusts", value: kt(stationGust), tone: "muted" });
+    rows.push({
+      key: "live",
+      text: windLine("Live", stationSpeed, stationGust),
+      tone: "ink",
+    });
   }
   if (Number.isFinite(forecastSpeed)) {
-    rows.push({ key: "forecast", label: "forecast", value: kt(forecastSpeed), tone: "accent" });
-  }
-  if (Number.isFinite(forecastGust)) {
     rows.push({
-      key: "forecastGusts",
-      label: Number.isFinite(stationGust) ? "forecast gusts" : "gusts",
-      value: kt(forecastGust),
+      key: "forecast",
+      text: windLine("Forecast", forecastSpeed, forecastGust),
       tone: "accent",
-      dim: true,
     });
   }
   return rows;
@@ -76,7 +76,7 @@ export function windHoverRows({
 /** Plain-text fallback / aria summary of a hover card. */
 export function hoverCardText(card) {
   if (!card?.time || !card.rows?.length) return null;
-  return [card.time, ...card.rows.map((r) => `${r.label} ${r.value}`)].join(" · ");
+  return [card.time, ...card.rows.map((r) => r.text)].join(" · ");
 }
 
 /** Latest station sample that falls inside the slot and at or before now. */
