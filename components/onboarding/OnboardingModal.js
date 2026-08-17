@@ -31,7 +31,9 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
   useEffect(() => {
     async function fetchCountries() {
       try {
-        const allSpots = await client.query(api.spots.list, {});
+        const allSpots = await client.query(api.spots.list, {
+          includeWebcams: true,
+        });
         const uniqueCountries = [...new Set(
           allSpots.map(spot => spot.country).filter(c => c && c.trim())
         )].sort();
@@ -48,7 +50,10 @@ export function OnboardingModal({ onComplete, onDismiss, isDismissible = true })
       async function fetchSpots() {
         setLoading(true);
         try {
-          const allSpots = await client.query(api.spots.list, { sports: selectedSports });
+          const allSpots = await client.query(api.spots.list, {
+            sports: selectedSports,
+            includeWebcams: true,
+          });
           setSpots(allSpots.filter(spot => spot.country === selectedCountry));
         } catch (error) {
           console.error("Error fetching spots:", error);

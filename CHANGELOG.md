@@ -4,7 +4,12 @@
 
 ### Fixed
 - Report SCORE timeslot columns sit on the day chart again — Tooltip no longer overrides `absolute` with `relative`, so the bars and numbers stay in their slots. Hover still shows the AI verdict; tap toggles it on touch.
-- NO uses the same marginal colour as the score ring and bars below 60 (no more grey NO beside an orange 45).
+- Orange is MAYBE only (60–74). Scores below 60 — including 0 — and the NO verdict use dim grey, not the caution orange.
+- Next no longer prints “Scores here are each window’s peak”.
+- Spot forecast charts show the forecast hover tip on every open day (wind + wave), not only Today.
+- Settings on desktop is a 560px column so preference rows no longer stretch the full page.
+- Favorite spots includes cam-only beaches (Lagoa de Obidos, Guincho N, Moitas, …) so they can be saved for Live.
+- Settings switch uses an opaque knob on a visible track so “Show personalized scores” reads as on/off, not a bare accent pill.
 - Live desktop cam cards keep the stream aspect ratio — the 2×2 grid no longer squashes the video into a wide strip.
 - Next week expanded slots: space above the slot row matches space below it (last slot still lines up under the day score).
 

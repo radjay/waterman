@@ -98,7 +98,11 @@ export function WeekStrip({
                           </span>
                           <span
                             className={`font-data font-bold text-[13px] md:text-[16px] tabular-nums ${
-                              slot.score >= 60 ? "text-accent" : "text-marginal"
+                              slot.score >= 75
+                                ? "text-accent"
+                                : slot.score >= 60
+                                  ? "text-caution"
+                                  : "text-dim"
                             }`}
                           >
                             {Math.round(slot.score)}

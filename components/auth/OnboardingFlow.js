@@ -36,8 +36,13 @@ export default function OnboardingFlow({ onComplete }) {
   const loadSpots = async () => {
     setSpotsLoading(true);
     try {
-      const spotsData = await client.query(api.spots.list, {});
-      setSpots(spotsData);
+      const spotsData = await client.query(api.spots.list, {
+        includeWebcams: true,
+      });
+      setSpots([
+        ...spotsData.filter((s) => !s.webcamOnly),
+        ...spotsData.filter((s) => s.webcamOnly),
+      ]);
     } catch (err) {
       console.error("Error loading spots:", err);
     } finally {

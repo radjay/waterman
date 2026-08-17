@@ -55,6 +55,7 @@ export function windHoverRows({
   stationGust = null,
   forecastSpeed = null,
   forecastGust = null,
+  waveHeight = null,
 } = {}) {
   const rows = [];
   if (Number.isFinite(stationSpeed)) {
@@ -68,6 +69,14 @@ export function windHoverRows({
     rows.push({
       key: "forecast",
       text: windLine("Forecast", forecastSpeed, forecastGust),
+      tone: "muted",
+    });
+  }
+  if (Number.isFinite(waveHeight) && waveHeight > 0) {
+    const n = Math.round(waveHeight * 10) / 10;
+    rows.push({
+      key: "wave",
+      text: `Wave ${n}m`,
       tone: "muted",
     });
   }
@@ -102,6 +111,7 @@ export function columnHoverCard(column, station = null, nowMs = Date.now()) {
     stationGust: live?.gust,
     forecastSpeed: column.slot.speed,
     forecastGust: column.slot.gust,
+    waveHeight: column.slot.waveHeight,
   });
   if (!rows.length) return null;
   return { time: slotHourLabel(column.hour), rows };
@@ -125,15 +135,13 @@ export function stationHoverCard(point, chart = null) {
 
   let forecastSpeed = Number.isFinite(point.forecast) ? point.forecast : null;
   let forecastGust = Number.isFinite(point.forecastGust) ? point.forecastGust : null;
-  if (forecastSpeed == null && chart?.columns?.length) {
-    const covering = chart.columns.find(
-      (c) =>
-        c.slot?.timestamp <= point.time && point.time < c.slot.timestamp + SLOT_MS
-    );
-    if (covering?.slot) {
-      forecastSpeed = covering.slot.speed;
-      forecastGust = covering.slot.gust;
-    }
+  const covering = chart?.columns?.find(
+    (c) =>
+      c.slot?.timestamp <= point.time && point.time < c.slot.timestamp + SLOT_MS
+  );
+  if (forecastSpeed == null && covering?.slot) {
+    forecastSpeed = covering.slot.speed;
+    forecastGust = covering.slot.gust;
   }
 
   const rows = windHoverRows({
@@ -141,6 +149,7 @@ export function stationHoverCard(point, chart = null) {
     stationGust: point.gust,
     forecastSpeed,
     forecastGust,
+    waveHeight: covering?.slot?.waveHeight,
   });
   if (!rows.length) return null;
   return { time: clock, rows };
