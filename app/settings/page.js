@@ -108,8 +108,14 @@ export default function ProfilePage() {
     async function fetchSpots() {
       setLoading(true);
       try {
-        const fetchedSpots = await client.query(api.spots.list, {});
-        setSpots(fetchedSpots);
+        const fetchedSpots = await client.query(api.spots.list, {
+          includeWebcams: true,
+        });
+        // Forecast spots first, then cam-only (Lagoa de Obidos, Guincho N, …).
+        setSpots([
+          ...fetchedSpots.filter((s) => !s.webcamOnly),
+          ...fetchedSpots.filter((s) => s.webcamOnly),
+        ]);
       } catch (err) {
         console.error("Error loading spots:", err);
       } finally {
@@ -223,7 +229,7 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <Header />
-      <div className="pt-2">
+      <div className="pt-2 md:max-w-[560px]">
         <Heading level={1} className="mb-8">
           Settings
         </Heading>
@@ -268,7 +274,11 @@ export default function ProfilePage() {
                     <SettingsRow
                       key={spot._id}
                       title={spot.name}
-                      hint={spot.country || undefined}
+                      hint={
+                        [spot.country, spot.webcamOnly ? "Cam only" : null]
+                          .filter(Boolean)
+                          .join(" · ") || undefined
+                      }
                       selected={selected}
                       trailing="check"
                       onClick={() => toggleSpot(spot._id)}

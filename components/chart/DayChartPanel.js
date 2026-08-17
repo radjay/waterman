@@ -49,7 +49,7 @@ export function DayChartPanel({
    */
   showWash = true,
   showNow = true,
-  /** Hover tooltips on the column tops (Now). Off on forecast-only panels. */
+  /** Hover tooltips on wind / waves (Now, and every open Report day). */
   showHover = true,
   /** Real link target for SCORE numbers — `/report/[slug]?sport=…` (Now). */
   reportHref = null,
@@ -75,16 +75,21 @@ export function DayChartPanel({
   const water = waveTidePresence(chart, tides);
   const waves =
     showWaves && water.any ? (
-      <WaveTideBand
-        chart={chart}
-        tides={tides}
-        nowMs={nowMs}
-        labelSize={labelSize}
-        showWash={showWash}
-        maxLines={maxLines}
-        height={fluid ? undefined : h.waves}
-        className={fluid ? "flex-1 min-h-0" : ""}
-      />
+      <div className={`relative overflow-visible ${fluid ? "flex-1 min-h-0" : ""}`}>
+        <WaveTideBand
+          chart={chart}
+          tides={tides}
+          nowMs={nowMs}
+          labelSize={labelSize}
+          showWash={showWash}
+          maxLines={maxLines}
+          height={fluid ? undefined : h.waves}
+          className={fluid ? "h-full min-h-0" : ""}
+        />
+        {showHover && (
+          <ChartColumnHover chart={chart} station={live} nowMs={nowMs} maxLines={maxLines} />
+        )}
+      </div>
     ) : null;
 
   const score = showScore ? (

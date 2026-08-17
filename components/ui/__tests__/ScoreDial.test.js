@@ -82,13 +82,17 @@ describe("ScoreDial rendering", () => {
     expect(container.innerHTML).not.toContain("dial-inner-card");
   });
 
-  it("paints the ring by verdict band: marginal / caution / accent", () => {
-    const { container: low } = render(<ScoreDial score={41} showAll />);
+  it("paints the ring by verdict band: dim / caution / accent", () => {
+    const { container: low } = render(<ScoreDial score={0} showAll />);
     const { container: maybe } = render(<ScoreDial score={60} />);
     const { container: go } = render(<ScoreDial score={80} />);
-    expect(valueArc(low).getAttribute("stroke")).toContain("--wm-marginal");
+    // A zero has no value arc (round cap would fake a tiny score). The number
+    // still uses dim — orange is reserved for MAYBE.
+    expect(screen.getByText("0").className).toContain("text-dim");
     expect(valueArc(maybe).getAttribute("stroke")).toContain("--wm-caution");
     expect(valueArc(go).getAttribute("stroke")).toContain("--wm-accent");
+    const { container: lowRing } = render(<ScoreDial score={41} showAll />);
+    expect(valueArc(lowRing).getAttribute("stroke")).toContain("--wm-dim");
   });
 
   it("never renders a real <button>, because it sits inside one", () => {

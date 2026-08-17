@@ -32,7 +32,7 @@ export function slotVerdictText(slot) {
  * shows the AI timeslot verdict tip and does not navigate.
  *
  * Number and bar fill share `scoreBand` / `scoreTextClass` so a MAYBE 60 cannot
- * sit orange on a teal bar (or the reverse). The now-line elsewhere marks
+ * sit orange on a teal bar, and a 0 cannot sit orange either. The now-line marks
  * "you are here"; the score colour stays quality, not position.
  *
  * Bars occupy roughly half the band height so the numbers have room. That ratio

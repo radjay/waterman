@@ -13,7 +13,6 @@ import { WindowCard } from "../../components/next/WindowCard";
 import { WeekStrip } from "../../components/next/WeekStrip";
 import { WebcamFullscreen } from "../../components/webcam/WebcamFullscreen";
 import { ScreenError, ScreenEmpty, ScreenSkeleton } from "../../components/common/ScreenState";
-import { MicroLabel } from "../../components/ui/MicroLabel";
 import { buildDayChart, DAY_MS, sameDay } from "../../lib/dayChart";
 import { detectWindows } from "../../lib/windows";
 import { dtf } from "../../lib/datetime";
@@ -237,10 +236,6 @@ export function NextContent({ spotSlug = null }) {
         desktop={isDesktop}
         className="pt-[18px] md:pt-6"
       />
-
-      {/* Said out loud because Now and Live show the CURRENT score for the same
-          beach, and two different numbers with no explanation reads as a bug. */}
-      <MicroLabel className="pt-4">Scores here are each window&rsquo;s peak</MicroLabel>
 
       {camSpot && (
         <WebcamFullscreen

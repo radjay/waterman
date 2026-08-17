@@ -19,9 +19,10 @@ import { TZ } from "../../lib/dayChart";
  * That is enough to decide whether to open it.
  *
  * Expanded, it becomes the same three-band chart as Now. Future days stay
- * forecast-only (no station, no hover). Today alone reuses Now's live station
- * traces and column hover. On mobile the spot cam sits above the charts; on
- * desktop the cam is omitted so the score rows stay a capped column.
+ * forecast-only (no station). Every open day gets the forecast hover tip.
+ * Today also reuses Now's live station traces. On mobile the spot cam sits
+ * above the charts; on desktop the cam is omitted so the score rows stay a
+ * capped column.
  */
 const clock = (ms) =>
   dtf("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(ms));
@@ -68,7 +69,7 @@ export function SpotDayRow({
       }`
     : "no window";
 
-  // Live wind + hover only on Today — future days have nothing live to plot.
+  // Live station traces stay on Today. Forecast hover is on every open day.
   const liveToday = Boolean(isToday && open);
   const liveStation = liveToday && isWindSport(sport) ? station : null;
   // Mobile Today keeps the cam above the charts; desktop drops it so the day
@@ -86,7 +87,7 @@ export function SpotDayRow({
       variant={desktop ? "desktop" : "mobile"}
       showWash={liveToday}
       showNow={liveToday}
-      showHover={liveToday}
+      showHover={open}
       reportHref={reportHref}
       slotVerdict={slotVerdict}
       // Short report bands — fewer y ticks than the tall Now chart.
