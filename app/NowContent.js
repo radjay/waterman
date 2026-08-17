@@ -22,7 +22,12 @@ import { isDarkForSession } from "../lib/daylight";
 import { toSpotSlug } from "../lib/spotSlug";
 import { isWindSport } from "../components/sport/SportProvider";
 
-const TONE_TEXT = { accent: "text-accent", caution: "text-caution", dim: "text-dim" };
+const TONE_TEXT = {
+  accent: "text-accent",
+  caution: "text-caution",
+  marginal: "text-marginal",
+  dim: "text-dim",
+};
 
 /**
  * Now — can I go, right now, at the spot the app is recommending.

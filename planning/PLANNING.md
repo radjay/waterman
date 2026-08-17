@@ -35,6 +35,7 @@
 
 ### Bugs
 
+- [x] **QA follow-up (2026-08-17)** — Report SCORE columns + tooltip layout; NO colour = marginal; Live desktop cam aspect; even Next week slot spacing.
 - [x] **Settings kit redesign (2026-08-16)** — Settings uses SettingsSection / SettingsRow / Switch; MicroLabel section titles; inline Save (no floating overlap); spots list without nested double border.
 - [x] **Report SCORE timeslot verdict tip (2026-08-16)** — expanded-day SCORE slots show AI reasoning tooltip on hover/tap; no navigation back into Report.
 - [x] **Verdict / score ring / score-bar colours aligned (2026-08-16)** — GO / MAYBE / NO share one band across label, dial ring, bar fill, and bar number (`scoreColor` / `SCORE_FILL` / `scoreTextClass`).

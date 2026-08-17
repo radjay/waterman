@@ -89,9 +89,9 @@ export function CamFrame({
 
   return (
     <div
-      className={`relative overflow-hidden bg-offline-bg ${fill ? "w-full h-full" : "w-full"} ${
-        clickable ? "cursor-pointer focus-ring" : ""
-      } ${className}`}
+      className={`relative overflow-hidden bg-offline-bg ${
+        fill ? "w-full h-full" : "w-full flex-none shrink-0"
+      } ${clickable ? "cursor-pointer focus-ring" : ""} ${className}`}
       style={{ borderRadius: radius || undefined, aspectRatio: aspectStyle }}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}

@@ -98,13 +98,14 @@ export function LiveCard({
 
   if (desktop) {
     return (
-      <div className={`${shell} flex flex-col`} onClick={onSelect}>
+      <div className={`${shell} flex flex-col self-start`} onClick={onSelect}>
         <CamFrame
           spot={spot}
           station={camStation}
           showExternalLinks
           matchVideoAspect
           onFullscreen={onOpenCam}
+          className="flex-none shrink-0"
         />
         <div className="flex-none px-[14px] pt-[10px] pb-[11px]">
           {identity}

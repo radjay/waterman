@@ -53,11 +53,15 @@ export function Tooltip({
   };
 
   const show = Boolean(isVisible && content);
+  // Callers like ScoreBand pass `absolute` so the tip sits on a chart column.
+  // Adding `relative` on top of that made Tailwind resolve to relative and
+  // dropped the columns out of the plot into document flow.
+  const positioned = /\b(absolute|fixed|sticky)\b/.test(className);
 
   return (
     <div
       ref={wrapRef}
-      className={`relative ${className}`}
+      className={`${positioned ? "" : "relative"} ${className}`}
       style={style}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
@@ -65,10 +69,11 @@ export function Tooltip({
       onBlur={(e) => {
         if (!wrapRef.current?.contains(e.relatedTarget)) setIsVisible(false);
       }}
-      onClick={(e) => {
-        // Hover already reveals on pointer devices; click/tap toggles for touch.
-        if (e.pointerType === "mouse") return;
-        setIsVisible((v) => !v);
+      onPointerUp={(e) => {
+        // Hover already reveals on a mouse. Touch/pen has no hover, so tap toggles.
+        if (e.pointerType === "touch" || e.pointerType === "pen") {
+          setIsVisible((v) => !v);
+        }
       }}
     >
       {children}
