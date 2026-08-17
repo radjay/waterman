@@ -37,7 +37,7 @@ export function WeekStrip({
         The week
       </MicroLabel>
 
-      <div className="flex flex-col gap-[9px]">
+      <div className="flex flex-col gap-2.5">
         {days.map((day) => {
           const open = day.dayStart === selectedDay;
           return (
@@ -78,7 +78,7 @@ export function WeekStrip({
 
               {open && day.best.length > 0 && (
                 <div
-                  className={`grid items-stretch pt-2.5 pb-2.5 ${
+                  className={`grid items-stretch pt-2.5 ${
                     desktop
                       ? "grid-cols-[34px_1fr_34px] gap-x-4"
                       : "grid-cols-[28px_1fr_26px] gap-x-2.5"

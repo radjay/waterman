@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-08-17]
+
+### Fixed
+- Report SCORE timeslot columns sit on the day chart again — Tooltip no longer overrides `absolute` with `relative`, so the bars and numbers stay in their slots. Hover still shows the AI verdict; tap toggles it on touch.
+- NO uses the same marginal colour as the score ring and bars below 60 (no more grey NO beside an orange 45).
+- Live desktop cam cards keep the stream aspect ratio — the 2×2 grid no longer squashes the video into a wide strip.
+- Next week expanded slots: space above the slot row matches space below it (last slot still lines up under the day score).
+
 ## [2026-08-16]
 
 ### Fixed

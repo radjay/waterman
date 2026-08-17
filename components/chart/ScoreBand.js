@@ -58,8 +58,8 @@ export function ScoreBand({
   if (scored.length === 0) return null;
 
   return (
-    <div className={`relative ${className}`} style={{ height }}>
-      <div className="absolute inset-0" style={{ left: labelInset }}>
+    <div className={`relative overflow-visible ${className}`} style={{ height }}>
+      <div className="absolute inset-0 overflow-visible" style={{ left: labelInset }}>
         {chart.columns.map((col) => {
           const score = col.slot?.score;
           if (score === null || score === undefined) return null;

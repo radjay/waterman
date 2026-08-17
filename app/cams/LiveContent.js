@@ -146,11 +146,12 @@ export default function LiveContent() {
 
       {isDesktop ? (
         <div
-          className="grid grid-cols-2 gap-4 mt-3.5 overflow-y-auto content-start"
+          className="grid grid-cols-2 gap-4 mt-3.5 overflow-y-auto content-start items-start"
           style={{
-            height: "calc(100vh - 190px)",
+            maxHeight: "calc(100vh - 190px)",
             minHeight: 520,
             alignContent: "start",
+            gridAutoRows: "max-content",
           }}
         >
           {desktopCards.map((pack) => (
