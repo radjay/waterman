@@ -42,6 +42,7 @@ export function WebcamFullscreen({
   onNavigate,
 }) {
   const videoRef = useRef(null);
+  const shellRef = useRef(null);
   const hlsRef = useRef(null);
   const [currentConditions, setCurrentConditions] = useState(null);
   const [tides, setTides] = useState([]);
@@ -303,17 +304,44 @@ export function WebcamFullscreen({
     
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
-    
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
   }, [onClose, allWebcams, onNavigate, spot._id, index]);
 
+  // `touchAction: none` on the shell stops most pinch-zoom, but iOS Safari's
+  // page-scale pinch is a system gesture that ignores touch-action once a
+  // second finger lands on a <video>. Without this, pinching here zooms the
+  // whole visual viewport — video AND the overlay controls — which is what
+  // made zooming pointless. Belt-and-braces: block the two-finger touchmove
+  // and WebKit's non-standard gesture* events too.
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const blockMultiTouch = (e) => {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    };
+    const blockGesture = (e) => e.preventDefault();
+
+    shell.addEventListener("touchmove", blockMultiTouch, { passive: false });
+    shell.addEventListener("gesturestart", blockGesture);
+    shell.addEventListener("gesturechange", blockGesture);
+
+    return () => {
+      shell.removeEventListener("touchmove", blockMultiTouch);
+      shell.removeEventListener("gesturestart", blockGesture);
+      shell.removeEventListener("gesturechange", blockGesture);
+    };
+  }, []);
+
   if (!spot) return null;
 
   return (
     <div
+      ref={shellRef}
       className="fixed z-[9999] flex items-center justify-center cursor-pointer"
       style={{
         top: viewport.top,
