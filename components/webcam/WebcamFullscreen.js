@@ -43,6 +43,7 @@ export function WebcamFullscreen({
 }) {
   const videoRef = useRef(null);
   const shellRef = useRef(null);
+  const zoomContainerRef = useRef(null);
   const hlsRef = useRef(null);
   const [currentConditions, setCurrentConditions] = useState(null);
   const [tides, setTides] = useState([]);
@@ -312,11 +313,27 @@ export function WebcamFullscreen({
   }, [onClose, allWebcams, onNavigate, spot._id, index]);
 
   // `touchAction: none` on the shell stops most pinch-zoom, but iOS Safari's
-  // page-scale pinch is a system gesture that ignores touch-action once a
-  // second finger lands on a <video>. Without this, pinching here zooms the
-  // whole visual viewport — video AND the overlay controls — which is what
-  // made zooming pointless. Belt-and-braces: block the two-finger touchmove
-  // and WebKit's non-standard gesture* events too.
+  // page-scale pinch is a system gesture that can win over touch-action once
+  // a second finger lands on a <video>. Pin the viewport's scale for as long
+  // as this modal is open so the system gesture has nothing to do — the
+  // pinch handler below then owns zooming, and only the video zooms.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    const original = meta?.getAttribute("content") ?? null;
+    if (meta) {
+      meta.setAttribute(
+        "content",
+        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+      );
+    }
+    return () => {
+      if (meta && original !== null) meta.setAttribute("content", original);
+    };
+  }, []);
+
+  // Belt-and-braces: block stray multi-touch moves and WebKit's non-standard
+  // gesture* events anywhere in the shell (e.g. a pinch that starts over the
+  // overlay controls rather than the video).
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell) return;
@@ -336,6 +353,161 @@ export function WebcamFullscreen({
       shell.removeEventListener("gesturechange", blockGesture);
     };
   }, []);
+
+  // Pinch-to-zoom and drag-to-pan on the video itself, so the cam image can
+  // actually be magnified without dragging the overlay controls along with
+  // it. Scale/pan live in a ref (not state) and are written straight to the
+  // video's transform so drag frames never wait on a React re-render.
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    const MAX_SCALE = 4;
+    const zoom = { scale: 1, tx: 0, ty: 0 };
+    let gesture = null; // { mode: "pinch" | "pan", ... }
+    let tapStart = null; // { time, x, y }
+    let lastTap = null; // { time, x, y }
+
+    const applyTransform = (animate = false) => {
+      video.style.transition = animate ? "transform 200ms ease-out" : "none";
+      video.style.transform = `translate(${zoom.tx}px, ${zoom.ty}px) scale(${zoom.scale})`;
+    };
+
+    const clampTranslate = (tx, ty, scale, rect) => {
+      if (scale <= 1) return { tx: 0, ty: 0 };
+      const minTx = rect.width * (1 - scale);
+      const minTy = rect.height * (1 - scale);
+      return {
+        tx: Math.min(0, Math.max(minTx, tx)),
+        ty: Math.min(0, Math.max(minTy, ty)),
+      };
+    };
+
+    const dist = (t0, t1) => Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const midpoint = (t0, t1, rect) => ({
+      x: (t0.clientX + t1.clientX) / 2 - rect.left,
+      y: (t0.clientY + t1.clientY) / 2 - rect.top,
+    });
+
+    const reset = (animate) => {
+      zoom.scale = 1;
+      zoom.tx = 0;
+      zoom.ty = 0;
+      applyTransform(animate);
+    };
+
+    const onTouchStart = (e) => {
+      const rect = container.getBoundingClientRect();
+
+      if (e.touches.length === 2) {
+        const [t0, t1] = e.touches;
+        const mid = midpoint(t0, t1, rect);
+        gesture = {
+          mode: "pinch",
+          startDist: dist(t0, t1),
+          startScale: zoom.scale,
+          anchor: {
+            x: (mid.x - zoom.tx) / zoom.scale,
+            y: (mid.y - zoom.ty) / zoom.scale,
+          },
+        };
+        tapStart = null;
+        e.preventDefault();
+        return;
+      }
+
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        tapStart = { time: Date.now(), x: t.clientX, y: t.clientY };
+        if (zoom.scale > 1) {
+          gesture = { mode: "pan", lastX: t.clientX, lastY: t.clientY };
+          e.preventDefault();
+        }
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!gesture) return;
+      const rect = container.getBoundingClientRect();
+
+      if (gesture.mode === "pinch" && e.touches.length === 2) {
+        e.preventDefault();
+        const [t0, t1] = e.touches;
+        const newScale = Math.min(
+          MAX_SCALE,
+          Math.max(1, gesture.startScale * (dist(t0, t1) / gesture.startDist))
+        );
+        const mid = midpoint(t0, t1, rect);
+        const { tx, ty } = clampTranslate(
+          mid.x - gesture.anchor.x * newScale,
+          mid.y - gesture.anchor.y * newScale,
+          newScale,
+          rect
+        );
+        zoom.scale = newScale;
+        zoom.tx = tx;
+        zoom.ty = ty;
+        applyTransform(false);
+      } else if (gesture.mode === "pan" && e.touches.length === 1) {
+        e.preventDefault();
+        const t = e.touches[0];
+        const dx = t.clientX - gesture.lastX;
+        const dy = t.clientY - gesture.lastY;
+        gesture.lastX = t.clientX;
+        gesture.lastY = t.clientY;
+        const { tx, ty } = clampTranslate(zoom.tx + dx, zoom.ty + dy, zoom.scale, rect);
+        zoom.tx = tx;
+        zoom.ty = ty;
+        applyTransform(false);
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      // Hand a pinch off to a pan if one finger is still down and zoomed in.
+      if (e.touches.length === 1 && zoom.scale > 1) {
+        const t = e.touches[0];
+        gesture = { mode: "pan", lastX: t.clientX, lastY: t.clientY };
+      } else if (e.touches.length === 0) {
+        gesture = null;
+        // A stray pinch that lands back under 1x snaps cleanly to identity.
+        if (zoom.scale < 1.02) reset(true);
+
+        if (tapStart) {
+          const t = e.changedTouches[0];
+          const moved = Math.hypot(t.clientX - tapStart.x, t.clientY - tapStart.y);
+          const quick = Date.now() - tapStart.time < 300 && moved < 10;
+          if (quick) {
+            const isDoubleTap =
+              lastTap &&
+              Date.now() - lastTap.time < 350 &&
+              Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 30;
+            if (isDoubleTap && zoom.scale > 1) {
+              reset(true);
+              lastTap = null;
+            } else {
+              lastTap = { time: Date.now(), x: t.clientX, y: t.clientY };
+            }
+          }
+        }
+        tapStart = null;
+      }
+    };
+
+    container.addEventListener("touchstart", onTouchStart, { passive: false });
+    container.addEventListener("touchmove", onTouchMove, { passive: false });
+    container.addEventListener("touchend", onTouchEnd, { passive: false });
+    container.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+    return () => {
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchmove", onTouchMove);
+      container.removeEventListener("touchend", onTouchEnd);
+      container.removeEventListener("touchcancel", onTouchEnd);
+      video.style.transition = "";
+      video.style.transform = "";
+    };
+  }, [spot._id]);
 
   if (!spot) return null;
 
@@ -454,11 +626,14 @@ export function WebcamFullscreen({
           </span>
         )}
 
-        {/* Video container - fills viewport with letterboxing (no cropping). Click letterbox bars to close. */}
-        <div className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">
+        {/* Video container - fills viewport with letterboxing (no cropping). Click letterbox bars to close.
+            overflow-hidden also clips the video once pinch-zoomed, so a magnified image never spills onto
+            the overlay controls above/below it. */}
+        <div ref={zoomContainerRef} className="flex-1 flex items-center justify-center relative z-0 overflow-hidden min-h-0">
           <video
             ref={videoRef}
             className="w-full h-full object-contain"
+            style={{ transformOrigin: "0 0", touchAction: "none" }}
             playsInline
             muted
             autoPlay
