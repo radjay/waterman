@@ -59,6 +59,8 @@ import { DirectionIndicator } from "../../components/forecast/DirectionIndicator
 import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { primaryMetric } from "../../lib/conditions";
+import { RatingMatrix } from "../../components/ui/RatingMatrix";
+import { MONTHS, WINGFOIL_DESTINATIONS } from "../../lib/data/wingfoilDestinations";
 
 // — Legacy —
 import { Card } from "../../components/ui/Card";
@@ -768,6 +770,16 @@ export default function UIKitPage() {
             <div className="max-w-md">
               <EmptyState />
             </div>
+          </Row>
+
+          <Row
+            label="RatingMatrix — sortable destination × month rating grid"
+            importPath="components/ui/RatingMatrix"
+            on={["DESTINATIONS"]}
+            note="standalone /destinations report page, not part of tab nav"
+            full
+          >
+            <RatingMatrix rows={WINGFOIL_DESTINATIONS.slice(0, 4)} months={MONTHS} />
           </Row>
         </KitSection>
 
