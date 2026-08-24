@@ -60,6 +60,7 @@ import { Loader } from "../../components/common/Loader";
 import { EmptyState } from "../../components/common/EmptyState";
 import { primaryMetric } from "../../lib/conditions";
 import { RatingMatrix } from "../../components/ui/RatingMatrix";
+import { RouteMap } from "../../components/ui/RouteMap";
 import { MONTHS, WINGFOIL_DESTINATIONS } from "../../lib/data/wingfoilDestinations";
 
 // — Legacy —
@@ -780,6 +781,18 @@ export default function UIKitPage() {
             full
           >
             <RatingMatrix rows={WINGFOIL_DESTINATIONS.slice(0, 4)} months={MONTHS} />
+          </Row>
+
+          <Row
+            label="RouteMap — month-picker + Lisbon route lines on a static world outline"
+            importPath="components/ui/RouteMap"
+            on={["DESTINATIONS"]}
+            note="the alternative view for /destinations, toggled via ViewSwitcher; no mapping library — see lib/worldMapProjection.js"
+            full
+          >
+            <div className="h-[560px] rounded-card-lg border border-dashed border-card p-4">
+              <RouteMap rows={WINGFOIL_DESTINATIONS} months={MONTHS} />
+            </div>
           </Row>
         </KitSection>
 

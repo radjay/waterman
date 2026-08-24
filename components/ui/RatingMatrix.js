@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Arrow } from "./Arrow";
 import { MicroLabel } from "./MicroLabel";
 import { Tooltip } from "./Tooltip";
-import { RATING_DETAIL, RATING_LABEL, RATING_RANK } from "../../lib/data/wingfoilDestinations";
+import { RATING_LABEL, RATING_RANK } from "../../lib/data/wingfoilDestinations";
+import { cellTooltip, nameTooltip } from "../../lib/wingfoilTooltipText";
 
 /**
  * RatingMatrix — a sortable destination × month rating grid.
@@ -39,6 +40,14 @@ import { RATING_DETAIL, RATING_LABEL, RATING_RANK } from "../../lib/data/wingfoi
  * flight/ground route, caveats, best-for tags, and data confidence — so
  * that detail doesn't have to repeat in all 12 month cells.
  *
+ * Root is `h-full flex flex-col`: the legend is a fixed-size header, the
+ * table scrolls in the remaining space (`flex-1 min-h-0`). That only fills
+ * a screen the way `/destinations` wants it to (single scroll region, no
+ * page scroll fighting the table's own scroll) because that page wraps
+ * this in a real height — `h-[100dvh]` down to a flex child. Drop this into
+ * a normal document-flow container (e.g. the /ui-kit fixture) and `h-full`
+ * just resolves to auto, which is harmless, not a bug.
+ *
  * @param {Array} rows - see lib/data/wingfoilDestinations.js for shape
  * @param {Array<{key:string,label:string}>} months
  */
@@ -72,35 +81,7 @@ const FIELD_SORTERS = {
   water: (row) => parseFloat(row.waterTemp) || 0,
 };
 
-function humanizeTag(tag) {
-  return tag.replace(/_/g, " ");
-}
-
-function nameTooltip(row) {
-  const parts = [`${row.primarySpots.join(", ")}.`];
-  if (row.travelFlight !== "none") parts.push(row.travelFlight);
-  parts.push(row.travelGround);
-  if (row.notes.length) parts.push(row.notes.join(" "));
-  parts.push(`Best for: ${row.bestFor.map(humanizeTag).join(", ")}.`);
-  parts.push(`Data confidence: ${row.confidence}.`);
-  return parts.join(" ");
-}
-
-function cellTooltip(row, month) {
-  const level = row.ratings[month.key];
-  const shoulder = row.shoulder.includes(month.key);
-  const parts = [
-    `${month.label} — ${RATING_LABEL[level]}.`,
-    RATING_DETAIL[level],
-    `Typical ${row.wind[month.key]} kt, ~${row.waves[month.key]}m waves. ${row.environment}.`,
-  ];
-  if (shoulder) {
-    parts.push("Shoulder month: season is starting or ending, expect more day-to-day variance.");
-  }
-  return parts.join(" ");
-}
-
-function RatingCell({ row, month, anyMonthHovered, hovered, tooltipPosition }) {
+function RatingCell({ row, month, anyMonthHovered, hovered, tooltipPosition, onMeasureHover }) {
   const level = row.ratings[month.key];
   const shoulder = row.shoulder.includes(month.key);
   // Spotlight: only a Prime cell in the hovered month stays lit. Every other
@@ -113,7 +94,7 @@ function RatingCell({ row, month, anyMonthHovered, hovered, tooltipPosition }) {
 
   return (
     <Tooltip content={cellTooltip(row, month)} position={tooltipPosition} wide>
-      <div className="relative h-6 w-full">
+      <div className="relative h-8 sm:h-6 w-full" onMouseEnter={onMeasureHover}>
         <div
           className={`h-full w-full rounded-[4px] transition-all duration-fast ease-smooth ${
             shoulder ? "" : LEVEL_FILL[level]
@@ -149,6 +130,29 @@ export function RatingMatrix({ rows, months }) {
   const [sort, setSort] = useState({ key: "travel", dir: "asc" });
   const [hoverMonth, setHoverMonth] = useState(null);
 
+  // The table now scrolls vertically inside a fixed-height card, so a
+  // tooltip that opens "up" can clip against the scrollport's own top edge
+  // for ANY row that happens to be scrolled near it, not just row 0 — a
+  // static rowIndex-based rule can't know that. Measure the actual gap
+  // between the hovered anchor and the scrollport on every hover instead,
+  // and flip to opening downward when there isn't room. Content length
+  // varies a lot between a 3-line cell tooltip and a name tooltip with
+  // notes/best-for/confidence stacked on, so the two get different
+  // thresholds rather than one guess sized for the longest case.
+  const scrollRef = useRef(null);
+  const [dynamicPos, setDynamicPos] = useState({});
+
+  function measurePosition(key, minSpaceAbove) {
+    return (e) => {
+      const container = scrollRef.current;
+      if (!container) return;
+      const anchorTop = e.currentTarget.getBoundingClientRect().top;
+      const containerTop = container.getBoundingClientRect().top;
+      const next = anchorTop - containerTop < minSpaceAbove ? "bottom" : "top";
+      setDynamicPos((prev) => (prev[key] === next ? prev : { ...prev, [key]: next }));
+    };
+  }
+
   const isMonthSort = months.some((m) => m.key === sort.key);
 
   const sortedRows = useMemo(() => {
@@ -182,21 +186,28 @@ export function RatingMatrix({ rows, months }) {
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+    <div className="h-full flex flex-col">
+      {/* flex-nowrap + overflow-x-auto on mobile: five legend items wrap to
+          2-3 lines at 390px, eating vertical space the table needs more.
+          One scrollable line costs nothing to read (it's a key, not content)
+          and sm:flex-wrap gives it room to breathe back on wider screens. */}
+      <div className="flex-none flex flex-nowrap sm:flex-wrap items-center gap-x-4 gap-y-2 mb-3 sm:mb-4 overflow-x-auto sm:overflow-visible whitespace-nowrap sm:whitespace-normal">
         {Object.entries(RATING_LABEL).map(([level, label]) => (
-          <div key={level} className="flex items-center gap-1.5">
+          <div key={level} className="flex items-center gap-1.5 shrink-0">
             <div className={`w-4 h-4 rounded-[4px] ${LEVEL_FILL[level]}`} />
             <MicroLabel>{label}</MicroLabel>
           </div>
         ))}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <div className="w-4 h-4 rounded-[4px]" style={SHOULDER_STRIPE.prime} />
           <MicroLabel>Shoulder — higher variance</MicroLabel>
         </div>
       </div>
 
-      <div className="overflow-auto max-h-[70vh] rounded-card-lg border border-card">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-auto rounded-card-lg border border-card"
+      >
         {/* table-fixed + explicit column widths, not min-w: under the default
             auto layout, columns with only a min-width still absorb leftover
             table space unevenly (Travel would blow out past 300px). Fixed
@@ -212,10 +223,11 @@ export function RatingMatrix({ rows, months }) {
             wider than its container too — either way this must stay
             scrollable, or the overflow gets silently clipped by body's
             overflow-x-hidden instead (unreachable columns, not just an
-            ugly scrollbar). max-h + overflow-y is what keeps the table's
-            own vertical scroll inside this card — at 20+ rows it would
-            otherwise push the whole page well past the fold — and the
-            sticky thead (top-0) plus the sticky first column (left-0)
+            ugly scrollbar). flex-1/min-h-0 (rather than a max-h guess) is
+            what makes the table's own scroll fill whatever height the page
+            actually gives this component — the page is a flex column with
+            a fixed viewport height, this is its only flexible child — and
+            the sticky thead (top-0) plus the sticky first column (left-0)
             keep both axes' labels in view while scrolling either way. */}
         <table className="border-collapse table-fixed w-max sm:w-full">
           <thead>
@@ -251,7 +263,7 @@ export function RatingMatrix({ rows, months }) {
               {months.map((m) => (
                 <th
                   key={m.key}
-                  className="sticky top-0 z-20 bg-page px-1 py-2.5 w-8 sm:w-10"
+                  className="sticky top-0 z-20 bg-page px-1 py-2.5 w-11 sm:w-10"
                   onMouseEnter={() => setHoverMonth(m.key)}
                   onMouseLeave={() => setHoverMonth(null)}
                 >
@@ -277,30 +289,32 @@ export function RatingMatrix({ rows, months }) {
                     row.ratings[hoverMonth] === "prime" &&
                     !row.shoulder.includes(hoverMonth);
                   const rowDimmed = hoverMonth !== null && !primeThisMonth;
+                  const nameKey = `name:${row.id}`;
+                  const namePosition = dynamicPos[nameKey] || (rowIndex === 0 ? "bottom" : "top");
                   return (
                     <td
                       className={`sticky left-0 bg-page px-2.5 sm:px-3 py-2 border-r border-card border-l-2 transition-colors duration-fast ease-smooth ${
                         primeThisMonth ? "border-l-accent" : "border-l-transparent"
-                      } ${rowIndex === 0 ? "z-[15]" : "z-10"}`}
+                      } ${namePosition === "bottom" ? "z-[15]" : "z-10"}`}
                     >
-                      {/* Row 0's tooltip opens downward into row 1's space (see
-                          tooltipPosition note below); row 1's own sticky cell is
-                          a sibling stacking context at the same z-10, and DOM
-                          order alone would let it paint over row 0's z-50
-                          tooltip. Bump row 0's sticky cell above that (but still
-                          below the sticky header's z-20/30, which must win
-                          against every row when the table scrolls vertically)
-                          so its whole subtree — tooltip included — wins. */}
+                      {/* A tooltip that opens "bottom" extends into the next
+                          row's space; that row's own sticky cell is a sibling
+                          stacking context at the same z-10, and DOM order
+                          alone would let it paint over this tooltip's z-50.
+                          Bump this cell above that (but still below the
+                          sticky header's z-20/30, which must win against
+                          every row when the table scrolls vertically) so its
+                          whole subtree — tooltip included — wins. Whichever
+                          row currently opens "bottom" needs this, not just
+                          row 0 — namePosition is measured per hover, not
+                          fixed to a row index. */}
                       <div
                         className={`transition-opacity duration-fast ease-smooth ${
                           rowDimmed ? "opacity-25" : ""
                         }`}
+                        onMouseEnter={measurePosition(nameKey, 260)}
                       >
-                        <Tooltip
-                          content={nameTooltip(row)}
-                          position={rowIndex === 0 ? "bottom" : "top"}
-                          wide
-                        >
+                        <Tooltip content={nameTooltip(row)} position={namePosition} wide>
                           <div
                             className={`font-body text-[13px] leading-tight cursor-help hover:underline decoration-dotted decoration-ink/30 underline-offset-2 w-fit ${
                               primeThisMonth ? "text-accent" : "text-ink"
@@ -325,27 +339,29 @@ export function RatingMatrix({ rows, months }) {
                 <td className="hidden sm:table-cell px-3 py-2 font-data text-[11px] text-faded-ink whitespace-nowrap">
                   {row.waterTemp}
                 </td>
-                {months.map((m, monthIndex) => (
-                  <td key={m.key} className="px-1 py-1.5">
-                    {/* The scroll wrapper's overflow-x-auto forces overflow-y to
-                        clip too (a CSS quirk: an axis left at the default
-                        "visible" computes to "auto" once the other axis isn't
-                        visible), so a tooltip that pokes above row 1 or past
-                        the table's own right edge gets cut off rather than
-                        just rendered over neighbouring content. Flip the
-                        anchor side for the cells where that would happen
-                        instead of fighting the clip. */}
-                    <RatingCell
-                      row={row}
-                      month={m}
-                      hovered={hoverMonth === m.key}
-                      anyMonthHovered={hoverMonth !== null}
-                      tooltipPosition={
-                        monthIndex >= months.length - 2 ? "left" : rowIndex === 0 ? "bottom" : "top"
-                      }
-                    />
-                  </td>
-                ))}
+                {months.map((m, monthIndex) => {
+                  // Last two columns still always open "left" — near the
+                  // table's own right edge, a centered tooltip would poke
+                  // past it regardless of scroll position (a horizontal,
+                  // not vertical, version of the same clipping problem).
+                  const isEdgeMonth = monthIndex >= months.length - 2;
+                  const cellKey = `cell:${row.id}:${m.key}`;
+                  const cellPosition = isEdgeMonth
+                    ? "left"
+                    : dynamicPos[cellKey] || (rowIndex === 0 ? "bottom" : "top");
+                  return (
+                    <td key={m.key} className="px-1 py-1.5">
+                      <RatingCell
+                        row={row}
+                        month={m}
+                        hovered={hoverMonth === m.key}
+                        anyMonthHovered={hoverMonth !== null}
+                        tooltipPosition={cellPosition}
+                        onMeasureHover={isEdgeMonth ? undefined : measurePosition(cellKey, 140)}
+                      />
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
