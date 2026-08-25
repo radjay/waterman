@@ -835,10 +835,11 @@ export const getExpiredMagicLinks = query({
   ),
   handler: async (ctx, args) => {
     const now = Date.now();
-    const links = await ctx.db.query("magic_links").collect();
-    return links
-      .filter((link) => link.expiresAt < now)
-      .map((link) => ({ _id: link._id, expiresAt: link.expiresAt }));
+    const links = await ctx.db
+      .query("magic_links")
+      .withIndex("by_expiresAt", (q) => q.lt("expiresAt", now))
+      .take(500);
+    return links.map((link) => ({ _id: link._id, expiresAt: link.expiresAt }));
   },
 });
 
@@ -852,10 +853,14 @@ export const getExpiredSessions = query({
   ),
   handler: async (ctx, args) => {
     const now = Date.now();
-    const sessions = await ctx.db.query("sessions").collect();
-    return sessions
-      .filter((session) => session.expiresAt < now)
-      .map((session) => ({ _id: session._id, expiresAt: session.expiresAt }));
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_expiresAt", (q) => q.lt("expiresAt", now))
+      .take(500);
+    return sessions.map((session) => ({
+      _id: session._id,
+      expiresAt: session.expiresAt,
+    }));
   },
 });
 

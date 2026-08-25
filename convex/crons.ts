@@ -31,4 +31,13 @@ crons.interval(
   {}
 );
 
+// Drop system scores outside the 2-back / 7-forward read window so hot
+// queries cannot grow back into the 32k-document limit.
+crons.daily(
+  "retain condition scores",
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.scoreRetention.retainConditionScores,
+  {}
+);
+
 export default crons;

@@ -540,29 +540,34 @@ export const removeTodayScrapes = mutation({
         ));
         const startOfTodayTimestamp = startOfToday.getTime();
 
-        // Find all scrapes from today
-        const allScrapes = await ctx.db.query("scrapes").collect();
-        const todayScrapes = allScrapes.filter(
-            scrape => scrape.scrapeTimestamp >= startOfTodayTimestamp
-        );
+        const spots = await ctx.db.query("spots").collect();
+        const todayScrapes = [];
+        for (const spot of spots) {
+            const recent = await ctx.db
+                .query("scrapes")
+                .withIndex("by_spot_and_timestamp", (q) =>
+                    q.eq("spotId", spot._id).gte("scrapeTimestamp", startOfTodayTimestamp)
+                )
+                .take(50);
+            todayScrapes.push(...recent);
+        }
 
-        // Collect all scrape timestamps from today
-        const todayScrapeTimestamps = new Set(
-            todayScrapes.map(s => s.scrapeTimestamp)
-        );
-
-        // Delete all scrapes from today
         let deletedScrapesCount = 0;
         for (const scrape of todayScrapes) {
             await ctx.db.delete(scrape._id);
             deletedScrapesCount++;
         }
 
-        // Delete all forecast_slots from today
-        const allSlots = await ctx.db.query("forecast_slots").collect();
-        const todaySlots = allSlots.filter(
-            slot => slot.scrapeTimestamp && todayScrapeTimestamps.has(slot.scrapeTimestamp)
-        );
+        const todaySlots = [];
+        for (const scrape of todayScrapes) {
+            const slots = await ctx.db
+                .query("forecast_slots")
+                .withIndex("by_spot_and_scrape_timestamp", (q) =>
+                    q.eq("spotId", scrape.spotId).eq("scrapeTimestamp", scrape.scrapeTimestamp)
+                )
+                .collect();
+            todaySlots.push(...slots);
+        }
 
         let deletedSlotsCount = 0;
         for (const slot of todaySlots) {

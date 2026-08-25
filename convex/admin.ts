@@ -708,18 +708,19 @@ export const getScrapeStats = query({
       throw new Error("Unauthorized");
     }
     
-    let scrapes = await ctx.db.query("scrapes").collect();
-    
+    const cap = 500;
+    let scrapes = await ctx.db.query("scrapes").order("desc").take(cap);
+
     if (args.startDate) {
       scrapes = scrapes.filter(s => s.scrapeTimestamp >= args.startDate!);
     }
     if (args.endDate) {
       scrapes = scrapes.filter(s => s.scrapeTimestamp <= args.endDate!);
     }
-    
+
     const successful = scrapes.filter(s => s.isSuccessful);
     const failed = scrapes.filter(s => !s.isSuccessful);
-    
+
     return {
       total: scrapes.length,
       successful: successful.length,
@@ -746,27 +747,27 @@ export const getScrapes = query({
       throw new Error("Unauthorized");
     }
     
-    let scrapes = await ctx.db.query("scrapes").collect();
-    
+    const cap = Math.min(args.limit ?? 200, 500);
+    let scrapes;
     if (args.spotId) {
-      scrapes = scrapes.filter(s => s.spotId === args.spotId);
+      scrapes = await ctx.db
+        .query("scrapes")
+        .withIndex("by_spot_and_timestamp", (q) => q.eq("spotId", args.spotId!))
+        .order("desc")
+        .take(cap);
+    } else {
+      scrapes = await ctx.db.query("scrapes").order("desc").take(cap);
     }
+
     if (args.startDate) {
       scrapes = scrapes.filter(s => s.scrapeTimestamp >= args.startDate!);
     }
     if (args.endDate) {
       scrapes = scrapes.filter(s => s.scrapeTimestamp <= args.endDate!);
     }
-    
-    // Sort by timestamp descending
+
     scrapes.sort((a, b) => b.scrapeTimestamp - a.scrapeTimestamp);
-    
-    // Apply limit
-    if (args.limit) {
-      scrapes = scrapes.slice(0, args.limit);
-    }
-    
-    return scrapes;
+    return scrapes.slice(0, cap);
   },
 });
 
@@ -787,12 +788,27 @@ export const getScoringLogs = query({
       throw new Error("Unauthorized");
     }
     
-    let scores = await ctx.db.query("condition_scores").collect();
-    
-    if (args.spotId) {
-      scores = scores.filter(s => s.spotId === args.spotId);
+    const cap = Math.min(args.limit ?? 200, 500);
+    let scores;
+    if (args.spotId && args.sport) {
+      scores = await ctx.db
+        .query("condition_scores")
+        .withIndex("by_spot_sport_timestamp", (q) =>
+          q.eq("spotId", args.spotId!).eq("sport", args.sport!)
+        )
+        .order("desc")
+        .take(cap);
+    } else if (args.spotId) {
+      scores = await ctx.db
+        .query("condition_scores")
+        .withIndex("by_spot_sport_timestamp", (q) => q.eq("spotId", args.spotId!))
+        .order("desc")
+        .take(cap);
+    } else {
+      scores = await ctx.db.query("condition_scores").order("desc").take(cap);
     }
-    if (args.sport) {
+
+    if (args.sport && !(args.spotId && args.sport)) {
       scores = scores.filter(s => s.sport === args.sport);
     }
     if (args.startDate) {
@@ -801,16 +817,9 @@ export const getScoringLogs = query({
     if (args.endDate) {
       scores = scores.filter(s => s.scoredAt <= args.endDate!);
     }
-    
-    // Sort by scoredAt descending
+
     scores.sort((a, b) => b.scoredAt - a.scoredAt);
-    
-    // Apply limit
-    if (args.limit) {
-      scores = scores.slice(0, args.limit);
-    }
-    
-    return scores;
+    return scores.slice(0, cap);
   },
 });
 

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { resolveLatestSuccessfulScrapeTimestamp } from "./queryHelpers/forecastSlots";
+import { getConditionScoresForSpotSport } from "./queryHelpers/conditionScores";
 
 /**
  * Generate a secure random token for calendar subscriptions
@@ -136,60 +137,26 @@ export const getSportFeed = query({
         // then filter by sport in memory
         const relevantScores: Doc<"condition_scores">[] = [];
         for (const spotId of targetSpotIds) {
-            // Use indexed query to get scores for this spot in the time range.
-            // Index is ["spotId", "sport", "timestamp"], so we can push sport equality
-            // and timestamp range down to the database — no in-memory filtering needed.
-            const sportScores = await ctx.db
-                .query("condition_scores")
-                .withIndex("by_spot_sport_timestamp", (q) =>
-                    q.eq("spotId", spotId)
-                     .eq("sport", args.sport)
-                     .gte("timestamp", now)
-                     .lte("timestamp", sevenDaysFromNow)
+            const sportScores = (await getConditionScoresForSpotSport(
+                ctx,
+                spotId,
+                args.sport,
+                {
+                    userId: usePersonalizedScores && userId ? String(userId) : undefined,
+                    cutoffTimestamp: now,
+                    upperTimestamp: sevenDaysFromNow,
+                }
+            )) as Doc<"condition_scores">[];
+
+            const latestScrape = latestScrapeBySpot.get(spotId);
+            const filtered = sportScores.filter((score) =>
+                score.score >= 75 && (
+                    !latestScrape ||
+                    !score.scrapeTimestamp ||
+                    score.scrapeTimestamp === latestScrape
                 )
-                .collect();
-            
-            // Use personalized scores if enabled, otherwise system scores only
-            let filtered: Doc<"condition_scores">[];
-            if (usePersonalizedScores && userId) {
-                // Deduplicate by timestamp, preferring personalized scores
-                const scoresByTimestamp = new Map<number, Doc<"condition_scores">>();
-                
-                // First add system scores
-                const systemScores = sportScores.filter(s => s.userId === null);
-                for (const score of systemScores) {
-                    scoresByTimestamp.set(score.timestamp, score);
-                }
-                
-                // Then override with personalized scores (they take priority)
-                const personalizedScores = sportScores.filter(s => s.userId === userId);
-                for (const score of personalizedScores) {
-                    scoresByTimestamp.set(score.timestamp, score);
-                }
-                
-                // Filter to score >= 75 and matching latest scrape
-                // Use scrapeTimestamp to ensure we're showing scores from the latest data
-                const latestScrape = latestScrapeBySpot.get(spotId);
-                filtered = Array.from(scoresByTimestamp.values()).filter(score =>
-                    score.score >= 75 && (
-                        !latestScrape || // No scrape timestamp means legacy data - include it
-                        !score.scrapeTimestamp || // Score has no scrape timestamp - include it
-                        score.scrapeTimestamp === latestScrape // Matches latest scrape
-                    )
-                );
-            } else {
-                // System scores only
-                const latestScrape = latestScrapeBySpot.get(spotId);
-                filtered = sportScores.filter(score =>
-                    score.userId === null &&
-                    score.score >= 75 && (
-                        !latestScrape ||
-                        !score.scrapeTimestamp ||
-                        score.scrapeTimestamp === latestScrape
-                    )
-                );
-            }
-            
+            );
+
             relevantScores.push(...filtered);
         }
 

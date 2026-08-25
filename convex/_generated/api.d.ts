@@ -27,7 +27,7 @@ import type * as personalization from "../personalization.js";
 import type * as prompts from "../prompts.js";
 import type * as queryHelpers_conditionScores from "../queryHelpers/conditionScores.js";
 import type * as queryHelpers_forecastSlots from "../queryHelpers/forecastSlots.js";
-import type * as recordings from "../recordings.js";
+import type * as scoreRetention from "../scoreRetention.js";
 import type * as seed from "../seed.js";
 import type * as seedScoringPrompts from "../seedScoringPrompts.js";
 import type * as spots from "../spots.js";
@@ -59,7 +59,7 @@ declare const fullApi: ApiFromModules<{
   prompts: typeof prompts;
   "queryHelpers/conditionScores": typeof queryHelpers_conditionScores;
   "queryHelpers/forecastSlots": typeof queryHelpers_forecastSlots;
-  recordings: typeof recordings;
+  scoreRetention: typeof scoreRetention;
   seed: typeof seed;
   seedScoringPrompts: typeof seedScoringPrompts;
   spots: typeof spots;

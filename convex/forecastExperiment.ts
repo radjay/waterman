@@ -725,7 +725,7 @@ export const purgeUnusableForecastPoints = mutation({
 export const purgeEmptyForecastRuns = mutation({
   args: {},
   handler: async (ctx) => {
-    const runs = await ctx.db.query("fx_forecast_runs").collect();
+    const runs = await ctx.db.query("fx_forecast_runs").order("desc").take(200);
     let deletedRuns = 0;
     for (const run of runs) {
       const remaining = await ctx.db

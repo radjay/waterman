@@ -49,7 +49,8 @@ export default defineSchema({
     })
         .index("by_token", ["token"])
         .index("by_email", ["email"])
-        .index("by_user", ["userId"]),
+        .index("by_user", ["userId"])
+        .index("by_expiresAt", ["expiresAt"]),
     /**
      * Active user sessions.
      * Sessions expire after 30 days of inactivity.
@@ -62,7 +63,8 @@ export default defineSchema({
         createdAt: v.number(),
     })
         .index("by_token", ["token"])
-        .index("by_user", ["userId"]),
+        .index("by_user", ["userId"])
+        .index("by_expiresAt", ["expiresAt"]),
     /**
      * Water sports spots/locations.
      * Each spot can support multiple sports (e.g., wingfoiling, surfing).
@@ -513,26 +515,6 @@ export default defineSchema({
         .index("by_user_sport", ["userId", "sport"])
         .index("by_spot", ["spotId"])
         .index("by_user_spot", ["userId", "spotId"]),
-    /**
-     * Webcam session recordings.
-     * Tracks server-side HLS-to-MP4 recordings stored on Cloudflare R2.
-     */
-    recordings: defineTable({
-        userId: v.id("users"),
-        spotId: v.id("spots"),
-        status: v.string(),               // "pending" | "recording" | "uploading" | "ready" | "failed"
-        startedAt: v.number(),             // epoch ms
-        stoppedAt: v.optional(v.number()), // epoch ms
-        durationSeconds: v.optional(v.number()),
-        fileSizeBytes: v.optional(v.number()),
-        r2Key: v.optional(v.string()),
-        r2Url: v.optional(v.string()),
-        streamUrl: v.string(),             // HLS stream URL that was recorded
-        errorMessage: v.optional(v.string()),
-    })
-        .index("by_user", ["userId"])
-        .index("by_user_status", ["userId", "status"])
-        .index("by_status", ["status"]),
 
     // =========================================================================
     // Forecast experiment (fx_*) — isolated from production forecast/scoring
