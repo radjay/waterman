@@ -2,9 +2,15 @@ import { query, mutation, action, internalQuery, internalMutation } from "./_gen
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { api, internal } from "./_generated/api";
-import Groq from "groq-sdk";
 import SunCalc from "suncalc";
 import { buildPrompt } from "./prompts";
+import {
+  SCORE_MAX_TOKENS,
+  SCORE_TEMPERATURE,
+  completeScoreJson,
+  openrouterApiKey,
+  parseScorePayload,
+} from "./openrouter";
 
 // =============================================================================
 // CONSTANTS
@@ -970,12 +976,8 @@ export const scorePersonalizedSlot = action({
     userSpotContext: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
-
-    if (!groq.apiKey) {
-      console.error("GROQ_API_KEY not set");
+    if (!openrouterApiKey()) {
+      console.error("OPENROUTER_API_KEY not set");
       return null;
     }
 
@@ -1038,59 +1040,24 @@ export const scorePersonalizedSlot = action({
       spot.name
     );
 
-    // Call Groq API with retry logic
     const retryDelays = [30000, 60000]; // 30s, 1 min - match system scoring retry cadence
     let lastError: Error | null = null;
-    
-    // LLM parameters for provenance tracking
-    const MODEL = "openai/gpt-oss-120b";
-    const TEMPERATURE = 0.3;
-    const MAX_TOKENS = 4000;
-
+    const TEMPERATURE = SCORE_TEMPERATURE;
+    const MAX_TOKENS = SCORE_MAX_TOKENS;
 
     for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
-        // Track timing for provenance
         const startTime = Date.now();
-
-        const completion = await groq.chat.completions.create({
-          model: MODEL,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
-          temperature: TEMPERATURE,
-          max_tokens: MAX_TOKENS,
-          response_format: {
-            type: "json_object",
-          },
+        const completion = await completeScoreJson({
+          system,
+          user,
+          maxTokens: MAX_TOKENS,
         });
-        
         const durationMs = Date.now() - startTime;
-
-        const content = completion.choices[0]?.message?.content;
-        if (!content) {
-          throw new Error("No content in response");
-        }
-
-        const response = JSON.parse(content);
-
-        // Validate response
-        if (
-          typeof response.score !== "number" ||
-          response.score < 0 ||
-          response.score > 100
-        ) {
-          throw new Error(`Invalid score: ${response.score}`);
-        }
-        if (
-          typeof response.reasoning !== "string" ||
-          response.reasoning.trim().length === 0
-        ) {
-          throw new Error("Missing or empty reasoning");
-        }
-
-        const score = Math.round(response.score);
+        const content = completion.content;
+        const parsed = parseScorePayload(completion.parsed);
+        const score = parsed.score;
+        const model = completion.model;
         const scoredAt = Date.now();
 
         // Save personalized score
@@ -1101,9 +1068,9 @@ export const scorePersonalizedSlot = action({
           sport: args.sport,
           userId: args.userId,
           score,
-          reasoning: response.reasoning.substring(0, 500),
-          factors: response.factors,
-          model: MODEL,
+          reasoning: parsed.reasoning.substring(0, 500),
+          factors: parsed.factors,
+          model,
           scrapeTimestamp: slot.scrapeTimestamp,
         });
         
@@ -1117,16 +1084,16 @@ export const scorePersonalizedSlot = action({
           timestamp: slot.timestamp,
           systemPrompt: system,
           userPrompt: user,
-          model: MODEL,
+          model,
           temperature: TEMPERATURE,
           maxTokens: MAX_TOKENS,
-          rawResponse: content, // Store the raw JSON string
+          rawResponse: content,
           scoredAt,
           durationMs,
-          attempt: attempt + 1, // 1-based attempt number
+          attempt: attempt + 1,
         });
 
-        return { score, reasoning: response.reasoning };
+        return { score, reasoning: parsed.reasoning };
       } catch (error: any) {
         lastError = error;
         console.error(
@@ -1425,7 +1392,7 @@ export const scorePersonalizedSlotsAfterScrape = action({
             totalSlotsFailed++;
           }
 
-          // Delay between requests to avoid Groq rate limits
+          // Delay between requests to avoid rate limits
           await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }

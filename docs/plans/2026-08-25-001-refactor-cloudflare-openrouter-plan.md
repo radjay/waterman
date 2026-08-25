@@ -221,7 +221,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 - Live or staging profiler: report/dashboard/cams document reads far below 32k (target: under ~25% of the limit at current spot count).
 - Cron list includes score retention.
 
-- [ ] **Unit 3: Replace Groq with OpenRouter in Convex scoring actions**
+- [x] **Unit 3: Replace Groq with OpenRouter in Convex scoring actions**
 
 **Goal:** All condition scores come from OpenRouter. No `GROQ_API_KEY`.
 

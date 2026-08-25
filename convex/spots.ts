@@ -2,8 +2,17 @@ import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { asyncMap } from "convex-helpers";
-import Groq from "groq-sdk";
 import { buildPrompt, buildBatchPrompt, SYSTEM_SPORT_PROMPTS, DEFAULT_TEMPORAL_PROMPT } from "./prompts";
+import {
+    OPENROUTER_MODEL,
+    SCORE_MAX_TOKENS,
+    SCORE_TEMPERATURE,
+    batchScoreJsonSchema,
+    completeScoreJson,
+    isOpenRouterRateLimit,
+    openrouterApiKey,
+    parseScorePayload,
+} from "./openrouter";
 import SunCalc from "suncalc";
 import { Id } from "./_generated/dataModel";
 import { getForecastSlotsForSpot as loadForecastSlotsForSpot } from "./queryHelpers/forecastSlots";
@@ -911,7 +920,7 @@ export const saveConditionScore = mutation({
 });
 
 /**
- * Action to score a single slot-sport combination using Groq LLM.
+ * Action to score a single slot-sport combination using OpenRouter.
  * 
  * @param {Id<"forecast_slots">} slotId - The slot ID to score
  * @param {string} sport - The sport name
@@ -928,12 +937,8 @@ export const scoreSingleSlot = action({
         isContextual: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
-        const groq = new Groq({
-            apiKey: process.env.GROQ_API_KEY,
-        });
-
-        if (!groq.apiKey) {
-            console.error("GROQ_API_KEY not set");
+        if (!openrouterApiKey()) {
+            console.error("OPENROUTER_API_KEY not set");
             return null;
         }
 
@@ -1006,51 +1011,23 @@ export const scoreSingleSlot = action({
         // Retry configuration
         const retryDelays = [30000, 60000, 300000]; // 30s, 1 min, 5 min
         let lastError: any = null;
-        
-        // LLM parameters for provenance tracking
-        const MODEL = "openai/gpt-oss-120b";
-        const TEMPERATURE = 0.3;
-        const MAX_TOKENS = 4000;
-
+        const MODEL = OPENROUTER_MODEL;
+        const TEMPERATURE = SCORE_TEMPERATURE;
+        const MAX_TOKENS = SCORE_MAX_TOKENS;
 
         for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
             try {
-                // Track timing for provenance
                 const startTime = Date.now();
-                
-                // Call Groq API with structured output
-                const completion = await groq.chat.completions.create({
-                    model: MODEL,
-                    messages: [
-                        { role: "system", content: system },
-                        { role: "user", content: user },
-                    ],
-                    temperature: TEMPERATURE,
-                    max_tokens: MAX_TOKENS,
-                    response_format: {
-                        type: "json_object",
-                    },
+                const completion = await completeScoreJson({
+                    system,
+                    user,
+                    maxTokens: MAX_TOKENS,
                 });
-
                 const durationMs = Date.now() - startTime;
-
-                const content = completion.choices[0]?.message?.content;
-                if (!content) {
-                    throw new Error("No content in response");
-                }
-
-                const response = JSON.parse(content);
-
-                // Validate response
-                if (typeof response.score !== "number" || response.score < 0 || response.score > 100) {
-                    throw new Error(`Invalid score: ${response.score}`);
-                }
-                if (typeof response.reasoning !== "string" || response.reasoning.trim().length === 0) {
-                    throw new Error("Missing or empty reasoning");
-                }
-
-                // Round score to integer
-                const score = Math.round(response.score);
+                const content = completion.content;
+                const parsed = parseScorePayload(completion.parsed);
+                const score = parsed.score;
+                const model = completion.model;
 
                 // Get prompt IDs and text for history tracking
                 const systemPromptId = systemPromptData?._id;
@@ -1066,9 +1043,9 @@ export const scoreSingleSlot = action({
                     sport: args.sport,
                     userId: args.userId || null, // Explicitly set to null for system scores
                     score,
-                    reasoning: response.reasoning.trim(),
-                    factors: response.factors || undefined,
-                    model: MODEL,
+                    reasoning: parsed.reasoning,
+                    factors: parsed.factors,
+                    model,
                     scrapeTimestamp: slot.scrapeTimestamp,
                     systemPromptId,
                     spotPromptId,
@@ -1087,7 +1064,7 @@ export const scoreSingleSlot = action({
                     timestamp: slot.timestamp,
                     systemPrompt: system,
                     userPrompt: user,
-                    model: MODEL,
+                    model,
                     temperature: TEMPERATURE,
                     maxTokens: MAX_TOKENS,
                     rawResponse: content, // Store the raw JSON string
@@ -1098,17 +1075,14 @@ export const scoreSingleSlot = action({
 
                 return {
                     score,
-                    reasoning: response.reasoning,
-                    factors: response.factors,
+                    reasoning: parsed.reasoning,
+                    factors: parsed.factors,
                 };
             } catch (error: any) {
                 lastError = error;
                 console.error(`Scoring attempt ${attempt + 1} failed:`, error.message);
 
-                // Check if this is a rate limit error
-                const isRateLimit = error.status === 429 || 
-                    (error.message && error.message.includes("rate limit")) ||
-                    (error.message && error.message.includes("Rate limit"));
+                const isRateLimit = isOpenRouterRateLimit(error);
 
                 // If not the last attempt, wait before retrying
                 if (attempt < retryDelays.length) {
@@ -1208,9 +1182,8 @@ export const scoreForecastSlots = action({
         slotIds: v.array(v.id("forecast_slots")),
     },
     handler: async (ctx, args) => {
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        if (!groq.apiKey) {
-            console.error("GROQ_API_KEY not set");
+        if (!openrouterApiKey()) {
+            console.error("OPENROUTER_API_KEY not set");
             return { successCount: 0, failureCount: 0, total: 0 };
         }
 
@@ -1310,13 +1283,10 @@ export const scoreForecastSlots = action({
                     contextualTimestamps, sunTimes,
                 );
 
-                // LLM parameters
-                const MODEL = "openai/gpt-oss-120b";
-                const TEMPERATURE = 0.3;
-                // Scale max tokens with batch size: ~250 tokens per slot for response (longer reasoning)
+                const MODEL = OPENROUTER_MODEL;
+                const TEMPERATURE = SCORE_TEMPERATURE;
                 const MAX_TOKENS = Math.min(daySlots.length * 600 + 500, 16000);
 
-                // Call Groq API with retry logic
                 const retryDelays = [30000, 60000, 300000];
                 let lastError: any = null;
                 let batchSuccess = false;
@@ -1324,24 +1294,16 @@ export const scoreForecastSlots = action({
                 for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
                     try {
                         const startTime = Date.now();
-
-                        const completion = await groq.chat.completions.create({
-                            model: MODEL,
-                            messages: [
-                                { role: "system", content: system },
-                                { role: "user", content: user },
-                            ],
-                            temperature: TEMPERATURE,
-                            max_tokens: MAX_TOKENS,
-                            response_format: { type: "json_object" },
+                        const completion = await completeScoreJson({
+                            system,
+                            user,
+                            maxTokens: MAX_TOKENS,
+                            schema: batchScoreJsonSchema(daySlots.length),
                         });
-
                         const durationMs = Date.now() - startTime;
-                        const content = completion.choices[0]?.message?.content;
-                        if (!content) throw new Error("No content in response");
-
-                        const response = JSON.parse(content);
-                        const scores = response.scores;
+                        const content = completion.content;
+                        const scores = completion.parsed.scores;
+                        const model = completion.model;
 
                         if (!Array.isArray(scores) || scores.length !== daySlots.length) {
                             throw new Error(
@@ -1379,7 +1341,7 @@ export const scoreForecastSlots = action({
                                 score,
                                 reasoning: scoreData.reasoning.trim().substring(0, 500),
                                 factors: scoreData.factors || undefined,
-                                model: MODEL,
+                                model,
                                 scrapeTimestamp: slot.scrapeTimestamp,
                                 systemPromptId,
                                 spotPromptId,
@@ -1398,7 +1360,7 @@ export const scoreForecastSlots = action({
                                 timestamp: slot.timestamp,
                                 systemPrompt: system,
                                 userPrompt: user,
-                                model: MODEL,
+                                model,
                                 temperature: TEMPERATURE,
                                 maxTokens: MAX_TOKENS,
                                 rawResponse: content,
@@ -1418,8 +1380,7 @@ export const scoreForecastSlots = action({
 
                         if (attempt < retryDelays.length) {
                             let delay = retryDelays[attempt];
-                            const isRateLimit = error.status === 429 ||
-                                (error.message && error.message.includes("rate limit"));
+                            const isRateLimit = isOpenRouterRateLimit(error);
                             if (isRateLimit && error.message) {
                                 const retryAfterMatch = error.message.match(/try again in ([\d.]+)s/i);
                                 if (retryAfterMatch) {
