@@ -23,6 +23,7 @@ import type * as crons from "../crons.js";
 import type * as forecastExperiment from "../forecastExperiment.js";
 import type * as journal from "../journal.js";
 import type * as models from "../models.js";
+import type * as openrouter from "../openrouter.js";
 import type * as personalization from "../personalization.js";
 import type * as prompts from "../prompts.js";
 import type * as queryHelpers_conditionScores from "../queryHelpers/conditionScores.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   forecastExperiment: typeof forecastExperiment;
   journal: typeof journal;
   models: typeof models;
+  openrouter: typeof openrouter;
   personalization: typeof personalization;
   prompts: typeof prompts;
   "queryHelpers/conditionScores": typeof queryHelpers_conditionScores;
