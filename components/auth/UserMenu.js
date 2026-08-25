@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
-import { User, LogOut, ChevronDown, Calendar, FileText, MapPin, Settings, Share, Video } from "lucide-react";
+import { User, LogOut, ChevronDown, Calendar, FileText, MapPin, Settings, Share } from "lucide-react";
 import { useShare } from "../../hooks/useShare";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -103,17 +103,6 @@ export default function UserMenu() {
             >
               <User className="w-4 h-4" />
               Profile
-            </button>
-
-            <button
-              onClick={() => {
-                router.push("/recordings");
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-ink-hover transition-colors"
-            >
-              <Video className="w-4 h-4" />
-              My Recordings
             </button>
 
             <button

@@ -1277,17 +1277,6 @@ export default function UIKitPage() {
           </Documented>
 
           <Documented
-            name="RecordButton"
-            importPath="components/webcam/RecordButton"
-            on={["NOW", "CAMS"]}
-          >
-            Clip capture on a cam surface. Hidden on mobile, appears on hover at md+ —
-            one tap on a phone means fullscreen, so a hover-revealed control there would be
-            unreachable. Rendered inside WebcamCard and WebcamFullscreen rather than placed
-            by a screen.
-          </Documented>
-
-          <Documented
             name="StationWindChart / WaveTideChart / WindReading / LiveEvidencePanel"
             importPath="components/now/*, components/confidence/LiveEvidencePanel"
             on={["WINDOW"]}

@@ -12,7 +12,6 @@ import { OVER_VIDEO_SCRIM } from "../ui/CamFrame";
 import { WaveGroup } from "../forecast/WaveGroup";
 import { WavesArrowDown, WavesArrowUp } from "lucide-react";
 import { formatTideTime } from "../../lib/utils";
-import { RecordButton } from "./RecordButton";
 import { useVisualViewportRect } from "../../lib/hooks/useVisualViewportRect";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL);
@@ -603,7 +602,6 @@ export function WebcamFullscreen({
               <ChartNoAxesCombined size={14} />
             </a>
           )}
-          <RecordButton spotId={spot._id} />
           <button
             onClick={onClose}
             className="text-white hover:text-white/70 transition-colors bg-black/50 rounded-full p-2"
