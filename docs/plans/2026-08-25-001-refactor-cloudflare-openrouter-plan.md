@@ -304,7 +304,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 - After deploy, one scheduled or `npx convex run` scrape writes slots without Render.
 - `render.yaml` has no scraper or fx services.
 
-- [ ] **Unit 5: Host Next.js on Cloudflare Workers with OpenNext**
+- [x] **Unit 5: Host Next.js on Cloudflare Workers with OpenNext**
 
 **Goal:** `watermanreport.com` (or the canonical host) serves from Cloudflare, still talking to Convex.
 

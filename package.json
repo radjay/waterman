@@ -5,7 +5,7 @@
   "description": "Waterman is a watersports monitoring system that grabs weather forecasts and notifies users when conditions will suit their needs.",
   "main": "index.js",
   "scripts": {
-    "test": "vitest run && npm run test:fx && npm run test:convex && npm run test:email",
+    "test": "vitest run && npm run test:fx && npm run test:convex && npm run test:email && npm run test:cloudflare",
     "test:fx": "node --test tests/forecast-experiment/*.test.mjs",
     "test:convex": "node --test tests/convex/*.test.mjs",
     "test:email": "node --test tests/email-worker/*.test.mjs",
@@ -39,16 +39,20 @@
     "dev": "next dev -p 3010",
     "build": "next build",
     "start": "next start",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "lint": "next lint",
     "scrape": "node scripts/scrape.mjs",
-    "postinstall": "npx puppeteer browsers install chrome || true",
     "test:unit": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:cloudflare": "node --test tests/cloudflare/*.test.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
     "convex": "^1.30.0",
     "convex-helpers": "^0.1.113",
     "dotenv": "^17.2.3",
@@ -57,7 +61,6 @@
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.556.0",
     "next": "^16.0.7",
-    "puppeteer": "^24.32.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-markdown": "^10.1.0",
@@ -71,7 +74,9 @@
     "autoprefixer": "^10.4.22",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
+    "puppeteer": "^24.32.0",
     "tailwindcss": "^3.4.18",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "^4.126.0"
   }
 }

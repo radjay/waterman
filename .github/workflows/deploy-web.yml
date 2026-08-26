@@ -1,0 +1,21 @@
+name: Deploy web worker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://adorable-anteater-323.convex.cloud
+          NEXT_PUBLIC_APP_URL: https://www.watermanreport.com
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

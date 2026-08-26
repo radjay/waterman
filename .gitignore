@@ -20,6 +20,8 @@ yarn-error.log
 
 # Next.js
 .next/
+.open-next/
+.wrangler/
 
 # Analysis/Test artifacts
 *-analysis.json

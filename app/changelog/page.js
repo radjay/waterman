@@ -1,6 +1,5 @@
-import { readFile } from "fs/promises";
-import { join } from "path";
 import ReactMarkdown from "react-markdown";
+import { CHANGELOG_MARKDOWN } from "../../lib/changelogContent";
 import { MainLayout } from "../../components/layout/MainLayout";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
@@ -13,15 +12,7 @@ export const metadata = {
 };
 
 export default async function ChangelogPage() {
-  // Read the changelog file at request time
-  const changelogPath = join(process.cwd(), "CHANGELOG.md");
-  let markdown = "# Changelog\n\nUnable to load changelog.";
-  
-  try {
-    markdown = await readFile(changelogPath, "utf8");
-  } catch (error) {
-    console.error("Error reading changelog:", error);
-  }
+  const markdown = CHANGELOG_MARKDOWN;
 
   return (
     <MainLayout>
