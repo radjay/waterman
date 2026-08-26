@@ -22,6 +22,7 @@ import type * as calendar from "../calendar.js";
 import type * as crons from "../crons.js";
 import type * as forecastExperiment from "../forecastExperiment.js";
 import type * as fxJobs from "../fxJobs.js";
+import type * as historyRetention from "../historyRetention.js";
 import type * as ingest from "../ingest.js";
 import type * as journal from "../journal.js";
 import type * as models from "../models.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   forecastExperiment: typeof forecastExperiment;
   fxJobs: typeof fxJobs;
+  historyRetention: typeof historyRetention;
   ingest: typeof ingest;
   journal: typeof journal;
   models: typeof models;

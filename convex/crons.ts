@@ -40,6 +40,15 @@ crons.daily(
   {}
 );
 
+// Drop history older than 30 days (scoring logs: 7 days). Full copy is in
+// archive/ and R2 waterman-archive.
+crons.daily(
+  "retain history",
+  { hourUTC: 4, minuteUTC: 20 },
+  internal.historyRetention.retainHistory,
+  {}
+);
+
 // Forecast scrape. Same UTC hours as the old Render waterman-scraper.
 crons.cron(
   "scrape forecasts",

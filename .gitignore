@@ -33,6 +33,10 @@ poc.js
 *.tmp
 *.log
 
+# Local Convex snapshot and extracts (large). Keep README.
+/archive/**
+!/archive/README.md
+
 # Local agent worktrees
 .claude/worktrees/
 
