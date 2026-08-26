@@ -257,7 +257,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 - `groq-sdk` is not in `package.json`. No remaining `new Groq(` in `convex/`.
 - System scoring after scrape and personal scoring after a profile save both write OpenRouter model ids.
 
-- [ ] **Unit 4: Move scrape and fx jobs off Render onto Convex crons**
+- [x] **Unit 4: Move scrape and fx jobs off Render onto Convex crons**
 
 **Goal:** Forecast ingest, scoring fan-out, and fx ingest run without Render cron/worker services.
 

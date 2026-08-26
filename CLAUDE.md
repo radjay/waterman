@@ -28,6 +28,14 @@ Before writing any UI:
 6. **Numbers are `font-data`.** Every number a user reads — knots, metres,
    scores, times, degrees — is JetBrains Mono. All-caps micro labels too.
 
+## Convex
+
+The app uses one Convex deployment: `dev:adorable-anteater-323`
+(`https://adorable-anteater-323.convex.cloud`). That is the live database.
+
+Do not use Convex prod (`keen-reindeer-909`). `npx convex deploy` targets
+prod. Push functions with `npx convex dev --once` instead.
+
 ## Layout / data conventions
 
 - Sport is a single value from `SportProvider` (`"wingfoil" | "kitesurfing" |

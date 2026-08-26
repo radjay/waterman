@@ -21,6 +21,8 @@ import type * as auth from "../auth.js";
 import type * as calendar from "../calendar.js";
 import type * as crons from "../crons.js";
 import type * as forecastExperiment from "../forecastExperiment.js";
+import type * as fxJobs from "../fxJobs.js";
+import type * as ingest from "../ingest.js";
 import type * as journal from "../journal.js";
 import type * as models from "../models.js";
 import type * as openrouter from "../openrouter.js";
@@ -54,6 +56,8 @@ declare const fullApi: ApiFromModules<{
   calendar: typeof calendar;
   crons: typeof crons;
   forecastExperiment: typeof forecastExperiment;
+  fxJobs: typeof fxJobs;
+  ingest: typeof ingest;
   journal: typeof journal;
   models: typeof models;
   openrouter: typeof openrouter;

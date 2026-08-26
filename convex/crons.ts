@@ -40,4 +40,51 @@ crons.daily(
   {}
 );
 
+// Forecast scrape. Same UTC hours as the old Render waterman-scraper.
+crons.cron(
+  "scrape forecasts",
+  "0 0,6,12,18 * * *",
+  internal.ingest.scrapeAllSpots
+);
+
+// Forecast-experiment ingest. Split the old combined labels Render job so
+// each step can finish before the next starts.
+crons.hourly(
+  "fx openmeteo runs",
+  { minuteUTC: 30 },
+  internal.fxJobs.fetchOpenMeteoRuns
+);
+crons.hourly(
+  "fx build labels",
+  { minuteUTC: 10 },
+  internal.fxJobs.buildLabels
+);
+crons.hourly(
+  "fx score models",
+  { minuteUTC: 20 },
+  internal.fxJobs.scoreModels
+);
+crons.hourly(
+  "fx score predictions",
+  { minuteUTC: 25 },
+  internal.fxJobs.scorePredictions
+);
+crons.hourly(
+  "fx generate predictions",
+  { minuteUTC: 35 },
+  internal.fxJobs.generatePredictions,
+  {}
+);
+crons.interval(
+  "fx observations",
+  { minutes: 5 },
+  internal.fxJobs.fetchObservations
+);
+crons.interval(
+  "fx nowcast predictions",
+  { minutes: 20 },
+  internal.fxJobs.generatePredictions,
+  { layers: "nowcast" }
+);
+
 export default crons;
