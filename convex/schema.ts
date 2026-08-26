@@ -82,6 +82,9 @@ export default defineSchema({
         liveReportUrl: v.optional(v.string()),
         // Webcam-specific fields
         webcamOnly: v.optional(v.boolean()), // If true, this spot is webcam-only (not scraped/scored)
+        // undefined or true = live. false = hidden from scrape, scores, and public lists.
+        // Dev keeps a small lab roster so it does not double-spend tokens against prod.
+        enabled: v.optional(v.boolean()),
         town: v.optional(v.string()), // Town name for webcam spots
         region: v.optional(v.string()), // Region name for webcam spots
         latitude: v.optional(v.number()), // Latitude for webcam spots

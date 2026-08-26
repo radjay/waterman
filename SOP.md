@@ -57,39 +57,30 @@ This document outlines the standard procedures for maintaining and deploying the
    git commit -m "Description of changes"
    ```
 
-2. **Push to GitHub**
+2. **Push Convex functions**
    ```bash
-   git push
+   npx convex deploy            # live (prod)
+   npx convex dev --once        # lab (dev)
    ```
-   This triggers automatic deployment on Render.
 
-3. **Monitor Render Deployment** (⏱️ ~2 minutes)
-   - Go to https://dashboard.render.com/
-   - Navigate to your Waterman service
-   - Watch the deployment logs in real-time
-   - Wait for "Deploy live" status (~2 minutes)
+3. **Deploy the Worker**
+   ```bash
+   npm run deploy
+   ```
+   This builds OpenNext and uploads `waterman-web`.
 
-4. **Verify Deployment Success**
-   - Check that status shows "Deploy live" with green indicator
-   - Note the deployment time and commit hash
-   - Review deployment logs for any warnings or errors
+4. **Verify**
+   - Visit https://watermanreport.com
+   - Check Convex logs on the live deployment
+   - Confirm the latest scrape timestamp is recent
 
-5. **Test Production** (if significant changes)
-   - Visit the production URL
-   - Test the changed functionality
-   - Check browser console for errors
-   - Verify data loads correctly
-
-6. **Rollback** (if deployment fails)
-   - In Render dashboard, find the previous successful deployment
-   - Click "Redeploy" on that version
-   - Wait for rollback to complete
+5. **Rollback**
+   - Worker: Cloudflare dashboard → `waterman-web` → prior version
+   - Convex: dashboard → Backups → Restore
 
 **Critical Notes:**
-- Always verify Render deployment completes successfully
-- Don't assume "push = deployed" - check Render dashboard
-- Deployment typically takes 2 minutes - wait for completion
-- Keep an eye on deployment logs for build errors
+- Git push does not deploy the Worker by itself unless you run the deploy workflow
+- Live data is Convex prod. Lab data is Convex dev with a small spot roster.
 
 ---
 
@@ -102,10 +93,11 @@ This document outlines the standard procedures for maintaining and deploying the
 
 **Procedure:**
 
-1. **Run Scraper Script**
+1. **Run Scraper**
    ```bash
-   node scripts/scrape.mjs
+   npx convex run ingest:scrapeAllSpots
    ```
+   Or `npm run scrape` for the manual Node path.
 
 2. **Monitor Progress**
    - Watch terminal output for each spot being scraped
@@ -202,14 +194,12 @@ This document outlines the standard procedures for maintaining and deploying the
 **Procedure:**
 
 1. **Identify Last Good Deployment**
-   - Check Render dashboard deployment history
-   - Find most recent "Deploy live" before the issue
-   - Note the commit hash
+   - Cloudflare dashboard → `waterman-web` → Versions
+   - Convex dashboard → Deployments
 
 2. **Rollback Code**
-   - Render dashboard → Select service → Find good deployment
-   - Click "Redeploy" button
-   - Wait for deployment (~2 minutes)
+   - Worker: restore the previous Worker version
+   - Convex: redeploy the last good commit with `npx convex deploy`
 
 3. **Rollback Database** (if needed)
    - Convex dashboard → Settings → Backups
@@ -234,12 +224,14 @@ This document outlines the standard procedures for maintaining and deploying the
 | Task | Command |
 |------|---------|
 | Run migration | `node scripts/runMigration.mjs <migration:function>` |
-| Deploy Convex | `npx convex deploy` |
+| Deploy live Convex | `npx convex deploy` |
+| Deploy lab Convex | `npx convex dev --once` |
+| Deploy Worker | `npm run deploy` |
 | Seed system prompts | `npx convex run seedScoringPrompts:seedSystemSportPrompts` |
 | Seed spot prompts | `npx convex run seedScoringPrompts:seedScoringPrompts` |
-| Run scraper | `node scripts/scrape.mjs` |
+| Run scraper | `npx convex run ingest:scrapeAllSpots` |
+| Trim lab roster | `npx convex run spots:setLabRoster` (lab only) |
 | Check Convex logs | https://dashboard.convex.dev/ → Logs |
-| Check Render logs | https://dashboard.render.com/ → Service → Logs |
 | Create backup | Convex dashboard → Settings → Backups → Create Backup |
 
 ---
@@ -247,14 +239,16 @@ This document outlines the standard procedures for maintaining and deploying the
 ## Important Links
 
 - **Convex Dashboard**: https://dashboard.convex.dev/
-- **Render Dashboard**: https://dashboard.render.com/
-- **Production Site**: (Add your production URL here)
+- **Cloudflare Workers**: https://dash.cloudflare.com/
+- **Production Site**: https://watermanreport.com
 - **GitHub Repo**: https://github.com/radjay/waterman
 
 ---
 
 ## Notes
 
+- Live Convex is `keen-reindeer-909`. Lab is `adorable-anteater-323` with five forecast spots (Guincho, Lagoa, Marina, Carcavelos, Bico).
+- `www.watermanreport.com` is the Worker. Apex `watermanreport.com` still hits Render until you remove that custom domain in Render.
 - SOPs should be followed in order and completely
 - Don't skip verification steps
 - Document any deviations or issues

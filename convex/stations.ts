@@ -130,7 +130,7 @@ export const listStationSpots = query({
   handler: async (ctx) => {
     const spots = await ctx.db.query("spots").collect();
     return spots
-      .filter((spot) => Boolean(spot.liveReportUrl))
+      .filter((spot) => Boolean(spot.liveReportUrl) && spot.enabled !== false)
       .map((spot) => ({ _id: spot._id, liveReportUrl: spot.liveReportUrl }));
   },
 });

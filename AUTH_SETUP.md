@@ -48,11 +48,11 @@ NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-For production (Render.com), set these in your Render dashboard:
+For production, set these as Wrangler vars on `waterman-web` (already in `wrangler.jsonc`):
 
 ```bash
-NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
-NEXT_PUBLIC_APP_URL=https://waterman.app
+NEXT_PUBLIC_CONVEX_URL=https://keen-reindeer-909.convex.cloud
+NEXT_PUBLIC_APP_URL=https://www.watermanreport.com
 ```
 
 ### Optional Configuration
@@ -133,22 +133,13 @@ npm --prefix workers/email exec -- wrangler secret put EMAIL_WORKER_SECRET --con
 ### 3. Deploy Convex Schema and Functions
 
 ```bash
-# Deploy to Convex
 npx convex deploy
-
-# This will:
-# - Create/update database tables (users, magic_links, sessions)
-# - Deploy auth functions (convex/auth.ts)
-# - Set up cron jobs for cleanup
 ```
 
-### 4. Deploy Next.js App
+### 4. Deploy the Next.js Worker
 
 ```bash
-# Build and deploy your Next.js app
-npm run build
-
-# Or deploy via Render (automatic if using Render)
+npm run deploy
 ```
 
 ### 5. Test the Flow

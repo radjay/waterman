@@ -1,7 +1,7 @@
 ---
 title: refactor: Host on Cloudflare, score via OpenRouter, keep Convex
 type: refactor
-status: active
+status: completed
 date: 2026-08-25
 origin: docs/brainstorms/2026-08-25-cloudflare-openrouter-requirements.md
 ---
@@ -344,7 +344,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 **Verification:**
 - Preview URL smoke list above is green. Production DNS cut is Unit 6.
 
-- [ ] **Unit 6: Retire Render and clean ops docs**
+- [x] **Unit 6: Retire Render and clean ops docs**
 
 **Goal:** Production traffic and jobs do not use Render. Docs match.
 
@@ -370,6 +370,17 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 **Verification:**
 - Render dashboard has no Waterman services in play.
 - SOP tells an operator to use Cloudflare and Convex, not Render.
+
+- [x] **Unit 7: Copy Convex lab data to prod and trim the lab roster**
+
+**Goal:** Live traffic reads `keen-reindeer-909`. Lab does not scrape the full coast.
+
+**Approach:**
+- Snapshot lab and import into prod with `--replace-all`.
+- Copy Convex env (`OPENROUTER_API_KEY`, `ADMIN_PASSWORD`) to prod. Do not print values.
+- Deploy functions to prod. Point the Worker at `https://keen-reindeer-909.convex.cloud`.
+- On lab only, run `spots:setLabRoster` (Guincho, Lagoa, Marina, Carcavelos, Bico).
+- Apex and www both serve from the Worker after the Render custom domain was removed.
 
 ## System-Wide Impact
 

@@ -30,11 +30,14 @@ Before writing any UI:
 
 ## Convex
 
-The app uses one Convex deployment: `dev:adorable-anteater-323`
-(`https://adorable-anteater-323.convex.cloud`). That is the live database.
+Live traffic uses Convex prod: `prod:keen-reindeer-909`
+(`https://keen-reindeer-909.convex.cloud`). Push live functions with
+`npx convex deploy`.
 
-Do not use Convex prod (`keen-reindeer-909`). `npx convex deploy` targets
-prod. Push functions with `npx convex dev --once` instead.
+Lab traffic uses Convex dev: `dev:adorable-anteater-323`
+(`https://adorable-anteater-323.convex.cloud`). Push lab functions with
+`npx convex dev --once`. Dev keeps a small forecast roster so scrape and
+scoring do not double prod cost.
 
 ## Layout / data conventions
 

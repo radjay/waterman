@@ -1,4 +1,4 @@
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { asyncMap } from "convex-helpers";
@@ -77,6 +77,7 @@ export const list = query({
     args: { 
         sports: v.optional(v.array(v.string())),
         includeWebcams: v.optional(v.boolean()),
+        includeDisabled: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const allSpots = await ctx.db.query("spots").collect();
@@ -84,7 +85,10 @@ export const list = query({
         // Filter out webcam-only spots unless explicitly requested
         let filteredSpots = allSpots;
         if (!args.includeWebcams) {
-            filteredSpots = allSpots.filter(spot => !spot.webcamOnly);
+            filteredSpots = filteredSpots.filter(spot => !spot.webcamOnly);
+        }
+        if (!args.includeDisabled) {
+            filteredSpots = filteredSpots.filter(spot => spot.enabled !== false);
         }
         
         // If sports filter is provided, filter spots that have any of those sports
@@ -1918,12 +1922,12 @@ export const getDashboardData = query({
             } else {
                 // User has no favorites yet — show top 10
                 const all = await ctx.db.query("spots").collect();
-                targetSpots = all.filter((s: any) => !s.webcamOnly).slice(0, 10);
+                targetSpots = all.filter((s: any) => !s.webcamOnly && s.enabled !== false).slice(0, 10);
             }
         } else {
             // Anonymous with no saved preferences — show top 10
             const all = await ctx.db.query("spots").collect();
-            targetSpots = all.filter((s: any) => !s.webcamOnly).slice(0, 10);
+            targetSpots = all.filter((s: any) => !s.webcamOnly && s.enabled !== false).slice(0, 10);
         }
 
         const [entries, mostRecentScrape] = await Promise.all([
@@ -2009,6 +2013,7 @@ export const getReportData = query({
             const matchesSport = args.sports.some((sport: string) => spotSports.includes(sport));
             // Webcam-only spots (Guincho N, Moitas) have no forecast but must
             // still appear in Live "All spots" as cam cards.
+            if (spot.enabled === false && !spot.webcamOnly) return false;
             if (spot.webcamOnly) {
                 const hasCam =
                     spot.webcamStreamId !== undefined ||
@@ -2167,5 +2172,40 @@ export const pruneDuplicateConditionScores = mutation({
             deletable,
             deleted,
         };
+    },
+});
+
+// Wing: Guincho, Lagoa, Marina. Surf: Carcavelos, Bico, Guincho.
+const LAB_SPOT_NAMES = [
+    "Praia do Guincho",
+    "Lagoa da Albufeira",
+    "Marina de Cascais",
+    "Carcavelos",
+    "Bico, Sao Pedro do Estoril",
+];
+
+/** Dev-only: keep a small forecast roster so lab scrapes do not double prod cost. */
+export const setLabRoster = internalMutation({
+    args: {
+        liveNames: v.optional(v.array(v.string())),
+    },
+    handler: async (ctx, args) => {
+        const live = new Set(args.liveNames ?? LAB_SPOT_NAMES);
+        const spots = await ctx.db.query("spots").collect();
+        let enabled = 0;
+        let disabled = 0;
+        const kept = [];
+        for (const spot of spots) {
+            if (spot.webcamOnly) continue;
+            const on = live.has(spot.name);
+            await ctx.db.patch(spot._id, { enabled: on });
+            if (on) {
+                enabled += 1;
+                kept.push(spot.name);
+            } else {
+                disabled += 1;
+            }
+        }
+        return { enabled, disabled, kept };
     },
 });

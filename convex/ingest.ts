@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { extractSpotId, getForecast, getModelForecasts } from "../lib/scraper.js";
-import { scrapeableSpots, scrapeOneSpot, SPOT_STAGGER_MS } from "../lib/ingest/scrapePlan.js";
+import { isForecastLive, scrapeableSpots, scrapeOneSpot, SPOT_STAGGER_MS } from "../lib/ingest/scrapePlan.js";
 
 function spotStore(ctx: any) {
   return {
@@ -43,8 +43,8 @@ export const scrapeSpot = internalAction({
       console.error(`ingest scrape: missing spot ${args.spotId}`);
       return { ok: false, error: "Spot not found" };
     }
-    if (spot.webcamOnly) {
-      return { ok: true, skipped: true, reason: "webcamOnly" };
+    if (!isForecastLive(spot)) {
+      return { ok: true, skipped: true, reason: "notLive" };
     }
     const result = await scrapeOneSpot({
       spot,

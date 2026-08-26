@@ -15,8 +15,9 @@ Waterman is a watersports monitoring system that grabs weather forecasts and not
 ## Tech Stack
 
 - **Frontend**: Next.js 16, React 19, Tailwind CSS
-- **Backend**: Convex (serverless database and backend)
-- **Scraping**: Puppeteer for web scraping
+- **Backend**: Convex (database, actions, crons)
+- **Hosting**: Cloudflare Workers (OpenNext)
+- **Scoring**: OpenRouter (`openai/gpt-5.6-luna`)
 - **Icons**: Lucide React
 - **Video Streaming**: HLS.js for webcam streams
 
@@ -103,26 +104,19 @@ waterman/
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3010](http://localhost:3010) in your browser.
 
 ## Usage
 
 ### Scraping Forecast Data
 
-To scrape forecast data for all spots:
+Scheduled scrape is a Convex cron (`00, 06, 12, 18` UTC). Manual:
 
 ```bash
-npm run scrape
+npx convex run ingest:scrapeAllSpots
 # or
-node scripts/scrape.mjs
+npm run scrape
 ```
-
-The scraper will:
-
-1. Fetch all spots from the Convex database
-2. Scrape forecast data from Windy.app for each spot
-3. Save forecast slots to the database
-4. Track scrape success/failure
 
 ### Adding a New Spot
 
@@ -143,7 +137,9 @@ See `convex/schema.ts` for the full schema definition.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
-- `npm run scrape` - Run the forecast scraper
+- `npm run scrape` - Manual forecast scrape (cron is Convex)
+- `npm run preview` - Build and serve the Worker locally
+- `npm run deploy` - Build and deploy the Worker to Cloudflare
 
 See `scripts/README.md` for detailed documentation on utility scripts.
 
@@ -170,23 +166,29 @@ Components are organized by feature:
 
 ## Deployment
 
-### Deploying to Render.com
+Production is a Cloudflare Worker (`waterman-web`) plus Convex.
 
-See `RENDER_SETUP.md` for detailed instructions on deploying to Render.com, including:
+```bash
+npx convex deploy          # live Convex (prod: keen-reindeer-909)
+npx convex dev --once      # lab Convex (dev: adorable-anteater-323)
+npm run deploy             # OpenNext Worker
+```
 
-- Setting up automated scraping with cron jobs
-- Environment variable configuration
-- Troubleshooting Puppeteer/Chrome issues
+Do not put custom domains on the lab Worker. `watermanreport.com` is the live Worker.
+
+Lab Convex keeps five forecast spots: Guincho, Lagoa da Albufeira, Marina de Cascais, Carcavelos, and Bico. After you copy data from lab to prod, run `npx convex run spots:setLabRoster` on lab only.
 
 ### Environment Variables
 
 Required:
 
-- `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL
+- `NEXT_PUBLIC_CONVEX_URL` — lab: `https://adorable-anteater-323.convex.cloud`; live Worker uses prod
+- `NEXT_PUBLIC_APP_URL` — `https://www.watermanreport.com` in production
+- `OPENROUTER_API_KEY` — Convex env, scoring
 
 Optional:
 
-- `SCRAPE_SECRET_TOKEN` - Secret token for API endpoint authentication (if using `/api/scrape`)
+- `SCRAPE_SECRET_TOKEN` — token for `/api/scrape` if you still use that route
 
 ## Development
 

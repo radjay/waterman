@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { CHANGELOG_MARKDOWN } from "../../lib/changelogContent.js";
@@ -42,9 +42,33 @@ describe("OpenNext Worker hosting", () => {
     assert.match(pkg.scripts.deploy, /opennextjs-cloudflare/);
   });
 
-  it("does not attach a custom domain in this unit", () => {
+  it("serves watermanreport.com from the Worker, not Render", () => {
     const wrangler = read("wrangler.jsonc");
-    assert.doesNotMatch(wrangler, /"routes"/);
+    // Zone routes, not custom_domain: the apex still has Cloudflare DNS
+    // records that point at the old origin. A Worker route intercepts
+    // proxied traffic without deleting those records first.
+    assert.match(wrangler, /zone_name/);
+    assert.match(wrangler, /watermanreport\.com\/\*/);
+    assert.match(wrangler, /www\.watermanreport\.com\/\*/);
     assert.doesNotMatch(wrangler, /custom_domain/);
+  });
+});
+
+describe("Render retired", () => {
+  it("removes the Render blueprint and setup guide", () => {
+    assert.equal(existsSync(path.join(root, "render.yaml")), false);
+    assert.equal(existsSync(path.join(root, "RENDER_SETUP.md")), false);
+  });
+
+  it("tells operators to deploy on Cloudflare and Convex, not Render", () => {
+    const sop = read("SOP.md");
+    const readme = read("README.md");
+    const auth = read("AUTH_SETUP.md");
+    assert.match(sop, /opennextjs-cloudflare deploy|npm run deploy/);
+    assert.match(sop, /convex dev --once/);
+    assert.doesNotMatch(sop, /dashboard\.render\.com/);
+    assert.match(readme, /Cloudflare Workers/);
+    assert.doesNotMatch(readme, /RENDER_SETUP/);
+    assert.doesNotMatch(auth, /Render\.com/);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
@@ -29,6 +29,17 @@ describe("scrapeableSpots", () => {
     assert.deepEqual(
       planned.map((s) => s.name),
       ["Guincho", "CDS"]
+    );
+  });
+
+  it("skips spots disabled for the lab roster", () => {
+    const planned = scrapeableSpots([
+      { _id: "a", name: "Guincho" },
+      { _id: "b", name: "Lagoa", enabled: false },
+    ]);
+    assert.deepEqual(
+      planned.map((s) => s.name),
+      ["Guincho"]
     );
   });
 });
@@ -161,17 +172,11 @@ describe("Unit 4 wiring", () => {
     const ingest = read("convex/ingest.ts");
     assert.match(ingest, /internal\.ingest\.scrapeSpot/);
     assert.match(ingest, /SPOT_STAGGER_MS/);
-    assert.match(ingest, /webcamOnly/);
+    assert.match(ingest, /isForecastLive/);
   });
 
   it("drops scraper and fx services from render.yaml", () => {
-    const render = read("render.yaml");
-    assert.doesNotMatch(render, /waterman-scraper/);
-    assert.doesNotMatch(render, /waterman-fx-openmeteo/);
-    assert.doesNotMatch(render, /waterman-fx-labels/);
-    assert.doesNotMatch(render, /waterman-fx-observations/);
-    assert.doesNotMatch(render, /waterman-fx-nowcast/);
-    assert.match(render, /name: waterman/);
+    assert.equal(existsSync(path.join(root, "render.yaml")), false);
   });
 
   it("does not add D1 or a second database", () => {

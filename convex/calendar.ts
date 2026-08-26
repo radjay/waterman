@@ -100,7 +100,7 @@ export const getSportFeed = query({
         if (targetSpotIds === null) {
             const allSpots = await ctx.db.query("spots").collect();
             targetSpotIds = allSpots
-                .filter(spot => spot.sports && spot.sports.includes(args.sport))
+                .filter(spot => spot.enabled !== false && spot.sports && spot.sports.includes(args.sport))
                 .map(spot => spot._id);
         }
 

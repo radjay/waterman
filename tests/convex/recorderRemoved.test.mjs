@@ -28,7 +28,7 @@ describe("recorder feature removed", () => {
   });
 
   it("drops the Render recorder service", () => {
-    assert.doesNotMatch(read("render.yaml"), /waterman-recorder/);
+    assert.equal(existsSync(path.join(root, "render.yaml")), false);
   });
 
   it("has no RecordButton or recordings route in nav", () => {
