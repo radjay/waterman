@@ -50,7 +50,7 @@ The recorder is an Express + ffmpeg process on Render `waterman-recorder`. Worke
 
 ### Relevant Code and Patterns
 
-- Scoring: `convex/spots.ts` (`scoreSingleSlot`, `scoreForecastSlots`), `convex/personalization.ts` (`scorePersonalizedSlot` and batch wrappers). Today Groq `openai/gpt-oss-120b`. Target OpenRouter `qwen/qwen3-30b-a3b-instruct-2507`.
+- Scoring: `convex/spots.ts` (`scoreSingleSlot`, `scoreForecastSlots`), `convex/personalization.ts` (`scorePersonalizedSlot` and batch wrappers). OpenRouter `openai/gpt-5.6-luna` (was Groq `openai/gpt-oss-120b`, then Qwen Instruct).
 - Score write path (already fixed): `convex/spots.ts` `saveConditionScore`; guard test `tests/convex/conditionScoreDedupeGuard.test.mjs`.
 - Hot reads: `convex/queryHelpers/forecastSlots.ts`, `convex/queryHelpers/conditionScores.ts`, `convex/spots.ts` `getDashboardData` / `getReportData` / `getCamsData`.
 - Prior read plans: `docs/plans/2026-04-10-003-fix-convex-query-document-read-limits-plan.md`, `docs/plans/2026-08-05-006-fix-condition-scores-read-amplification-plan.md`, `docs/superpowers/plans/2026-05-29-convex-query-optimization.md`.
@@ -75,7 +75,7 @@ The recorder is an Express + ffmpeg process on Render `waterman-recorder`. Worke
 - **Keep Convex.** Nested documents and `ctx.scheduler.runAfter` retries fit Convex. D1 is not cheaper once you count the rewrite. (see origin)
 - **Fix document reads in Convex, not by leaving Convex.** Finish query bounds, auth indexes, and score retention. Do not re-implement `saveConditionScore`.
 - **OpenRouter from Convex actions, direct.** No AI Gateway in this project.
-- **Scoring model: `qwen/qwen3-30b-a3b-instruct-2507`.** This job is rubric JSON (0–100, short reasoning), not chain-of-thought. `gpt-oss-120b` is a reasoning model and likely inflates billed output. Qwen Instruct is non-thinking, follows a rubric, and supports structured JSON. Keep `json_schema` (score 0–100, reasoning string, factors object). Temperature 0.3. Do not enable reasoning.
+- **Scoring model: `openai/gpt-5.6-luna`.** This job is rubric JSON (0–100, short reasoning), not chain-of-thought. Send `reasoning.effort: none`. Keep `json_schema` (score 0–100, reasoning string, factors object with every key required — OpenAI structured output rejects a nested object that omits `required`). Temperature 0.3.
 - **OpenNext on Workers.** Official adapter for Next 16. `NEXT_PUBLIC_CONVEX_URL` stays. If `cacheComponents` fails on the adapter, drop that Next flag rather than stay on Render.
 - **Jobs prefer Convex crons.** Station poll already is a Convex cron. Scheduled scrape must match `scripts/scrape.mjs` (including model forecasts) and fan out one spot per action. Fx jobs are a **port**: bundle JSON models; split the four-script labels chain; do not exec the Node scripts on a Worker.
 - **Remove the recorder.** No Cloudflare Container. Delete the worker, UI, API, table, and recorder-only packages.
@@ -92,7 +92,7 @@ The recorder is an Express + ffmpeg process on Render `waterman-recorder`. Worke
 ### Deferred to Implementation
 
 - Whether `pruneDuplicateConditionScores` already ran on `adorable-anteater-323`. Measure `getReportData` document reads first. If still amplified, dry-run then apply per spot. Do not prune twice as a guess.
-- (resolved) OpenRouter slug: **`qwen/qwen3-30b-a3b-instruct-2507`**. Trial against Groq scores on one spot/scrape during Unit 3. Fall back to `openai/gpt-oss-120b` on OpenRouter only if JSON parse rate or score honesty is worse.
+- (resolved) OpenRouter slug: **`openai/gpt-5.6-luna`**. Qwen Instruct (`qwen/qwen3-30b-a3b-instruct-2507`) failed hard floors (Fonte min-wave) and truncated JSON on skip slots. Luna replayed the same Groq prompts with 8/8 JSON, closer honesty, `reasoning.effort: none`.
 - Whether any single fx action still exceeds 10 minutes after the split. Only then move that job to a Worker Cron Trigger with bundled JSON.
 
 ## High-Level Technical Design
@@ -121,9 +121,9 @@ Windy / Windguru / Open-Meteo / IPMA / cams  (unchanged sources)
 Scoring HTTP (directional, not an API to copy):
 
 - POST OpenRouter chat completions
-- model `qwen/qwen3-30b-a3b-instruct-2507`
+- model `openai/gpt-5.6-luna`
 - temperature 0.3, max tokens 4000, strict JSON schema (not loose `json_object`)
-- no reasoning / thinking
+- `reasoning.effort: none`
 - retries 30s / 1m / 5m (system) and 30s / 1m (personal)
 - write the model id onto the score row so Groq-era rows stay distinct
 
@@ -237,7 +237,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 
 **Approach:**
 - One helper for every current Groq call site. POST OpenRouter chat completions with `OPENROUTER_API_KEY`. Temperature 0.3, max tokens 4000, strict JSON schema, no reasoning. Same retry delays as today.
-- Default model slug `qwen/qwen3-30b-a3b-instruct-2507`. If parse rate or score honesty is worse than Groq on one trial scrape, fall back to `openai/gpt-oss-120b` on OpenRouter and record why.
+- Default model slug `openai/gpt-5.6-luna`. Trial vs Groq and Qwen on stored prompts: Luna held min-wave better and did not hit the JSON length cap. Send `reasoning.effort: none`. Nested `factors` must list every key in `required` or OpenAI returns 400.
 - Keep `model` populated so admin debug can tell Groq-era rows from OpenRouter rows.
 - Set Convex env `OPENROUTER_API_KEY`. Remove `GROQ_API_KEY` after one successful scored scrape.
 - Do not send scores through a Cloudflare Worker in this unit.

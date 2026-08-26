@@ -1,8 +1,11 @@
-/** Default scoring model: instruct-only, no chain-of-thought. */
-export const OPENROUTER_MODEL = "qwen/qwen3-30b-a3b-instruct-2507";
+/** Default scoring model. Rubric JSON only; do not enable chain-of-thought. */
+export const OPENROUTER_MODEL = "openai/gpt-5.6-luna";
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const SCORE_TEMPERATURE = 0.3;
 export const SCORE_MAX_TOKENS = 4000;
+export const SCORE_REASONING = { effort: "none" };
+
+const FACTOR_KEYS = ["windQuality", "waveQuality", "tideQuality", "overallConditions"];
 
 const SCORE_ITEM_PROPERTIES = {
   score: { type: "number", description: "Integer 0-100" },
@@ -10,14 +13,12 @@ const SCORE_ITEM_PROPERTIES = {
   factors: {
     type: "object",
     additionalProperties: false,
-    properties: {
-      windQuality: { type: "number" },
-      waveQuality: { type: "number" },
-      tideQuality: { type: "number" },
-      overallConditions: { type: "number" },
-    },
+    properties: Object.fromEntries(FACTOR_KEYS.map((key) => [key, { type: "number" }])),
+    required: FACTOR_KEYS,
   },
 };
+
+const SCORE_ITEM_REQUIRED = ["score", "reasoning", "factors"];
 
 export const SCORE_JSON_SCHEMA = {
   name: "condition_score",
@@ -26,7 +27,7 @@ export const SCORE_JSON_SCHEMA = {
     type: "object",
     additionalProperties: false,
     properties: SCORE_ITEM_PROPERTIES,
-    required: ["score", "reasoning"],
+    required: SCORE_ITEM_REQUIRED,
   },
 };
 
@@ -46,7 +47,7 @@ export function batchScoreJsonSchema(slotCount) {
             type: "object",
             additionalProperties: false,
             properties: SCORE_ITEM_PROPERTIES,
-            required: ["score", "reasoning"],
+            required: SCORE_ITEM_REQUIRED,
           },
         },
       },
@@ -64,6 +65,17 @@ export function isOpenRouterRateLimit(error) {
   if (error.status === 429) return true;
   const message = String(error.message || "");
   return /rate limit/i.test(message) || message.includes("429");
+}
+
+function extractMessageContent(message) {
+  const content = message?.content;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part === "string" ? part : part?.text || ""))
+      .join("");
+  }
+  return "";
 }
 
 export function parseScorePayload(parsed) {
@@ -116,6 +128,7 @@ export async function completeScoreJson({
       ],
       temperature: SCORE_TEMPERATURE,
       max_tokens: maxTokens,
+      reasoning: SCORE_REASONING,
       response_format: {
         type: "json_schema",
         json_schema: schema,
@@ -142,8 +155,8 @@ export async function completeScoreJson({
     throw new Error("OpenRouter response was not JSON");
   }
 
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content || typeof content !== "string") {
+  const content = extractMessageContent(data?.choices?.[0]?.message);
+  if (!content) {
     throw new Error("No content in response");
   }
 

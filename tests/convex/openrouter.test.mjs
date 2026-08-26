@@ -6,6 +6,8 @@ import path from "node:path";
 import {
   OPENROUTER_MODEL,
   OPENROUTER_URL,
+  SCORE_JSON_SCHEMA,
+  SCORE_REASONING,
   batchScoreJsonSchema,
   completeScoreJson,
   isOpenRouterRateLimit,
@@ -61,7 +63,7 @@ describe("parseScorePayload", () => {
 });
 
 describe("completeScoreJson", () => {
-  it("POSTs OpenRouter with json_schema and the Qwen instruct slug", async () => {
+  it("POSTs OpenRouter with json_schema and Luna, reasoning off", async () => {
     process.env.OPENROUTER_API_KEY = "sk-test";
     let captured;
     const fetchImpl = async (url, init) => {
@@ -84,13 +86,36 @@ describe("completeScoreJson", () => {
       fetchImpl,
     });
 
+    assert.equal(OPENROUTER_MODEL, "openai/gpt-5.6-luna");
     assert.equal(captured.url, OPENROUTER_URL);
     const body = JSON.parse(captured.init.body);
     assert.equal(body.model, OPENROUTER_MODEL);
     assert.equal(body.response_format.type, "json_schema");
     assert.equal(body.temperature, 0.3);
+    assert.deepEqual(body.reasoning, SCORE_REASONING);
+    assert.equal(body.reasoning.effort, "none");
     assert.equal(result.parsed.score, 80);
     assert.equal(result.model, OPENROUTER_MODEL);
+  });
+
+  it("parses message content when OpenAI returns text parts", async () => {
+    process.env.OPENROUTER_API_KEY = "sk-test";
+    const fetchImpl = async () =>
+      jsonResponse({
+        choices: [
+          {
+            message: {
+              content: [{ type: "text", text: '{"score": 71, "reasoning": "Go."}' }],
+            },
+          },
+        ],
+      });
+    const result = await completeScoreJson({
+      system: "s",
+      user: "u",
+      fetchImpl,
+    });
+    assert.equal(result.parsed.score, 71);
   });
 
   it("throws on HTTP 429 so callers can retry", async () => {
@@ -137,6 +162,24 @@ describe("completeScoreJson", () => {
     const schema = batchScoreJsonSchema(3);
     assert.equal(schema.schema.properties.scores.minItems, 3);
     assert.equal(schema.schema.properties.scores.maxItems, 3);
+  });
+
+  it("requires every factor key so OpenAI structured output accepts the schema", () => {
+    const factorRequired = SCORE_JSON_SCHEMA.schema.properties.factors.required;
+    assert.deepEqual(factorRequired, [
+      "windQuality",
+      "waveQuality",
+      "tideQuality",
+      "overallConditions",
+    ]);
+    assert.deepEqual(SCORE_JSON_SCHEMA.schema.required, [
+      "score",
+      "reasoning",
+      "factors",
+    ]);
+    const batchItem = batchScoreJsonSchema(2).schema.properties.scores.items;
+    assert.deepEqual(batchItem.required, ["score", "reasoning", "factors"]);
+    assert.deepEqual(batchItem.properties.factors.required, factorRequired);
   });
 });
 

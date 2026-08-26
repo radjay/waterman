@@ -23,7 +23,7 @@ Convex stays. It is cheap at this scale. A D1 move is a backend rewrite. Nested 
 
 **Scoring**
 - R7. Call OpenRouter from the existing Convex scoring actions (`spots.scoreSingleSlot`, `spots.scoreForecastSlots`, `personalization.scorePersonalizedSlot` and the batch wrappers).
-- R8. Keep the current prompt, temperature 0.3, token limit, and retry cadence. Use strict JSON schema. Do not enable model reasoning. Default OpenRouter model is `qwen/qwen3-30b-a3b-instruct-2507`.
+- R8. Keep the current prompt, temperature 0.3, token limit, and retry cadence. Use strict JSON schema. Do not enable model reasoning. Default OpenRouter model is `openai/gpt-5.6-luna`.
 - R9. Store the provider and model name on score rows so provenance stays accurate after the swap.
 
 **Jobs**
