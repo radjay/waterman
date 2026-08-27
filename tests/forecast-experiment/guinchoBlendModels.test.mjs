@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildBlendMean3Points, buildRouterPoints, buildVotePoints, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
-import { BLEND_MEAN3_SLUG, ROUTER_MODEL_SLUG, VOTE_ANY_SLUG, VOTE_MAJORITY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
+import { buildBlendMean3Points, buildRouterPoints, buildVotePoints, buildWeightedBlendPoints, computeDirectionWeights, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
+import { BLEND_MEAN3_SLUG, BLEND_WEIGHTED_SLUG, ROUTER_MODEL_SLUG, VOTE_ANY_SLUG, VOTE_MAJORITY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
 
 function point(model, leadDay, validTime, { speed, gust, dir }) {
   return { model, leadDay, validTime, windSpeedKnots: speed, windGustKnots: gust, windDirectionDeg: dir };
@@ -116,4 +116,37 @@ test("blend-mean3 skips an hour missing one of the three members", () => {
     { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 15, windGustKnots: 21, windDirectionDeg: 340 },
   ];
   assert.equal(buildBlendMean3Points(points).length, 0);
+});
+
+test("computeDirectionWeights normalises each bucket's weights to sum to 1", () => {
+  const observedHours = [
+    { dateLocal: "2025-08-01", regime: "nortada", validTime: 100, effectiveWindKnots: 14 },
+    { dateLocal: "2025-08-02", regime: "non-nortada", validTime: 200, effectiveWindKnots: 6 },
+  ];
+  const realForecastIndex = new Map([
+    ["icon-eu:1:100", { windSpeedKnots: 14, windGustKnots: 16, effectiveWindKnots: 15 }],
+    ["icon-global:1:100", { windSpeedKnots: 6, windGustKnots: 8, effectiveWindKnots: 7 }],
+    ["gfs-global:1:100", { windSpeedKnots: 6, windGustKnots: 8, effectiveWindKnots: 7 }],
+    ["icon-eu:1:200", { windSpeedKnots: 6, windGustKnots: 8, effectiveWindKnots: 7 }],
+    ["icon-global:1:200", { windSpeedKnots: 6, windGustKnots: 8, effectiveWindKnots: 7 }],
+    ["gfs-global:1:200", { windSpeedKnots: 6, windGustKnots: 8, effectiveWindKnots: 7 }],
+  ]);
+  const weights = computeDirectionWeights(observedHours, realForecastIndex);
+  for (const bucket of ["nortada", "other"]) {
+    const total = Object.values(weights[bucket]).reduce((sum, value) => sum + value, 0);
+    assert.ok(Math.abs(total - 1) < 1e-6, `${bucket} weights should sum to 1, got ${total}`);
+  }
+});
+
+test("blend-weighted applies nortada weights on a consensus-nortada hour", () => {
+  const points = [
+    { model: "ecmwf-ifs025", leadDay: 1, validTime: 100, windSpeedKnots: 10, windGustKnots: 12, windDirectionDeg: 340 },
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 20, windGustKnots: 24, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 10, windGustKnots: 12, windDirectionDeg: 340 },
+    { model: "gfs-global", leadDay: 1, validTime: 100, windSpeedKnots: 10, windGustKnots: 12, windDirectionDeg: 340 },
+  ];
+  const weights = { nortada: { "icon-eu": 1, "icon-global": 0, "gfs-global": 0 }, other: { "icon-eu": 0, "icon-global": 1, "gfs-global": 0 } };
+  const [blendPoint] = buildWeightedBlendPoints(points, weights);
+  assert.equal(blendPoint.model, BLEND_WEIGHTED_SLUG);
+  assert.equal(blendPoint.windSpeedKnots, 20); // all weight on icon-eu
 });
