@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildRouterPoints, buildVotePoints, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
-import { ROUTER_MODEL_SLUG, VOTE_ANY_SLUG, VOTE_MAJORITY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
+import { buildBlendMean3Points, buildRouterPoints, buildVotePoints, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
+import { BLEND_MEAN3_SLUG, ROUTER_MODEL_SLUG, VOTE_ANY_SLUG, VOTE_MAJORITY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
 
 function point(model, leadDay, validTime, { speed, gust, dir }) {
   return { model, leadDay, validTime, windSpeedKnots: speed, windGustKnots: gust, windDirectionDeg: dir };
@@ -96,4 +96,24 @@ test("vote-any reads < 12kt when no member goes", () => {
   const byModel = votePointsByModel(buildVotePoints(points));
   const anyEffective = (byModel[VOTE_ANY_SLUG].windSpeedKnots + byModel[VOTE_ANY_SLUG].windGustKnots) / 2;
   assert.ok(anyEffective < 12, `vote-any should read < 12kt, got ${anyEffective}`);
+});
+
+test("blend-mean3 is the plain mean of its three members", () => {
+  const points = [
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 12, windGustKnots: 18, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 15, windGustKnots: 21, windDirectionDeg: 340 },
+    { model: "gfs-global", leadDay: 1, validTime: 100, windSpeedKnots: 18, windGustKnots: 24, windDirectionDeg: 340 },
+  ];
+  const [blendPoint] = buildBlendMean3Points(points);
+  assert.equal(blendPoint.model, BLEND_MEAN3_SLUG);
+  assert.equal(blendPoint.windSpeedKnots, 15); // (12+15+18)/3
+  assert.equal(blendPoint.windGustKnots, 21); // (18+21+24)/3
+});
+
+test("blend-mean3 skips an hour missing one of the three members", () => {
+  const points = [
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 12, windGustKnots: 18, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 15, windGustKnots: 21, windDirectionDeg: 340 },
+  ];
+  assert.equal(buildBlendMean3Points(points).length, 0);
 });
