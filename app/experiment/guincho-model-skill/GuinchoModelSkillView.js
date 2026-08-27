@@ -44,6 +44,27 @@ const GUSTINESS_TABLE_COLUMNS = [
   { key: "gustinessBias", label: "Too gusty / too smooth", digits: 2 },
 ];
 
+const CONFIDENCE_LABELS = {
+  "3": "All 3 models agreed",
+  "2": "2 of 3 agreed",
+  "1": "1 of 3 called it",
+  "no-call": "Never reached a called day",
+};
+
+const CONFIDENCE_TABLE_COLUMNS = [
+  { key: "days", label: "Days", digits: 0 },
+  { key: "falseGoDayPct", label: "False calls, %", digits: 0 },
+  { key: "missedPct", label: "Missed, %", digits: 0 },
+];
+
+function confidenceRows(buckets) {
+  return (buckets ?? []).map((bucket) => ({
+    model: bucket.agreementBucket,
+    label: CONFIDENCE_LABELS[bucket.agreementBucket] ?? bucket.agreementBucket,
+    ...bucket,
+  }));
+}
+
 function fmtKt(value) {
   return Number.isFinite(value) ? value.toFixed(1) : "—";
 }
@@ -417,6 +438,16 @@ export default function GuinchoModelSkillView({
                   />
                 </DetailsBlock>
               ) : null}
+
+              <DetailsBlock
+                title="Does agreement mean confidence?"
+                caption="When the three vote members agree, is the call more reliable? Days grouped by how many of the three called each go hour."
+              >
+                <SkillTable
+                  rows={confidenceRows(summary.confidence?.byLead?.[leadDay])}
+                  columns={CONFIDENCE_TABLE_COLUMNS}
+                />
+              </DetailsBlock>
 
               <DetailsBlock title="Same day, yesterday, two days ago" caption="Does extra notice still catch the real days?">
                 <div className="grid gap-4 lg:grid-cols-3">

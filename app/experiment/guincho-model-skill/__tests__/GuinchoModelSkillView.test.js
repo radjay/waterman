@@ -227,6 +227,26 @@ describe("GuinchoModelSkillView", () => {
     expect(screen.queryByText("Blend leaderboard")).toBeNull();
   });
 
+  it("shows the confidence block ranked by agreement", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          confidence: {
+            byLead: {
+              1: [
+                { agreementBucket: "3", days: 40, falseGoDayPct: 2, missedPct: 1 },
+                { agreementBucket: "1", days: 10, falseGoDayPct: 40, missedPct: 5 },
+              ],
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Does agreement mean confidence?")).toBeTruthy();
+    expect(screen.getByText("All 3 models agreed")).toBeTruthy();
+  });
+
   it("shows the gustiness match block", () => {
     render(
       <GuinchoModelSkillView
