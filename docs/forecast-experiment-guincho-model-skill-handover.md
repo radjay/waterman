@@ -5,11 +5,12 @@
 **Page:** `/experiment/guincho-model-skill`  
 **This study does not change the live Guincho forecast.**
 
-Read this file first. Then open the page. The design spec is older than the rank rule in the code.
+Read this file first. Then open the PDF report. Then open the page. The design spec is older than the rank rule in the code.
 
 | Document | Role |
 |---|---|
 | This file | What we built, what we tried, what we learned, which files to use |
+| `docs/forecast-experiment-guincho-model-skill-report.pdf` | Print of the Findings page on 2026-08-27 (3 pages). Winner card and slice ranks. Detail tables were collapsed in the print |
 | `docs/brainstorms/2026-08-26-guincho-model-skill-requirements.md` | Original requirements |
 | `docs/superpowers/specs/2026-08-26-guincho-model-skill-design.md` | Original design. Rank rule in that file is **stale** |
 | `docs/forecast-experiment-model-analysis-learnings.md` | Cascais Model skill. Different spot. Different station |
@@ -249,6 +250,7 @@ Day 0 uses unsuffixed hourly keys (`wind_speed_10m`, …). Day −1 / −2 use `
 | File | Size | What it is |
 |---|---|---|
 | `data/forecast-experiment/guincho-model-skill-summary.json` | ~358 KB | Compact scores the page reads. Rebuilt 2026-08-27. **Do not hand-edit.** Rebuild with the analyze command |
+| `docs/forecast-experiment-guincho-model-skill-report.pdf` | ~246 KB | Findings print, 2026-08-27. Winner card, nortada/season slices. Detail tables were collapsed |
 
 The summary holds:
 
@@ -354,10 +356,11 @@ These are open. Do not treat them as decided.
 ## 11. How to inspect in 10 minutes
 
 1. Confirm you are on `feat/guincho-model-skill`.
-2. Confirm `data/forecast-experiment/guincho-model-skill-summary.json` exists.
-3. Confirm the three archive JSONL files exist if you need to rebuild.
-4. Run `npm run dev` and open `/experiment/guincho-model-skill`.
-5. On Tailscale, use `http://100.109.13.15:3010`. Confirm `/_next/static` loads (pickers work, no full reload).
-6. Findings: ICON7 should show about **93%** real days caught, **7%** missed, **16%** false calls.
-7. Hours = “Station was windy”: false calls go to 0. That is expected.
-8. Spot check: change the model. The charts must update without a jump to the top.
+2. Open `docs/forecast-experiment-guincho-model-skill-report.pdf`. That is the Findings print from 2026-08-27.
+3. Confirm `data/forecast-experiment/guincho-model-skill-summary.json` exists.
+4. Confirm the three archive JSONL files exist if you need to rebuild.
+5. Run `npm run dev` and open `/experiment/guincho-model-skill`.
+6. On Tailscale, use `http://100.109.13.15:3010`. Confirm `/_next/static` loads (pickers work, no full reload).
+7. Findings: ICON7 should show about **93%** real days caught, **7%** missed, **16%** false calls. That must match the PDF.
+8. Hours = “Station was windy”: false calls go to 0. That is expected.
+9. Spot check: change the model. The charts must update without a jump to the top. The PDF does not include Spot check.
