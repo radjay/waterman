@@ -7,7 +7,7 @@ function hour(dateLocal, validTime, effectiveWindKnots) {
 }
 
 function fc(model, leadDay, validTime, speed, gust) {
-  return [`${model}:${leadDay}:${validTime}`, { windSpeedKnots: speed, windGustKnots: gust }];
+  return [`${model}:${leadDay}:${validTime}`, { windSpeedKnots: speed, windGustKnots: gust, effectiveWindKnots: (speed + gust) / 2 }];
 }
 
 test("unanimous session days show zero false calls; split days show some", () => {
