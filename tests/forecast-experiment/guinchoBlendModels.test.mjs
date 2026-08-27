@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildRouterPoints, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
-import { ROUTER_MODEL_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
+import { buildRouterPoints, buildVotePoints, indexPointsByHour } from "../../lib/forecast-experiment/guinchoBlendModels.js";
+import { ROUTER_MODEL_SLUG, VOTE_ANY_SLUG, VOTE_MAJORITY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
 
 function point(model, leadDay, validTime, { speed, gust, dir }) {
   return { model, leadDay, validTime, windSpeedKnots: speed, windGustKnots: gust, windDirectionDeg: dir };
@@ -55,4 +55,45 @@ test("router skips an hour missing one of the four voting models", () => {
     point("gfs-global", 1, 100, { speed: 21, gust: 25, dir: 185 }),
   ];
   assert.equal(buildRouterPoints(points).length, 0);
+});
+
+function votePointsByModel(points) {
+  const byModel = {};
+  for (const point of points) byModel[point.model] = point;
+  return byModel;
+}
+
+test("vote-any fires when only one of three members is >= 12kt, vote-majority does not", () => {
+  const points = [
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 14, windGustKnots: 16, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 6, windGustKnots: 8, windDirectionDeg: 340 },
+    { model: "gfs-global", leadDay: 1, validTime: 100, windSpeedKnots: 5, windGustKnots: 7, windDirectionDeg: 340 },
+  ];
+  const byModel = votePointsByModel(buildVotePoints(points));
+  const anyEffective = (byModel[VOTE_ANY_SLUG].windSpeedKnots + byModel[VOTE_ANY_SLUG].windGustKnots) / 2;
+  const majorityEffective = (byModel[VOTE_MAJORITY_SLUG].windSpeedKnots + byModel[VOTE_MAJORITY_SLUG].windGustKnots) / 2;
+  assert.ok(anyEffective >= 12, `vote-any should read >= 12kt, got ${anyEffective}`);
+  assert.ok(majorityEffective < 12, `vote-majority should read < 12kt, got ${majorityEffective}`);
+});
+
+test("vote-majority fires and matches vote-any when 2 of 3 members go", () => {
+  const points = [
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 14, windGustKnots: 16, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 13, windGustKnots: 15, windDirectionDeg: 340 },
+    { model: "gfs-global", leadDay: 1, validTime: 100, windSpeedKnots: 5, windGustKnots: 7, windDirectionDeg: 340 },
+  ];
+  const byModel = votePointsByModel(buildVotePoints(points));
+  const majorityEffective = (byModel[VOTE_MAJORITY_SLUG].windSpeedKnots + byModel[VOTE_MAJORITY_SLUG].windGustKnots) / 2;
+  assert.ok(majorityEffective >= 12, `vote-majority should read >= 12kt, got ${majorityEffective}`);
+});
+
+test("vote-any reads < 12kt when no member goes", () => {
+  const points = [
+    { model: "icon-eu", leadDay: 1, validTime: 100, windSpeedKnots: 6, windGustKnots: 8, windDirectionDeg: 340 },
+    { model: "icon-global", leadDay: 1, validTime: 100, windSpeedKnots: 5, windGustKnots: 7, windDirectionDeg: 340 },
+    { model: "gfs-global", leadDay: 1, validTime: 100, windSpeedKnots: 4, windGustKnots: 6, windDirectionDeg: 340 },
+  ];
+  const byModel = votePointsByModel(buildVotePoints(points));
+  const anyEffective = (byModel[VOTE_ANY_SLUG].windSpeedKnots + byModel[VOTE_ANY_SLUG].windGustKnots) / 2;
+  assert.ok(anyEffective < 12, `vote-any should read < 12kt, got ${anyEffective}`);
 });
