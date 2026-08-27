@@ -119,11 +119,21 @@ Each member says go/no-go at the hour level (effective wind ≥ 12 kt).
 - R8. New slugs `vote-any`, `vote-majority`.
 - R9. `GUINCHO_VOTE_MODELS = ["icon-eu", "icon-global", "gfs-global"]`, a
   named constant in `guinchoModelSkillConstants.js`.
-- R10. Vote models need a stand-in wind value for `underMae` (a vote is a
-  yes/no, not a knot count). Use the **max effective wind among the members
-  that voted go** for that hour; on a no-go hour, use the max across all
-  three members. This is the one number in this design that is a modelling
-  choice, not a derived fact — flagged here for the record.
+- R10. Vote models need a stand-in wind value — and this is not only for
+  display. The whole downstream 12 kt call is re-derived from this value
+  (`computeUnderperformance` reads `effectiveWindKnots >= 12`, it does not
+  take a separate yes/no flag), so the stand-in must cross the line in the
+  same direction as the vote itself, per rule, per hour:
+  - On a **go** hour, use the **max**-effective-wind point among the
+    members that voted go (guaranteed ≥ 12, since that member is why the
+    hour went go).
+  - On a **no-go** hour, use the **min**-effective-wind point among **all**
+    members (guaranteed < 12, since fewer members voted go than the rule
+    needs, so at least one member is under 12 and drags the min down).
+  Computing this per rule, not once for both, is what lets `vote-any` and
+  `vote-majority` disagree on the same hour — the case that matters most
+  (e.g. exactly one of three members go: `vote-any` calls it, using that
+  member's point; `vote-majority` does not, using the true minimum).
 - R11. Both vote rules score at Day 0 / −1 / −2, same as real models, so the
   small-multiples chart already in the page keeps working unchanged.
 
