@@ -33,6 +33,11 @@ import { WaveTideBand, waveTidePresence } from "../../components/chart/WaveTideB
 import { ScoreBand } from "../../components/chart/ScoreBand";
 import { DayChartPanel } from "../../components/chart/DayChartPanel";
 import { TimeAxis } from "../../components/chart/TimeAxis";
+import { RankingBars } from "../../components/chart/RankingBars";
+import { ForecastObsScatter } from "../../components/chart/ForecastObsScatter";
+import { SampleDayWind } from "../../components/chart/SampleDayWind";
+import { CoverageStrip } from "../../components/chart/CoverageStrip";
+import { SkillTable } from "../../components/ui/SkillTable";
 import {
   BandHeader,
   WIND_LIVE_LEGEND,
@@ -44,6 +49,7 @@ import { SportBadge } from "../../components/ui/SportBadge";
 import { SportFilter } from "../../components/ui/SportFilter";
 import { FilterGroup } from "../../components/ui/FilterGroup";
 import { ShareButton } from "../../components/ui/ShareButton";
+import { DetailsBlock } from "../../components/ui/DetailsBlock";
 import { LabsSection } from "../../components/ui/LabsSection";
 import { SportFilterChip } from "../../components/sport/SportFilterChip";
 import { WindowCard } from "../../components/next/WindowCard";
@@ -972,6 +978,83 @@ export default function UIKitPage() {
           </Row>
 
           <Row
+            label="RankingBars — MAE rank, winner in accent"
+            importPath="components/chart/RankingBars"
+            on={["EXPERIMENT"]}
+            full
+          >
+            <div className="max-w-[420px]">
+              <RankingBars
+                title="Typical miss"
+                rows={[
+                  { key: "icon-eu", label: "ICON7", mae: 2.1 },
+                  { key: "gfs-global", label: "GFS", mae: 2.8 },
+                  { key: "ecmwf-ifs025", label: "ECMWF", mae: 3.0 },
+                ]}
+                winnerKey="icon-eu"
+              />
+            </div>
+          </Row>
+          <Row
+            label="SkillTable — hours, MAE, RMSE, bias, curve"
+            importPath="components/ui/SkillTable"
+            on={["EXPERIMENT"]}
+            full
+          >
+            <SkillTable
+              caption="Shared hours only."
+              winnerModel="icon-eu"
+              rows={[
+                { label: "ICON7", model: "icon-eu", hours: 420, mae: 2.1, rmse: 2.8, bias: -0.4, curve: 0.72, nortadaMae: 1.9 },
+                { label: "GFS", model: "gfs-global", hours: 420, mae: 2.8, rmse: 3.4, bias: 0.6, curve: 0.61, nortadaMae: 2.4 },
+              ]}
+            />
+          </Row>
+          <Row
+            label="ForecastObsScatter — forecast vs station"
+            importPath="components/chart/ForecastObsScatter"
+            on={["EXPERIMENT"]}
+          >
+            <ForecastObsScatter
+              points={[
+                { observed: 12, forecast: 11 },
+                { observed: 18, forecast: 16 },
+                { observed: 20, forecast: 22 },
+              ]}
+            />
+          </Row>
+          <Row
+            label="SampleDayWind — forecast columns, live station lines"
+            importPath="components/chart/SampleDayWind"
+            on={["EXPERIMENT"]}
+            full
+          >
+            <SampleDayWind
+              modelKey="icon-eu"
+              modelLabel="ICON7"
+              hours={[7, 10, 13, 16, 19, 22].map((hour, i) => ({
+                hourLocal: hour,
+                observedSpeed: 8 + i * 2,
+                observedGust: 12 + i * 3,
+                models: { "icon-eu": { speed: 7 + i * 2, gust: 11 + i * 3 } },
+              }))}
+            />
+          </Row>
+          <Row
+            label="CoverageStrip — months with station hours"
+            importPath="components/chart/CoverageStrip"
+            on={["EXPERIMENT"]}
+            full
+          >
+            <CoverageStrip
+              months={[
+                { month: "2026-05", stationHours: 400, scoredHours: 380 },
+                { month: "2026-06", stationHours: 120, scoredHours: 80 },
+                { month: "2026-07", stationHours: 0, scoredHours: 0 },
+              ]}
+            />
+          </Row>
+          <Row
             label="DayChartPanel — forecast only (Spot forecast): no station, no wash, no now rule"
             full
           >
@@ -1073,6 +1156,19 @@ export default function UIKitPage() {
               chart={WEEK_CHART}
               nowMs={CHART_NOW}
             />
+          </Row>
+
+          <Row
+            label="DetailsBlock — collapsed report details, details/summary so it works pre-hydration"
+            importPath="components/ui/DetailsBlock"
+            on={["REPORT"]}
+            full
+          >
+            <div className="max-w-md">
+              <DetailsBlock title="The numbers" caption="Same hours for every model">
+                <Text variant="muted">Table goes here.</Text>
+              </DetailsBlock>
+            </div>
           </Row>
 
           <Row

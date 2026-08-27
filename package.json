@@ -20,6 +20,8 @@
     "fx:score:models": "node scripts/fx-score-models.mjs",
     "fx:score:predictions": "node scripts/fx-score-predictions.mjs",
     "fx:analyze:model-skill": "node scripts/fx-analyze-model-skill.mjs",
+    "fx:fetch:openmeteo-guincho": "node scripts/fx-fetch-openmeteo-guincho.mjs",
+    "fx:analyze:guincho-skill": "node scripts/fx-analyze-guincho-model-skill.mjs",
     "fx:analyze:nortada-winds": "node scripts/fx-analyze-nortada-winds.mjs",
     "fx:mine:bay": "node scripts/fx-mine-bay-coefficients.mjs",
     "fx:backtest:predictions": "node scripts/fx-backtest-predictions.mjs",

@@ -26,4 +26,6 @@ Snapshot checksum (SHA-256):
 - Forecast as issued: `jsonl/forecast_slots_archive/documents.jsonl`
   (`scrapeTimestamp` = when we fetched it, `timestamp` = valid time)
 - Station truth: `jsonl/station_readings/documents.jsonl` where `stationId` is `3294`
-- Experiment series: `jsonl/fx_forecast_points/` and `jsonl/fx_observations/`
+- Open-Meteo Previous Runs at the beach: `jsonl/openmeteo_guincho_previous_runs/documents.jsonl`
+  (from `npm run fx:fetch:openmeteo-guincho`)
+- Page: `/experiment/guincho-model-skill` reads `data/forecast-experiment/guincho-model-skill-summary.json`

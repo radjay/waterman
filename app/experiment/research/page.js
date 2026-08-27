@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/experiment/prediction-models", label: "Kick-in models" },
   { href: "/experiment/nowcast-verification", label: "Nowcast check" },
   { href: "/experiment/model-analysis", label: "Forecast skill" },
+  { href: "/experiment/guincho-model-skill", label: "Guincho model skill" },
   { href: "/experiment/model-analysis-nortada", label: "Nortada analysis" },
   { href: "/experiment/wind-model-backtest", label: "Wind backtest" },
   { href: "/experiment/admin", label: "Admin" },
@@ -20,12 +21,12 @@ export default function ExperimentResearchPage() {
         </p>
       </div>
 
-      <ul className="divide-y divide-ink/10 rounded-xl bg-white ring-1 ring-ink/10">
+      <ul className="divide-y divide-card rounded-card-lg bg-surface border border-card">
         {LINKS.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
-              className="block px-5 py-3.5 text-sm text-ink hover:bg-ink/[0.03]"
+              className="block px-5 py-3.5 text-sm text-ink hover:bg-ink-hover"
             >
               {link.label}
             </Link>
