@@ -198,6 +198,35 @@ describe("GuinchoModelSkillView", () => {
     expect(screen.getAllByText("8%").length).toBeGreaterThan(0);
   });
 
+  it("shows the blend leaderboard with a Rule badge on synthetic rows", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          blendLeaderboard: {
+            byLead: {
+              1: {
+                hours: 12,
+                rows: [
+                  underRow({ model: "router-consensus", label: "Router (direction)", synthetic: true, sessionF1Pct: 90 }),
+                  ...yesterdayRows,
+                ],
+              },
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Blend leaderboard")).toBeTruthy();
+    expect(screen.getByText("Router (direction)")).toBeTruthy();
+    expect(screen.getAllByText("Rule").length).toBeGreaterThan(0);
+  });
+
+  it("does not render the blend leaderboard when the summary lacks it", () => {
+    render(<GuinchoModelSkillView initialSummary={summary} />);
+    expect(screen.queryByText("Blend leaderboard")).toBeNull();
+  });
+
   it("opens the spot check and switches the model on every chart", () => {
     render(
       <GuinchoModelSkillView

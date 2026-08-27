@@ -50,6 +50,7 @@ export function SkillTable({
                       </span>
                       {isWinner ? <Badge variant="accent">Winner</Badge> : null}
                       {row.contextOnly ? <Badge variant="marginal">Context</Badge> : null}
+                      {row.synthetic ? <Badge variant="marginal">Rule</Badge> : null}
                     </div>
                   </td>
                   {columns.map((col) => (

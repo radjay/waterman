@@ -391,6 +391,20 @@ export default function GuinchoModelSkillView({
                 />
               </DetailsBlock>
 
+              {summary.blendLeaderboard?.byLead?.[leadDay] ? (
+                <DetailsBlock
+                  title="Blend leaderboard"
+                  caption="Router, vote, and averaged blends of the open models, scored the same way as any single model."
+                >
+                  <SkillTable
+                    caption="Rows marked Rule are not a fetched model -- they are a router, vote, or average built from the models above."
+                    rows={summary.blendLeaderboard.byLead[leadDay].rows}
+                    winnerModel={summary.blendLeaderboard.byLead[leadDay].rows[0]?.model}
+                    columns={UNDER_TABLE_COLUMNS}
+                  />
+                </DetailsBlock>
+              ) : null}
+
               <DetailsBlock title="Same day, yesterday, two days ago" caption="Does extra notice still catch the real days?">
                 <div className="grid gap-4 lg:grid-cols-3">
                   {leadMultiples.map(({ day, label, rows }) => (

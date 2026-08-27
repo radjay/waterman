@@ -26,4 +26,14 @@ describe("SkillTable", () => {
     expect(screen.getByText("2.1")).toBeTruthy();
     expect(screen.getByText("Same hours for every model.")).toBeTruthy();
   });
+
+  it("badges a synthetic row as a Rule, not a real model", () => {
+    render(
+      <SkillTable
+        rows={[{ model: "router-consensus", label: "Router (direction)", synthetic: true, hours: 100 }]}
+        columns={[{ key: "hours", label: "Hours" }]}
+      />
+    );
+    expect(screen.getByText("Rule")).toBeInTheDocument();
+  });
 });
