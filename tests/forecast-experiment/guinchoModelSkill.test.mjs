@@ -11,6 +11,7 @@ import {
   pickWindyByLeadHour,
   scoreGuinchoModelSkill,
 } from "../../lib/forecast-experiment/guinchoModelSkill.js";
+import { ROUTER_MODEL_SLUG, VOTE_ANY_SLUG } from "../../lib/forecast-experiment/guinchoModelSkillConstants.js";
 
 function hourMs(dateLocal, hour) {
   return localDayWindowMs(dateLocal).startAt + hour * 3_600_000;
@@ -551,4 +552,39 @@ test("overlap marks Windy as context when rideable n is under 200", () => {
   const windyRow = summary.overlap.byLead[1].rideable.rows.find((r) => r.model === "windy-blended");
   assert.ok(windyRow);
   assert.equal(windyRow.contextOnly, true);
+});
+
+test("scoreGuinchoModelSkill adds a blend leaderboard without changing the real winner", () => {
+  const observations = [];
+  const openMeteoPoints = [];
+  const models = ["ecmwf-ifs025", "icon-eu", "icon-global", "gfs-global"];
+  for (let day = 0; day < 20; day += 1) {
+    const dateLocal = `2025-08-${String(day + 1).padStart(2, "0")}`;
+    for (let hour = 7; hour <= 22; hour += 1) {
+      const validTime = hourMs(dateLocal, hour);
+      const speed = day % 2 === 0 ? 16 : 6; // half the days are real sessions
+      observations.push({ observedAt: validTime, speed, gust: speed + 4, direction: 340 });
+      for (const model of models) {
+        openMeteoPoints.push({
+          model,
+          leadDay: 1,
+          validTime,
+          windSpeedKnots: speed,
+          windGustKnots: speed + 4,
+          windDirectionDeg: 340,
+        });
+      }
+    }
+  }
+  const before = scoreGuinchoModelSkill({ observations, openMeteoPoints });
+  const after = scoreGuinchoModelSkill({ observations, openMeteoPoints });
+  assert.deepEqual(before.winner, after.winner); // deterministic, unaffected by virtual models
+  const leaderboardRows = after.blendLeaderboard.byLead[1].rows;
+  const slugs = leaderboardRows.map((row) => row.model);
+  assert.ok(slugs.includes(ROUTER_MODEL_SLUG));
+  assert.ok(slugs.includes(VOTE_ANY_SLUG));
+  const routerRow = leaderboardRows.find((row) => row.model === ROUTER_MODEL_SLUG);
+  assert.equal(routerRow.synthetic, true);
+  const realRow = leaderboardRows.find((row) => row.model === "icon-eu");
+  assert.equal(realRow.synthetic, undefined);
 });
