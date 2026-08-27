@@ -588,3 +588,15 @@ test("scoreGuinchoModelSkill adds a blend leaderboard without changing the real 
   const realRow = leaderboardRows.find((row) => row.model === "icon-eu");
   assert.equal(realRow.synthetic, undefined);
 });
+
+test("session rows carry gustiness fields without changing rankTuple order", () => {
+  const observations = [
+    { observedAt: hourMs("2025-08-01", 12), windSpeedKnots: 14, windGustKnots: 20, windDirectionDeg: 340 },
+  ];
+  const openMeteoPoints = [
+    { model: "icon-eu", leadDay: 1, validTime: hourMs("2025-08-01", 12), windSpeedKnots: 14, windGustKnots: 18, windDirectionDeg: 340 },
+  ];
+  const result = scoreGuinchoModelSkill({ observations, openMeteoPoints });
+  const row = result.fullSeries.byLead[1].all.rows.find((r) => r.model === "icon-eu");
+  assert.equal(typeof row.gustinessMae, "number");
+});
