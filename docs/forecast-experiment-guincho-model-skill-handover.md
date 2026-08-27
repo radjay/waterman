@@ -364,3 +364,96 @@ These are open. Do not treat them as decided.
 7. Findings: ICON7 should show about **93%** real days caught, **7%** missed, **16%** false calls. That must match the PDF.
 8. Hours = “Station was windy”: false calls go to 0. That is expected.
 9. Spot check: change the model. The charts must update without a jump to the top. The PDF does not include Spot check.
+
+---
+
+## 12. Blend research (2026-08-27 pass)
+
+Six new scoring threads, added on top of the session-match rank rule in §3.4.
+None change `summary.winner`. Design spec:
+`docs/superpowers/specs/2026-08-27-guincho-blend-research-design.md`. Full
+numbers: `summary.blendLeaderboard`, `summary.confidence`,
+`sampleDays[*].analogDays` in
+`data/forecast-experiment/guincho-model-skill-summary.json`. All numbers
+below are Day −1, all hours, 535 real session days, rebuilt fresh on
+2026-08-27.
+
+**None of the six threads beats ICON7 on session F1.** ICON7 stays the
+named winner. That is a real finding, not a gap — see each thread below.
+
+### 12.1 Direction-consensus router
+
+Router picks ICON7 on nortada hours and ICON13 elsewhere (§4.7). Match: F1
+88.2%, recall 91.2%, false-call rate 14.7%. ICON7 alone: F1 88.3%, recall
+93.1%, false-call rate 16%. The router is the closest challenger of the
+six — 0.1 point behind on F1, with fewer false calls than ICON7 — but it
+does not overtake it.
+
+### 12.2 Vote-any / vote-majority
+
+Vote-any fires when any of the three non-ECMWF peers reach 12 kt; vote-majority
+needs 2 of 3. Neither beats ICON7. Vote-any: F1 87.8%, recall 93.6%,
+false-call rate 17.3% (more false calls than ICON7, for a small recall
+gain). Vote-majority: F1 87.7%, recall 89.3%, false-call rate 13.9% (fewer
+false calls, more misses). Each trades one error type for the other;
+neither trade wins on F1.
+
+### 12.3 Blend variants (mean of 3, weighted by direction)
+
+Average the three peers' wind, then apply the same 12 kt / 4-hour session
+rule as a single model. Blend (mean of 3): F1 87.6%. Blend (weighted by
+nortada/other): F1 87.5%. Both call fewer sessions than ICON7 (recall
+87.5% each) but hold the lowest false-call rate of the six threads (12.2–
+12.4%). Averaging wind before thresholding under-calls; weighting the
+average by direction barely moves the result (under 0.1 point from the
+plain mean).
+
+### 12.4 Gustiness-match metric
+
+Ranks models by how close their gust/speed ratio is to the station's, on
+windy hours only (the card's own copy says this does not change the
+session-call winner). The order does **not** match the session-match
+ranking: GFS is closest (ratio off 0.37), then ICON13 (0.70), then ICON7
+(1.02) — the session-match winner has the worst gustiness match of the
+three scored models. ECMWF scores 0 windy hours at Day −1 (it almost never
+calls a session, so there is nothing to score). Winning the session call
+and matching the gustiness of the session are different questions.
+
+### 12.5 Model-agreement confidence signal
+
+False-call rate falls as the three vote members (ECMWF excluded, per 3.3/
+4.1 — it under-calls almost everything) agree more: **28.1%** at 2-of-3
+agreement (171 days), **8.0%** at all-3-agreed (388 days). A further 58
+days never reach a called hour from any of the three; those are 100%
+missed, 0% false, by construction. No "1-of-3" bucket appears in the real
+archive — on any given hour either two or more agree, or none do. This
+matches the earlier pass's finding exactly; the fresh rebuild changed
+nothing.
+
+### 12.6 Analog-day matching
+
+For each of the 24 spot-check sample days, the 20 nearest historical days
+by regime/season/model-call fingerprint mostly agree with what actually
+happened. The default sample day (2025-08-20, nortada · May–Sep) scores
+20-of-20 analogs as real sessions, and the station did blow that day
+(ICON7 called it right). Divergence is rare, and where it happens it
+points the right way, not the wrong one: on 2025-04-10, a day ICON7
+**falsely called**, only 6-of-20 analogs were real sessions — analog
+history would have flagged that call as unlikely before the fact. On
+2026-04-28, a day ICON7 **missed**, only 8-of-20 analogs were real
+sessions — a weaker signal, but still leaning the way the miss went. No
+sample day's analogs point confidently opposite to what actually
+happened.
+
+### 12.7 Browser check (2026-08-27)
+
+Checked with `agent-browser` (a CDP-based automation CLI, separate from
+Playwright/Puppeteer) against `npm run dev` on port 3010: Findings tab
+(Blend leaderboard, Gustiness match, Confidence blocks, expanded) and Spot
+check tab (analog-days line), at `?theme=night` and `?theme=day`, at 390px
+and 1440px. No bare or broken styling. No light-on-light or dark-on-dark
+text. The "Rule" badge (Router/Vote/Blend rows in the Blend leaderboard)
+and the "Winner" badge both read correctly in both themes. At 390px the
+Confidence and Blend leaderboard tables scroll horizontally inside their
+card, same as every other `SkillTable` on this page; at 1440px all columns
+show without scrolling.
