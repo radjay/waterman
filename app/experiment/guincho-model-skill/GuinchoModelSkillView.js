@@ -38,6 +38,12 @@ const UNDER_TABLE_COLUMNS = [
   { key: "sessionF1Pct", label: "Match score, %", digits: 0 },
 ];
 
+const GUSTINESS_TABLE_COLUMNS = [
+  { key: "gustinessHours", label: "Windy hours scored", digits: 0 },
+  { key: "gustinessMae", label: "Gustiness ratio off", digits: 2 },
+  { key: "gustinessBias", label: "Too gusty / too smooth", digits: 2 },
+];
+
 function fmtKt(value) {
   return Number.isFinite(value) ? value.toFixed(1) : "—";
 }
@@ -362,6 +368,13 @@ export default function GuinchoModelSkillView({
                     digits={0}
                   />
                 </div>
+              </DetailsBlock>
+
+              <DetailsBlock
+                title="Gustiness match"
+                caption="Gustiness ratio = gust / steady wind. This does not change which model wins the session call -- it is a separate read on how gusty a called session actually feels, scored on windy hours only."
+              >
+                <SkillTable rows={table.rows} columns={GUSTINESS_TABLE_COLUMNS} />
               </DetailsBlock>
 
               <DetailsBlock

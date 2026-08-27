@@ -227,6 +227,23 @@ describe("GuinchoModelSkillView", () => {
     expect(screen.queryByText("Blend leaderboard")).toBeNull();
   });
 
+  it("shows the gustiness match block", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          fullSeries: {
+            byLead: {
+              ...summary.fullSeries.byLead,
+              1: { all: table([underRow({ model: "icon-eu", label: "ICON7", gustinessMae: 0.3, gustinessBias: -0.1, gustinessHours: 40 })]), rideable: table(yesterdayRows) },
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Gustiness match")).toBeTruthy();
+  });
+
   it("opens the spot check and switches the model on every chart", () => {
     render(
       <GuinchoModelSkillView
