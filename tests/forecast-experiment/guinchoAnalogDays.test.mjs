@@ -3,7 +3,10 @@ import test from "node:test";
 import { fingerprintDay, findAnalogDays } from "../../lib/forecast-experiment/guinchoAnalogDays.js";
 
 function fc(model, leadDay, validTime, dir) {
-  return [`${model}:${leadDay}:${validTime}`, { windSpeedKnots: 16, windGustKnots: 20, windDirectionDeg: dir }];
+  return [
+    `${model}:${leadDay}:${validTime}`,
+    { windSpeedKnots: 16, windGustKnots: 20, effectiveWindKnots: 18, windDirectionDeg: dir },
+  ];
 }
 
 test("fingerprintDay keys by regime, season, and each model's go/no-go call", () => {
