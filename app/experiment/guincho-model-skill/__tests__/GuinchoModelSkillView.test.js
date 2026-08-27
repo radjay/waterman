@@ -280,6 +280,7 @@ describe("GuinchoModelSkillView", () => {
           sampleDays: [
             {
               dateLocal: "2025-08-20",
+              analogDays: { hits: 17, total: 20 },
               hours: [
                 {
                   hourLocal: 10,
@@ -312,6 +313,7 @@ describe("GuinchoModelSkillView", () => {
     expect(icon.getAttribute("href")).toMatch(/model=icon-eu/);
     fireEvent.click(icon);
     expect(screen.getByText(/20 Aug 2025 · ICON7/)).toBeTruthy();
+    expect(screen.getByText("17 of 20 similar days were real sessions.")).toBeTruthy();
   });
 });
 

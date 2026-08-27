@@ -88,6 +88,11 @@ export function GuinchoSpotCheck({ summary, modelOptions, selectedModel, onSelec
                     modelLabel={modelLabel}
                     compact
                   />
+                  {day.analogDays ? (
+                    <Text variant="muted" className="mt-2 text-[13px]">
+                      {day.analogDays.hits} of {day.analogDays.total} similar days were real sessions.
+                    </Text>
+                  ) : null}
                 </Card>
               );
             })}
