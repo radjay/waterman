@@ -227,6 +227,58 @@ describe("GuinchoModelSkillView", () => {
     expect(screen.queryByText("Blend leaderboard")).toBeNull();
   });
 
+  it("shows a compact verdict when a blend beats the named winner", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          blendLeaderboard: {
+            byLead: {
+              1: {
+                hours: 12,
+                rows: [
+                  underRow({ model: "router-consensus", label: "Router (direction)", synthetic: true, sessionF1Pct: 90 }),
+                  ...yesterdayRows,
+                ],
+              },
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Does blending help?")).toBeTruthy();
+    expect(screen.getByText(/Router \(direction\) beats/)).toBeTruthy();
+    expect(screen.getByText(/2\.0 points/)).toBeTruthy();
+  });
+
+  it("shows a compact verdict when no blend beats the named winner", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          blendLeaderboard: {
+            byLead: {
+              1: {
+                hours: 12,
+                rows: [
+                  ...yesterdayRows,
+                  underRow({ model: "vote-any", label: "Vote (any of 3)", synthetic: true, sessionF1Pct: 60 }),
+                ],
+              },
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Does blending help?")).toBeTruthy();
+    expect(screen.getByText(/GFS still wins/)).toBeTruthy();
+  });
+
+  it("does not render the blend verdict card when there is no blend leaderboard", () => {
+    render(<GuinchoModelSkillView initialSummary={summary} />);
+    expect(screen.queryByText("Does blending help?")).toBeNull();
+  });
+
   it("shows the confidence block ranked by agreement", () => {
     render(
       <GuinchoModelSkillView
@@ -245,6 +297,40 @@ describe("GuinchoModelSkillView", () => {
     );
     expect(screen.getByText("Does agreement mean confidence?")).toBeTruthy();
     expect(screen.getByText("All 3 models agreed")).toBeTruthy();
+  });
+
+  it("shows a compact confidence verdict with the false-call rate at each agreement level", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          confidence: {
+            byLead: {
+              1: [
+                { agreementBucket: "3", days: 388, falseGoDayPct: 8, missedPct: 0 },
+                { agreementBucket: "2", days: 171, falseGoDayPct: 28.1, missedPct: 0 },
+              ],
+            },
+          },
+        }}
+      />
+    );
+    expect(screen.getByText("Confidence check")).toBeTruthy();
+    expect(screen.getByText("8%")).toBeTruthy();
+    expect(screen.getByText("28%")).toBeTruthy();
+    expect(screen.getByText("3 of 3 agree · 388 days")).toBeTruthy();
+  });
+
+  it("does not render the compact confidence verdict with fewer than two agreement levels", () => {
+    render(
+      <GuinchoModelSkillView
+        initialSummary={{
+          ...summary,
+          confidence: { byLead: { 1: [{ agreementBucket: "3", days: 40, falseGoDayPct: 2, missedPct: 1 }] } },
+        }}
+      />
+    );
+    expect(screen.queryByText(/agree ·/)).toBeNull();
   });
 
   it("shows the gustiness match block", () => {

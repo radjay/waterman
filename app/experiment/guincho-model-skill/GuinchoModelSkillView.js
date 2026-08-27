@@ -132,6 +132,64 @@ function pageHref({ leadDay, hoursMode, tab, model }) {
   return `?${params.toString()}#${tab === "spot" ? "models" : "picks"}`;
 }
 
+function blendVerdict(blendTable, winner) {
+  const best = blendTable?.rows?.[0];
+  if (!best || !winner || !Number.isFinite(best.sessionF1Pct) || !Number.isFinite(winner.sessionF1Pct)) return null;
+  const gap = Math.round((best.sessionF1Pct - winner.sessionF1Pct) * 10) / 10;
+  return { best, winner, sameAsWinner: best.model === winner.model, beats: gap > 0, gap: Math.abs(gap) };
+}
+
+function BlendVerdictCard({ verdict }) {
+  if (!verdict) return null;
+  const { best, winner, sameAsWinner, beats, gap } = verdict;
+  return (
+    <Card radius="lg">
+      <MicroLabel>Does blending help?</MicroLabel>
+      <Heading level={3} className="mt-2">
+        {sameAsWinner || !beats ? `No — ${winner.label} still wins` : `Yes — ${best.label} wins`}
+      </Heading>
+      <Text className="mt-2 max-w-[60ch]">
+        {sameAsWinner
+          ? `Every router, vote, and blend we tried still loses to ${winner.label} on match score.`
+          : beats
+            ? `${best.label} beats ${winner.label} by ${gap.toFixed(1)} points on match score.`
+            : `The closest blend, ${best.label}, trails ${winner.label} by ${gap.toFixed(1)} points on match score.`}
+      </Text>
+    </Card>
+  );
+}
+
+function confidenceVerdictBuckets(confidenceRows) {
+  const real = (confidenceRows ?? []).filter(
+    (bucket) => bucket.agreementBucket !== "no-call" && Number.isFinite(bucket.falseGoDayPct)
+  );
+  if (real.length < 2) return null;
+  return [...real].sort((a, b) => Number(b.agreementBucket) - Number(a.agreementBucket));
+}
+
+function ConfidenceVerdictCard({ buckets }) {
+  if (!buckets) return null;
+  const rises = buckets[buckets.length - 1].falseGoDayPct > buckets[0].falseGoDayPct;
+  return (
+    <Card radius="lg">
+      <MicroLabel>Confidence check</MicroLabel>
+      <Heading level={3} className="mt-2">
+        {rises ? "Yes — more agreement means fewer false calls" : "Not clearly"}
+      </Heading>
+      <div className="mt-3 flex flex-wrap gap-6">
+        {buckets.map((bucket) => (
+          <div key={bucket.agreementBucket}>
+            <p className="font-data text-2xl tabular-nums text-ink">{bucket.falseGoDayPct.toFixed(0)}%</p>
+            <p className="mt-1 text-[13px] text-faded-ink">
+              {bucket.agreementBucket} of 3 agree · {bucket.days} days
+            </p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function SliceCard({ title, slice, note }) {
   if (!slice?.overall) return null;
   const f1 = slice.overall.sessionF1Pct ?? slice.overall.hourF1Pct;
@@ -181,6 +239,9 @@ export default function GuinchoModelSkillView({
   const rankRows = table?.rows?.filter((row) => row.model !== WINDY_MODEL) ?? [];
   const winner = winnerFromTable(table);
   const overlapWinner = winnerFromTable(overlapTable);
+  const blendTable = summary?.blendLeaderboard?.byLead?.[leadDay];
+  const blendCardVerdict = blendVerdict(blendTable, winner);
+  const confidenceBuckets = confidenceVerdictBuckets(summary?.confidence?.byLead?.[leadDay]);
   const tabOptions = [
     { id: "findings", label: "Findings", href: pageHref({ leadDay, hoursMode, tab: "findings" }) },
     { id: "spot", label: "Spot check", href: pageHref({ leadDay, hoursMode, tab: "spot" }) },
@@ -333,6 +394,13 @@ export default function GuinchoModelSkillView({
             <ScreenEmpty title="No hours for this filter" body="Try a different forecast time or hour set." />
           ) : (
             <>
+              {blendCardVerdict || confidenceBuckets ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <BlendVerdictCard verdict={blendCardVerdict} />
+                  <ConfidenceVerdictCard buckets={confidenceBuckets} />
+                </div>
+              ) : null}
+
               {slices ? (
                 <section className="space-y-3">
                   <Heading level={3}>When the wind changes</Heading>
@@ -356,146 +424,154 @@ export default function GuinchoModelSkillView({
                 </section>
               ) : null}
 
-              <DetailsBlock title="Every model" caption={`Caught real days, missed real days, and false calls, for ${hoursLabel}.`}>
-                <div className="grid gap-4 lg:grid-cols-3">
-                  <RankingBars
-                    title="Match score"
-                    rows={rankRows.filter((row) => Number.isFinite(row.sessionF1Pct))}
-                    valueKey="sessionF1Pct"
-                    winnerKey={winner?.model}
-                    formatLabel={(row) => row.label}
-                    unit="%"
-                    digits={0}
-                    lowerIsBetter={false}
-                  />
-                  <RankingBars
-                    title="Real days caught"
-                    rows={rankRows.filter((row) => Number.isFinite(row.recallPct))}
-                    valueKey="recallPct"
-                    winnerKey={winner?.model}
-                    formatLabel={(row) => row.label}
-                    unit="%"
-                    digits={0}
-                    lowerIsBetter={false}
-                  />
-                  <RankingBars
-                    title="False calls"
-                    rows={rankRows.filter((row) => Number.isFinite(row.falseGoDayPct))}
-                    valueKey="falseGoDayPct"
-                    winnerKey={winner?.model}
-                    formatLabel={(row) => row.label}
-                    unit="%"
-                    digits={0}
-                  />
-                </div>
-              </DetailsBlock>
+              <section className="space-y-3">
+                <Heading level={3}>More detail</Heading>
+                <Text variant="muted" className="max-w-[70ch]">
+                  Full tables and charts behind the numbers above, for checking the study rather than skimming it.
+                </Text>
+                <div className="space-y-3">
+                  <DetailsBlock title="Every model" caption={`Caught real days, missed real days, and false calls, for ${hoursLabel}.`}>
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <RankingBars
+                        title="Match score"
+                        rows={rankRows.filter((row) => Number.isFinite(row.sessionF1Pct))}
+                        valueKey="sessionF1Pct"
+                        winnerKey={winner?.model}
+                        formatLabel={(row) => row.label}
+                        unit="%"
+                        digits={0}
+                        lowerIsBetter={false}
+                      />
+                      <RankingBars
+                        title="Real days caught"
+                        rows={rankRows.filter((row) => Number.isFinite(row.recallPct))}
+                        valueKey="recallPct"
+                        winnerKey={winner?.model}
+                        formatLabel={(row) => row.label}
+                        unit="%"
+                        digits={0}
+                        lowerIsBetter={false}
+                      />
+                      <RankingBars
+                        title="False calls"
+                        rows={rankRows.filter((row) => Number.isFinite(row.falseGoDayPct))}
+                        valueKey="falseGoDayPct"
+                        winnerKey={winner?.model}
+                        formatLabel={(row) => row.label}
+                        unit="%"
+                        digits={0}
+                      />
+                    </div>
+                  </DetailsBlock>
 
-              <DetailsBlock
-                title="Gustiness match"
-                caption="Gustiness ratio = gust / steady wind. This does not change which model wins the session call -- it is a separate read on how gusty a called session actually feels, scored on windy hours only."
-              >
-                <SkillTable
-                  caption="A blank ECMWF row means this archive has no ECMWF gust field to score -- not that Guincho was calm."
-                  rows={table.rows}
-                  columns={GUSTINESS_TABLE_COLUMNS}
-                />
-              </DetailsBlock>
-
-              <DetailsBlock
-                title="The numbers"
-                caption={`Same ${filterHours} hours for every model.`}
-              >
-                <SkillTable
-                  caption="Caught = real days the model also called. Missed = real days it skipped. False calls = days it called that did not blow."
-                  rows={table.rows}
-                  winnerModel={winner?.model}
-                  columns={UNDER_TABLE_COLUMNS}
-                />
-              </DetailsBlock>
-
-              <DetailsBlock
-                title="What we showed in the app"
-                caption={
-                  overlapTable?.windyPeer
-                    ? `Windy’s blended Guincho line on the same ${overlapTable.hours} hours.`
-                    : `Not enough overlapping hours to rank the old Windy line (${overlapTable?.hours ?? 0} hours).`
-                }
-              >
-                <SkillTable
-                  rows={overlapTable?.rows ?? []}
-                  winnerModel={overlapWinner?.model}
-                  columns={UNDER_TABLE_COLUMNS}
-                />
-              </DetailsBlock>
-
-              {summary.blendLeaderboard?.byLead?.[leadDay] ? (
-                <DetailsBlock
-                  title="Blend leaderboard"
-                  caption="Router, vote, and averaged blends of the open models, scored the same way as any single model."
-                >
-                  <SkillTable
-                    caption="Rows marked Rule are not a fetched model -- they are a router, vote, or average built from the models above."
-                    rows={summary.blendLeaderboard.byLead[leadDay].rows}
-                    winnerModel={summary.blendLeaderboard.byLead[leadDay].rows[0]?.model}
-                    columns={UNDER_TABLE_COLUMNS}
-                  />
-                </DetailsBlock>
-              ) : null}
-
-              <DetailsBlock
-                title="Does agreement mean confidence?"
-                caption="When the three vote members agree, is the call more reliable? Days grouped by how many of the three called each go hour."
-              >
-                <SkillTable
-                  caption="“Never reached a called day” is a distinct bucket, not a weaker reliability score -- the vote group called no session at all that day, so its False calls, % is 0 by construction, not evidence of accuracy."
-                  rows={confidenceRows(summary.confidence?.byLead?.[leadDay])}
-                  columns={CONFIDENCE_TABLE_COLUMNS}
-                />
-              </DetailsBlock>
-
-              <DetailsBlock title="Same day, yesterday, two days ago" caption="Does extra notice still catch the real days?">
-                <div className="grid gap-4 lg:grid-cols-3">
-                  {leadMultiples.map(({ day, label, rows }) => (
-                    <RankingBars
-                      key={day}
-                      title={label}
-                      rows={rows.filter((row) => row.model !== WINDY_MODEL && Number.isFinite(row.sessionF1Pct))}
-                      valueKey="sessionF1Pct"
-                      winnerKey={[...rows].sort((a, b) => (b.sessionF1Pct ?? -1) - (a.sessionF1Pct ?? -1))[0]?.model}
-                      formatLabel={(row) => row.label}
-                      unit="%"
-                      digits={0}
-                      lowerIsBetter={false}
+                  <DetailsBlock
+                    title="The numbers"
+                    caption={`Same ${filterHours} hours for every model.`}
+                  >
+                    <SkillTable
+                      caption="Caught = real days the model also called. Missed = real days it skipped. False calls = days it called that did not blow."
+                      rows={table.rows}
+                      winnerModel={winner?.model}
+                      columns={UNDER_TABLE_COLUMNS}
                     />
-                  ))}
-                </div>
-              </DetailsBlock>
+                  </DetailsBlock>
 
-              <DetailsBlock title="Each hour as a dot" caption="Below the dashed line = the model was too strong.">
-                {modelOptions.length > 0 ? (
-                  <FilterGroup label="Model" className="mb-3">
-                    <PillToggle
-                      name="scatter-model"
-                      animated={false}
-                      options={modelOptions.map((option) => ({
-                        ...option,
-                        href: pageHref({ leadDay, hoursMode, tab: "findings", model: option.id }),
-                      }))}
-                      value={chartModel}
-                      onChange={setSelectedModel}
+                  {blendTable ? (
+                    <DetailsBlock
+                      title="Blend leaderboard"
+                      caption="Router, vote, and averaged blends of the open models, scored the same way as any single model."
+                    >
+                      <SkillTable
+                        caption="Rows marked Rule are not a fetched model -- they are a router, vote, or average built from the models above."
+                        rows={blendTable.rows}
+                        winnerModel={blendTable.rows[0]?.model}
+                        columns={UNDER_TABLE_COLUMNS}
+                      />
+                    </DetailsBlock>
+                  ) : null}
+
+                  <DetailsBlock
+                    title="Does agreement mean confidence?"
+                    caption="When the three vote members agree, is the call more reliable? Days grouped by how many of the three called each go hour."
+                  >
+                    <SkillTable
+                      caption="“Never reached a called day” is a distinct bucket, not a weaker reliability score -- the vote group called no session at all that day, so its False calls, % is 0 by construction, not evidence of accuracy."
+                      rows={confidenceRows(summary.confidence?.byLead?.[leadDay])}
+                      columns={CONFIDENCE_TABLE_COLUMNS}
                     />
-                  </FilterGroup>
-                ) : null}
-                <ForecastObsScatter
-                  points={scatterShown}
-                  title="Each dot is one hour"
-                  caption="Below the line = the model was too strong. That is the miss that costs a session."
-                />
-              </DetailsBlock>
+                  </DetailsBlock>
 
-              <DetailsBlock title="When the station was up" caption="Filled months have Cabo Raso hours we could score.">
-                <CoverageStrip months={summary.coverage ?? []} />
-              </DetailsBlock>
+                  <DetailsBlock
+                    title="Gustiness match"
+                    caption="Gustiness ratio = gust / steady wind. This does not change which model wins the session call -- it is a separate read on how gusty a called session actually feels, scored on windy hours only."
+                  >
+                    <SkillTable
+                      caption="A blank ECMWF row means this archive has no ECMWF gust field to score -- not that Guincho was calm."
+                      rows={table.rows}
+                      columns={GUSTINESS_TABLE_COLUMNS}
+                    />
+                  </DetailsBlock>
+
+                  <DetailsBlock
+                    title="What we showed in the app"
+                    caption={
+                      overlapTable?.windyPeer
+                        ? `Windy’s blended Guincho line on the same ${overlapTable.hours} hours.`
+                        : `Not enough overlapping hours to rank the old Windy line (${overlapTable?.hours ?? 0} hours).`
+                    }
+                  >
+                    <SkillTable
+                      rows={overlapTable?.rows ?? []}
+                      winnerModel={overlapWinner?.model}
+                      columns={UNDER_TABLE_COLUMNS}
+                    />
+                  </DetailsBlock>
+
+                  <DetailsBlock title="Same day, yesterday, two days ago" caption="Does extra notice still catch the real days?">
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      {leadMultiples.map(({ day, label, rows }) => (
+                        <RankingBars
+                          key={day}
+                          title={label}
+                          rows={rows.filter((row) => row.model !== WINDY_MODEL && Number.isFinite(row.sessionF1Pct))}
+                          valueKey="sessionF1Pct"
+                          winnerKey={[...rows].sort((a, b) => (b.sessionF1Pct ?? -1) - (a.sessionF1Pct ?? -1))[0]?.model}
+                          formatLabel={(row) => row.label}
+                          unit="%"
+                          digits={0}
+                          lowerIsBetter={false}
+                        />
+                      ))}
+                    </div>
+                  </DetailsBlock>
+
+                  <DetailsBlock title="Each hour as a dot" caption="Below the dashed line = the model was too strong.">
+                    {modelOptions.length > 0 ? (
+                      <FilterGroup label="Model" className="mb-3">
+                        <PillToggle
+                          name="scatter-model"
+                          animated={false}
+                          options={modelOptions.map((option) => ({
+                            ...option,
+                            href: pageHref({ leadDay, hoursMode, tab: "findings", model: option.id }),
+                          }))}
+                          value={chartModel}
+                          onChange={setSelectedModel}
+                        />
+                      </FilterGroup>
+                    ) : null}
+                    <ForecastObsScatter
+                      points={scatterShown}
+                      title="Each dot is one hour"
+                      caption="Below the line = the model was too strong. That is the miss that costs a session."
+                    />
+                  </DetailsBlock>
+
+                  <DetailsBlock title="When the station was up" caption="Filled months have Cabo Raso hours we could score.">
+                    <CoverageStrip months={summary.coverage ?? []} />
+                  </DetailsBlock>
+                </div>
+              </section>
             </>
           )}
         </>
