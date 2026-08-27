@@ -415,9 +415,14 @@ windy hours only (the card's own copy says this does not change the
 session-call winner). The order does **not** match the session-match
 ranking: GFS is closest (ratio off 0.37), then ICON13 (0.70), then ICON7
 (1.02) — the session-match winner has the worst gustiness match of the
-three scored models. ECMWF scores 0 windy hours at Day −1 (it almost never
-calls a session, so there is nothing to score). Winning the session call
-and matching the gustiness of the session are different questions.
+three scored models. ECMWF scores 0 windy hours at Day −1. That is not
+because it under-calls. This archive has no ECMWF gust field at all, so
+its forecast gustiness ratio is always undefined (`gustMae` and
+`gustUnderMae` are also `undefined` for it in the summary). The gustiness
+filter itself runs on the station's wind, the same for all four models.
+ICON7, ICON13, and GFS each score thousands of hours from that same
+filter. Winning the session call and matching the gustiness of the session are different
+questions.
 
 ### 12.5 Model-agreement confidence signal
 
@@ -432,16 +437,22 @@ nothing.
 
 ### 12.6 Analog-day matching
 
-For each of the 24 spot-check sample days, the 20 nearest historical days
-by regime/season/model-call fingerprint mostly agree with what actually
-happened. The default sample day (2025-08-20, nortada · May–Sep) scores
-20-of-20 analogs as real sessions, and the station did blow that day
-(ICON7 called it right). Divergence is rare, and where it happens it
+For each of the 24 spot-check sample days, look at the 20 nearest
+historical days by regime/season/model-call fingerprint. They mostly
+agree with what actually happened. "Historical" means before the sample
+day only. Analogs never draw from the sample day's own future. They also
+skip any day with zero real forecast coverage — the 2022-05 to 2024-01
+gap before the Open-Meteo forecast archive starts. Sample days near the
+start of the real archive get a thinner pool as a result: 2024-02-07 has
+only 3 eligible analogs, and 2024-05-02 has none at all, so its analog
+block is omitted. The default sample day (2025-08-20, nortada · May–Sep)
+scores 20-of-20 analogs as real sessions, and the station did blow that
+day (ICON7 called it right). Divergence is rare. Where it happens, it
 points the right way, not the wrong one: on 2025-04-10, a day ICON7
-**falsely called**, only 6-of-20 analogs were real sessions — analog
-history would have flagged that call as unlikely before the fact. On
-2026-04-28, a day ICON7 **missed**, only 8-of-20 analogs were real
-sessions — a weaker signal, but still leaning the way the miss went. No
+**falsely called**, 9-of-20 analogs were real sessions — still a
+minority, so analog history would have flagged that call as unlikely
+before the fact. On 2026-04-28, a day ICON7 **missed**, exactly 10-of-20
+analogs were real sessions — an even split, not a lean either way. No
 sample day's analogs point confidently opposite to what actually
 happened.
 

@@ -54,7 +54,6 @@ const CONFIDENCE_LABELS = {
 const CONFIDENCE_TABLE_COLUMNS = [
   { key: "days", label: "Days", digits: 0 },
   { key: "falseGoDayPct", label: "False calls, %", digits: 0 },
-  { key: "missedPct", label: "Missed, %", digits: 0 },
 ];
 
 function confidenceRows(buckets) {
@@ -395,7 +394,11 @@ export default function GuinchoModelSkillView({
                 title="Gustiness match"
                 caption="Gustiness ratio = gust / steady wind. This does not change which model wins the session call -- it is a separate read on how gusty a called session actually feels, scored on windy hours only."
               >
-                <SkillTable rows={table.rows} columns={GUSTINESS_TABLE_COLUMNS} />
+                <SkillTable
+                  caption="A blank ECMWF row means this archive has no ECMWF gust field to score -- not that Guincho was calm."
+                  rows={table.rows}
+                  columns={GUSTINESS_TABLE_COLUMNS}
+                />
               </DetailsBlock>
 
               <DetailsBlock
@@ -444,6 +447,7 @@ export default function GuinchoModelSkillView({
                 caption="When the three vote members agree, is the call more reliable? Days grouped by how many of the three called each go hour."
               >
                 <SkillTable
+                  caption="“Never reached a called day” is a distinct bucket, not a weaker reliability score -- the vote group called no session at all that day, so its False calls, % is 0 by construction, not evidence of accuracy."
                   rows={confidenceRows(summary.confidence?.byLead?.[leadDay])}
                   columns={CONFIDENCE_TABLE_COLUMNS}
                 />
