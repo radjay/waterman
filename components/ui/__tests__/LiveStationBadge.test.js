@@ -3,22 +3,21 @@ import { render, screen } from "@testing-library/react";
 import { LiveStationBadge } from "../LiveStationBadge";
 
 describe("LiveStationBadge", () => {
-  it("shows the TO direction from raw FROM degrees (never unflipped FROM)", () => {
-    // 337° ≈ NNW FROM → TO is SSE. Preferring raw degrees over a stale label
-    // is what stops the cam badge disagreeing with the rest of the app.
+  it("shows the FROM label for raw Windguru degrees (matches forecast WindLine)", () => {
+    // 337.5° ≈ NNW FROM (nortada). Must not print the inverted TO (SSE).
     render(
       <LiveStationBadge
         station={{
           speed: 11,
           gust: 19,
           direction: 337.5,
-          directionLabel: "NNW", // deliberately wrong (FROM) — must not win
+          directionLabel: "SSE", // deliberately wrong (TO) — must not win
           agoLabel: "1 MIN AGO",
         }}
       />
     );
-    expect(screen.getByText("SSE")).toBeTruthy();
-    expect(screen.queryByText("NNW")).toBeNull();
+    expect(screen.getByText("NNW")).toBeTruthy();
+    expect(screen.queryByText("SSE")).toBeNull();
   });
 
   it("falls back to directionLabel when degrees are missing", () => {

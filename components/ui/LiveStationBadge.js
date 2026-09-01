@@ -1,15 +1,14 @@
 import { Badge } from "./Badge";
-import { getDisplayWindDirection } from "../../lib/utils";
+import { getLiveWindDirectionLabel } from "../../lib/utils";
 
 /**
  * LIVE station reading as a pronounced badge — overlays the cam top-left when
  * a station is alive (CamFrame passes the same pack.station as the wind chart).
  *
- * Wind direction is always the display (TO) bearing. Prefer recomputing from
- * the raw FROM degrees via getDisplayWindDirection so a stale or unflipped
- * `directionLabel` cannot slip onto the cam. Fall back to directionLabel only
- * when degrees are missing. Never print getCardinalDirection of the stored
- * bearing.
+ * Wind direction matches forecast WindLine labels (where the wind comes FROM).
+ * Prefer recomputing from raw Windguru FROM degrees via getLiveWindDirectionLabel
+ * so a stale directionLabel cannot slip onto the cam. Fall back to directionLabel
+ * only when degrees are missing (must already be the display label).
  *
  * One source of truth: pass the same `pack.station` used by the wind chart so
  * this cannot disagree with the station line.
@@ -19,10 +18,9 @@ export function LiveStationBadge({ station, className = "", ...props }) {
 
   const speed = Math.round(station.speed);
   const gust = Number.isFinite(station.gust) ? Math.round(station.gust) : null;
-  // Raw FROM degrees win: always flip to TO. directionLabel is only a fallback
-  // for cards that somehow lack degrees (must already be the TO label).
+  // Raw FROM degrees win: normalize to forecast storage, then the shared flip.
   const direction = Number.isFinite(station.direction)
-    ? getDisplayWindDirection(station.direction)
+    ? getLiveWindDirectionLabel(station.direction)
     : station.directionLabel ?? null;
 
   const titleParts = [
