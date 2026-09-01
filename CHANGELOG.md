@@ -1,5 +1,10 @@
 # Changelog
 
+## [2026-09-01]
+
+### Fixed
+- Live wind badges and spot-card station lines show the same compass direction as forecast labels (e.g. nortada reads N/NNW, not the inverted S/SSW). Windguru station bearings are meteorological FROM; they now normalize to forecast storage before the shared direction flip.
+
 ## [2026-08-17]
 
 ### Fixed
