@@ -169,8 +169,8 @@ Components are organized by feature:
 Production is a Cloudflare Worker (`waterman-web`) plus Convex.
 
 ```bash
-npx convex deploy          # live Convex (prod: keen-reindeer-909)
-npx convex dev --once      # lab Convex (dev: adorable-anteater-323)
+npx convex deploy          # push Convex functions (see dashboard for deployment)
+npx convex dev --once      # dev deployment (adorable-anteater-323)
 npm run deploy             # OpenNext Worker
 ```
 
@@ -182,7 +182,7 @@ Lab Convex keeps five forecast spots: Guincho, Lagoa da Albufeira, Marina de Cas
 
 Required:
 
-- `NEXT_PUBLIC_CONVEX_URL` — lab: `https://adorable-anteater-323.convex.cloud`; live Worker uses prod
+- `NEXT_PUBLIC_CONVEX_URL` — `https://adorable-anteater-323.convex.cloud` (production GHA + wrangler.jsonc; set in `.env.local` for local dev)
 - `NEXT_PUBLIC_APP_URL` — `https://www.watermanreport.com` in production
 - `OPENROUTER_API_KEY` — Convex env, scoring
 

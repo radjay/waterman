@@ -247,7 +247,7 @@ This document outlines the standard procedures for maintaining and deploying the
 
 ## Notes
 
-- Live Convex is `keen-reindeer-909`. Lab is `adorable-anteater-323` with five forecast spots (Guincho, Lagoa, Marina, Carcavelos, Bico).
+- Production web uses Convex `adorable-anteater-323` (`NEXT_PUBLIC_CONVEX_URL` in deploy-web.yml and wrangler.jsonc). Lab roster is five forecast spots (Guincho, Lagoa, Marina, Carcavelos, Bico) via `spots:setLabRoster`.
 - `www.watermanreport.com` is the Worker. Apex `watermanreport.com` still hits Render until you remove that custom domain in Render.
 - SOPs should be followed in order and completely
 - Don't skip verification steps
