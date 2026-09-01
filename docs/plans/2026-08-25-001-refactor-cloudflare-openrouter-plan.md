@@ -373,7 +373,7 @@ Units 1, 2, 3, and 5 can start in parallel. Unit 4 needs scoring (Unit 3) still 
 
 - [x] **Unit 7: Copy Convex lab data to prod and trim the lab roster**
 
-**Goal:** Live traffic reads `keen-reindeer-909`. Lab does not scrape the full coast.
+**Goal:** Live traffic reads `keen-reindeer-909`. Lab does not scrape the full coast. *(Superseded 2026-09-01: production web uses `adorable-anteater-323`; see wrangler.jsonc and deploy-web.yml.)*
 
 **Approach:**
 - Snapshot lab and import into prod with `--replace-all`.

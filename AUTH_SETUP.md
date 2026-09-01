@@ -51,7 +51,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 For production, set these as Wrangler vars on `waterman-web` (already in `wrangler.jsonc`):
 
 ```bash
-NEXT_PUBLIC_CONVEX_URL=https://keen-reindeer-909.convex.cloud
+NEXT_PUBLIC_CONVEX_URL=https://adorable-anteater-323.convex.cloud
 NEXT_PUBLIC_APP_URL=https://www.watermanreport.com
 ```
 

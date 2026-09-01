@@ -30,14 +30,12 @@ Before writing any UI:
 
 ## Convex
 
-Live traffic uses Convex prod: `prod:keen-reindeer-909`
-(`https://keen-reindeer-909.convex.cloud`). Push live functions with
-`npx convex deploy`.
+Production web traffic uses `adorable-anteater-323`
+(`https://adorable-anteater-323.convex.cloud`) via `NEXT_PUBLIC_CONVEX_URL`
+in deploy-web.yml and wrangler.jsonc.
 
-Lab traffic uses Convex dev: `dev:adorable-anteater-323`
-(`https://adorable-anteater-323.convex.cloud`). Push lab functions with
-`npx convex dev --once`. Dev keeps a small forecast roster so scrape and
-scoring do not double prod cost.
+Push dev functions with `npx convex dev --once`. Dev keeps a small forecast
+roster so scrape and scoring do not double prod cost.
 
 ## Layout / data conventions
 
