@@ -7,7 +7,7 @@ markup_status: approved
 
 # Guincho model skill vs Cabo Raso
 
-**Related:** [Handover (current rank rule and results)](../../forecast-experiment-guincho-model-skill-handover.md), [Convex archive and 30-day retention](2026-08-26-convex-archive-retention-design.md), [Model analysis learnings](../../forecast-experiment-model-analysis-learnings.md), [Cascais Model skill](../../../app/experiment/model-analysis/page.js)
+**Related:** [Handover (current rank rule and results)](../../forecast-experiment-guincho-model-skill-handover.md), [Convex archive and 30-day retention](2026-08-26-convex-archive-retention-design.md), [Model analysis learnings](../../forecast-experiment-model-analysis-learnings.md), [Cascais Model skill](../../../app/experiment/model-analysis/page.js), [Going-forward forecast eval logging spec](../../forecast-eval-logging-spec.md)
 
 > The rank rule in this spec (lowest MAE on rideable Day −1) is **stale**. The code ranks session match (F1 of catch vs false call) on Day −1, all daytime hours. Read the handover first.
 

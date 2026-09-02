@@ -2,7 +2,7 @@
 
 Notes from building and running the wingfoil forecast experiment and **Model skill** analysis for Cascais Bay. Intended as a reference so we do not repeat mistakes (especially around model geography and Open-Meteo coverage).
 
-**Related:** implementation plan at [`docs/superpowers/plans/2026-05-24-wingfoil-forecast-experiment.md`](superpowers/plans/2026-05-24-wingfoil-forecast-experiment.md). Model list and domain comment live in [`lib/forecast-experiment/locations.js`](../lib/forecast-experiment/locations.js). Guincho vs Cabo Raso is a separate local-archive study: [`docs/forecast-experiment-guincho-model-skill-handover.md`](forecast-experiment-guincho-model-skill-handover.md).
+**Related:** implementation plan at [`docs/superpowers/plans/2026-05-24-wingfoil-forecast-experiment.md`](superpowers/plans/2026-05-24-wingfoil-forecast-experiment.md). Model list and domain comment live in [`lib/forecast-experiment/locations.js`](../lib/forecast-experiment/locations.js). Guincho vs Cabo Raso is a separate local-archive study: [`docs/forecast-experiment-guincho-model-skill-handover.md`](forecast-experiment-guincho-model-skill-handover.md). Going-forward durable eval logging (spec only): [`docs/forecast-eval-logging-spec.md`](forecast-eval-logging-spec.md).
 
 ---
 
