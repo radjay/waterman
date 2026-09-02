@@ -5,7 +5,8 @@ Do not treat anything below as decided — the open questions section lists
 what still needs a call before this can become a spec.
 
 **Related:** [Guincho blend research handover](../forecast-experiment-guincho-model-skill-handover.md),
-[Guincho blend research spec](../superpowers/specs/2026-08-27-guincho-blend-research-design.md)
+[Guincho blend research spec](../superpowers/specs/2026-08-27-guincho-blend-research-design.md),
+[Going-forward forecast eval logging spec](../forecast-eval-logging-spec.md)
 
 ## The problem, in plain terms
 

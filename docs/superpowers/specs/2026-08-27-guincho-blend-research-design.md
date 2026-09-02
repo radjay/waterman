@@ -7,7 +7,7 @@ markup_status: not_reviewed
 
 # Guincho blend research — six ways to beat a single model
 
-**Related:** [Guincho model skill handover](../../forecast-experiment-guincho-model-skill-handover.md), [Guincho model skill design (stale rank rule)](2026-08-26-guincho-model-skill-design.md)
+**Related:** [Guincho model skill handover](../../forecast-experiment-guincho-model-skill-handover.md), [Guincho model skill design (stale rank rule)](2026-08-26-guincho-model-skill-design.md), [Going-forward forecast eval logging spec](../../forecast-eval-logging-spec.md)
 
 **This study does not change the live Guincho forecast.** It is a research
 exercise, like the study before it. Read the handover first. It tells you

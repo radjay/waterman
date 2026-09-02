@@ -14,6 +14,7 @@ Read this file first. Then open the PDF report. Then open the page. The design s
 | `docs/brainstorms/2026-08-26-guincho-model-skill-requirements.md` | Original requirements |
 | `docs/superpowers/specs/2026-08-26-guincho-model-skill-design.md` | Original design. Rank rule in that file is **stale** |
 | `docs/forecast-experiment-model-analysis-learnings.md` | Cascais Model skill. Different spot. Different station |
+| `docs/forecast-eval-logging-spec.md` | Going-forward durable forecast vs Windguru logging (spec only; do not rebuild this study) |
 
 ---
 
